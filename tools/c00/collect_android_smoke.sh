@@ -8,6 +8,7 @@ DURATION="${3:-30}"
 APK_PATH="${APK_PATH:-}"
 EXTRA_VALIDATE_ARGS="${EXTRA_VALIDATE_ARGS:-}"
 CAPTURE_MEDIA="${CAPTURE_MEDIA:-1}"
+ALLOW_MISSING_MEDIA="${ALLOW_MISSING_MEDIA:-0}"
 VIDEO_SECONDS="${VIDEO_SECONDS:-15}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="$PROJECT_ROOT/releases/phase_0_smoke/evidence"
@@ -69,5 +70,13 @@ node "$PROJECT_ROOT/tools/c00/validate_smoke_log.js" \
 	--log "$LOG_PATH" \
 	--report "$REPORT_PATH" \
 	$EXTRA_VALIDATE_ARGS
+
+EVIDENCE_ARGS=(--gate "$GATE" --screenshot "$SCREENSHOT_PATH" --video "$VIDEO_PATH" --report "$REPORT_PATH")
+if [ "$ALLOW_MISSING_MEDIA" = "1" ]; then
+	EVIDENCE_ARGS+=(--allow-missing-media)
+fi
+
+echo "Validating evidence bundle"
+node "$PROJECT_ROOT/tools/c00/validate_evidence_bundle.js" "${EVIDENCE_ARGS[@]}"
 
 echo "Report: $REPORT_PATH"

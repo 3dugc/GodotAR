@@ -38,6 +38,12 @@ Common environment:
   RUN_EXPORT=1
   RUN_COLLECT=1
 
+Evidence:
+  CAPTURE_MEDIA=1                  Capture screenshot/recording where supported.
+  VIDEO_SECONDS=15                 Android/Rokid screen recording length.
+  MANUAL_MEDIA_PATH=/path/file     iPad fallback screenshot or recording when automatic capture is unavailable.
+  ALLOW_MISSING_MEDIA=1            Keep collecting/reporting even when media evidence is missing.
+
 iPad / ARKit:
   GODOT_SOURCE_DIR=/path/to/godot     Build GodotARKit.xcframework before export.
   BUILD_ARKIT_PLUGIN=auto|1|0        Default auto: build only when GODOT_SOURCE_DIR is set.

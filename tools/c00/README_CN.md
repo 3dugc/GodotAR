@@ -65,6 +65,8 @@ tools/c00/run_device_cycle.sh all
 - `BUILD_ARKIT_PLUGIN=0`：跳过 ARKit 插件构建。
 - `CAPTURE_MEDIA=0`：跳过截图/录屏采集。
 - `VIDEO_SECONDS=15`：Android/Rokid 录屏时长。
+- `MANUAL_MEDIA_PATH=/path/to/file`：iPad 自动截图不可用时，提供手动截图或录屏。
+- `ALLOW_MISSING_MEDIA=1`：继续生成报告，但把缺失媒体证据降级为 warning。
 - `INCLUDE_ANDROID_ARCORE=1`：`all` 模式额外跑 Android ARCore gate。
 
 ## Export Preset 检查
@@ -176,6 +178,26 @@ node tools/c00/validate_smoke_log.js --gate ipad --log path/to/ipad.log --report
 - `ipad`
 - `android-arcore`
 
+## 手动媒体证据验证
+
+C00 默认还会验证媒体证据：
+
+- Rokid / Android ARCore：必须同时有 `.png` 截图和 `.mp4` 录屏。
+- iPad / ARKit：必须至少有一张自动截图，或通过 `MANUAL_MEDIA_PATH` 指向手动截图/录屏。
+
+手动验证：
+
+```bash
+node tools/c00/validate_evidence_bundle.js --gate rokid --screenshot path/to/rokid.png --video path/to/rokid.mp4 --report releases/phase_0_smoke/evidence/rokid.md
+node tools/c00/validate_evidence_bundle.js --gate ipad --manual-media path/to/ipad.mov --report releases/phase_0_smoke/evidence/ipad.md
+```
+
+如果某台设备暂时无法自动截图/录屏，但仍想先保留日志结果：
+
+```bash
+ALLOW_MISSING_MEDIA=1 tools/c00/run_device_cycle.sh ipad <device>
+```
+
 ## 报告位置
 
 采集脚本会生成：
@@ -188,3 +210,5 @@ releases/phase_0_smoke/evidence/<gate>-<timestamp>.mp4
 ```
 
 Android/Rokid 会自动尝试录屏和截图。iOS 会在安装 `idevicescreenshot` 时自动截图，否则脚本会提示手动补截图或 15 秒录屏。
+
+采集脚本会把媒体证据验证结果追加到同一个 `.md` 报告的 `Evidence Bundle` 章节。

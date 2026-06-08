@@ -116,6 +116,7 @@ tools/c00/run_device_cycle.sh rokid
 ```
 
 默认会同时采集日志、gate 报告、截图和 15 秒录屏；如设备不支持 `screenrecord`，请手动补录屏。
+Rokid gate 默认要求截图和录屏都存在；临时调试可用 `ALLOW_MISSING_MEDIA=1` 降级为 warning，但不能作为发表通过结果。
 
 底层脚本：
 
@@ -160,6 +161,7 @@ APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <devic
 
 `collect_ios_smoke.sh` 默认传入 `--xr-platform=ipad`；如需改成 iPhone 验证，可设置 `IOS_XR_PLATFORM=iphone`。
 如果本机安装了 `idevicescreenshot`，脚本会自动截图；否则请手动补一张截图或 15 秒录屏。
+手动素材可以通过 `MANUAL_MEDIA_PATH=/path/to/ipad.mov` 传给采集脚本；没有任何媒体素材时，iPad gate 默认失败。
 
 ## 归档材料
 
@@ -185,6 +187,11 @@ releases/phase_0_smoke/evidence/
 <gate>-<timestamp>.png
 <gate>-<timestamp>.mp4
 ```
+
+`.md` 报告会包含两个门禁结果：
+
+- smoke log gate：验证 `GXF_SMOKE`、backend、native plugin、ARKit/OpenXR 证据。
+- evidence bundle gate：验证截图和录屏是否存在并非空文件。
 
 ## 参考原则
 

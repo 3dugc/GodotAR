@@ -9,6 +9,8 @@ APP_PATH="${APP_PATH:-}"
 EXTRA_VALIDATE_ARGS="${EXTRA_VALIDATE_ARGS:-}"
 IOS_XR_PLATFORM="${IOS_XR_PLATFORM:-ipad}"
 CAPTURE_MEDIA="${CAPTURE_MEDIA:-1}"
+ALLOW_MISSING_MEDIA="${ALLOW_MISSING_MEDIA:-0}"
+MANUAL_MEDIA_PATH="${MANUAL_MEDIA_PATH:-}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="$PROJECT_ROOT/releases/phase_0_smoke/evidence"
 LOG_PATH="$OUT_DIR/ipad-${STAMP}.log"
@@ -70,7 +72,7 @@ if [ "$CAPTURE_MEDIA" != "0" ]; then
 		echo "Capturing iOS screenshot -> $SCREENSHOT_PATH"
 		idevicescreenshot "$SCREENSHOT_PATH" >/dev/null 2>&1 || echo "iOS screenshot capture failed; capture screenshot or 15s recording manually."
 	else
-		echo "No iOS screenshot tool found. Capture a screenshot or 15s recording manually for the C00 evidence bundle."
+		echo "No iOS screenshot tool found. Capture a screenshot or 15s recording manually, then set MANUAL_MEDIA_PATH for the C00 evidence bundle."
 	fi
 fi
 
@@ -81,5 +83,16 @@ node "$PROJECT_ROOT/tools/c00/validate_smoke_log.js" \
 	--log "$LOG_PATH" \
 	--report "$REPORT_PATH" \
 	$EXTRA_VALIDATE_ARGS
+
+EVIDENCE_ARGS=(--gate ipad --screenshot "$SCREENSHOT_PATH" --report "$REPORT_PATH")
+if [ -n "$MANUAL_MEDIA_PATH" ]; then
+	EVIDENCE_ARGS+=(--manual-media "$MANUAL_MEDIA_PATH")
+fi
+if [ "$ALLOW_MISSING_MEDIA" = "1" ]; then
+	EVIDENCE_ARGS+=(--allow-missing-media)
+fi
+
+echo "Validating evidence bundle"
+node "$PROJECT_ROOT/tools/c00/validate_evidence_bundle.js" "${EVIDENCE_ARGS[@]}"
 
 echo "Report: $REPORT_PATH"

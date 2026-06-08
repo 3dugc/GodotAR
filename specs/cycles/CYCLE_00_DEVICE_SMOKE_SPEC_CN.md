@@ -84,6 +84,7 @@ demo/00_device_smoke_test.tscn
 - `XRFoundation.get_provider_name()`
 - `XRFoundation.get_tracking_state_name()`
 - `tools/c00/validate_smoke_log.js`
+- `tools/c00/validate_evidence_bundle.js`
 - `tools/c00/check_export_presets.js`
 - `tools/c00/collect_android_smoke.sh`
 - `tools/c00/collect_ios_smoke.sh`
@@ -122,6 +123,7 @@ iPad gate 还必须看到 `capabilities.native_plugin:true`，以及 `capabiliti
 - 标题：Godot XR Foundation C00：Rokid、Android、iOS 首次点亮。
 - 产物：Rokid APK、Android APK、iOS Xcode project 或运行截图。
 - 素材：每个平台 1 张截图或 15 秒录屏。
+- Rokid/Android 发布素材必须同时包含截图和 15 秒录屏；iPad 发布素材至少包含截图或录屏。
 - 文档：`releases/phase_0_smoke/TEST_REPORT.md`。
 
 ## 验收标准
@@ -131,4 +133,6 @@ iPad gate 还必须看到 `capabilities.native_plugin:true`，以及 `capabiliti
 - [ ] 日志包含 backend、provider、tracking、capabilities。
 - [ ] 设备接入路径属于 Godot addon / Android plugin / iOS plugin / GDExtension / OpenXR vendor plugin；如不是，必须提交最小侵入说明。
 - [ ] 每个平台至少一张截图或一段录屏。
+- [ ] Rokid/Android 设备报告通过 `validate_evidence_bundle.js`，截图和录屏都存在。
+- [ ] iPad 设备报告通过 `validate_evidence_bundle.js`，至少存在截图或录屏。
 - [ ] 失败平台有明确错误和下一步。
