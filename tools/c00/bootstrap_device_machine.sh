@@ -26,7 +26,7 @@ Options:
 This script prepares a device machine for C00. It does not install Godot,
 Android platform tools, certificates, provisioning profiles, or device runtimes.
 It produces a report with the exact missing prerequisites and next commands for
-Rokid/OpenXR and iPad/ARKit gates.
+Rokid/OpenXR, iPad/ARKit, and Android/ARCore gates.
 EOF
 }
 

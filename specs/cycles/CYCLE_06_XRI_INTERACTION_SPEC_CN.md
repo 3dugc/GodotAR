@@ -83,7 +83,7 @@ demo/09_grab_interactable.tscn
 | iPad touch fallback | iPad | 点击空间按钮 | select/activate 事件触发 |
 | Editor mouse ray | Editor | 鼠标指向按钮 | hover/select 事件触发 |
 | Grab basic | Editor | 选择并移动 cube | select_entered/select_exited 正确 |
-| Release gates | Rokid/iPad | 运行同周期 demo | capability panel 和 XRI 状态可见 |
+| Release gates | Rokid/iPad/Android ARCore | 运行同周期 demo | capability panel 和 XRI 状态可见 |
 
 ## 发表要求
 
@@ -98,4 +98,3 @@ demo/09_grab_interactable.tscn
 - [ ] EditorSim 完整运行。
 - [ ] Hover/Select/Activate 事件和 XRI 语义一致。
 - [ ] XRI 设计引用已记录。
-

@@ -276,6 +276,7 @@ GODOT_SOURCE_DIR=/path/to/godot DEVICE=<device> tools/c00/run_device_cycle.sh ip
 ```
 
 默认流程会先构建 `GodotARKit.xcframework`，再用 Godot 导出 `builds/ipad/c00.zip`，随后通过 `tools/c00/build_ios_xcode_project.sh` 自动发现导出的 `.xcodeproj` 和 scheme，用 `xcodebuild` 产出 `builds/ipad/GodotXRFoundation.app`。如果已经手工构建了 `.app`，可设置 `APP_PATH=builds/ipad/GodotXRFoundation.app` 跳过自动 Xcode 构建。
+`build_ios_xcode_project.sh` 会在 `xcodebuild` 前自动运行 `node tools/c00/check_ios_export_project.js --input <unpacked-ios-export>`，确认 Xcode project 已引用 `GodotARKit.xcframework`、`ARKit.framework`、`Metal.framework`，并且 plist 包含相机权限和 `arkit`/`metal` required device capabilities。
 
 底层脚本：
 

@@ -96,7 +96,15 @@ ios/plugins/godot_arkit/GodotARKit.gdip
 ```
 
 4. 在 Godot iOS export preset 的 Plugins 区域启用 `GodotARKit`。
-5. 运行 C00 iPad gate：
+5. 导出 iOS Xcode project 后检查导出结果：
+
+```bash
+node tools/c00/check_ios_export_project.js --input builds/ipad/c00.zip
+```
+
+这个检查会确认导出的 Xcode project 已引用 `GodotARKit.xcframework`、ARKit/Metal framework、相机权限和 `arkit`/`metal` required device capabilities。`tools/c00/build_ios_xcode_project.sh` 会自动执行它。
+
+6. 运行 C00 iPad gate：
 
 ```bash
 APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <device> org.godotengine.godotxrfoundation 30

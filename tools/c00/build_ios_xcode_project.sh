@@ -102,6 +102,9 @@ if [[ -z "$XCODE_PROJECT" ]]; then
 	exit 1
 fi
 
+echo "Checking exported iOS project for ARKit plugin references..."
+node "$PROJECT_ROOT/tools/c00/check_ios_export_project.js" --input "$SOURCE_DIR"
+
 LIST_JSON="$BUILD_ROOT/xcodebuild-list.json"
 mkdir -p "$BUILD_ROOT"
 xcodebuild -list -json -project "$XCODE_PROJECT" > "$LIST_JSON"

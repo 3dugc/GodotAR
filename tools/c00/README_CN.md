@@ -1,6 +1,6 @@
 # C00 Device Tools
 
-这些脚本用于把第一阶段从“能打开”推进到“能证明 Rokid/OpenXR、iPad/ARKit 是否真的通过 gate”。
+这些脚本用于把第一阶段从“能打开”推进到“能证明 Rokid/OpenXR、iPad/ARKit、Android/ARCore 是否真的通过 gate”。
 
 ## 预检
 
@@ -85,6 +85,15 @@ node tools/c00/check_ios_plugin_artifacts.js --file ios/plugins/godot_arkit/Godo
 
 该检查会验证 Godot 官方 `.gdip` 必需字段、`GodotARKit.xcframework` 引用、`init_godot_arkit` / `deinit_godot_arkit` 符号、ARKit/Metal capability、系统 framework、plist camera 权限和 required device capabilities。
 它还会检查 iPad gate 真实运行所需的 runtime bridge：`start_session` / `stop_session` / `is_running` / `get_tracking_status` / `get_capabilities` 是否绑定，`GodotARKitSession` 是否使用 `ARWorldTrackingConfiguration` 调用 `runWithConfiguration`，是否实现 `ARSessionDelegate` 并输出 `arkit_tracking_state` / `arkit_tracking_reason`。
+它还会确认 iPad Xcode build helper 会在 `xcodebuild` 前运行导出工程检查，避免 `GodotARKit` 没进 Xcode project 时才到真机上失败。
+
+检查 Godot iOS 导出的 Xcode project 是否真的包含 ARKit plugin：
+
+```bash
+node tools/c00/check_ios_export_project.js --input builds/ipad/c00.zip
+```
+
+该检查会解包或读取导出目录，确认 `.xcodeproj` 引用了 `GodotARKit`、`GodotARKit.xcframework`、`ARKit.framework`、`Metal.framework`，并确认 plist 含 `NSCameraUsageDescription` 和 `UIRequiredDeviceCapabilities` 的 `arkit`/`metal`。`tools/c00/build_ios_xcode_project.sh` 会在 `xcodebuild` 前自动执行它。
 
 检查 Godot project 和 C00 场景静态完整性：
 
@@ -371,6 +380,14 @@ tools/c00/export_with_godot.sh "C00 iPad ARKit" builds/ipad/c00.zip
 tools/c00/build_ios_xcode_project.sh builds/ipad/c00.zip <device-uuid-or-name>
 ```
 
+构建脚本会先运行：
+
+```bash
+node tools/c00/check_ios_export_project.js --input <unpacked-ios-export>
+```
+
+如果导出的 Xcode project 没有引用 `GodotARKit.xcframework`、ARKit/Metal framework 或相机 plist，脚本会在 `xcodebuild` 前失败；这通常说明 iOS export preset 没有启用 `GodotARKit` plugin，或 `.gdip`/`.xcframework` 没有放在 `res://ios/plugins`。
+
 构建成功后默认输出：
 
 ```text
@@ -490,7 +507,7 @@ ALLOW_MISSING_MEDIA=1 tools/c00/run_device_cycle.sh ipad <device>
 
 ## C00 发表前总验收
 
-Rokid 和 iPad 都跑完后，用聚合 gate 生成 C00 总报告：
+Rokid、iPad 和 Android ARCore 都跑完后，用聚合 gate 生成 C00 总报告：
 
 ```bash
 node tools/c00/verify_phase_evidence.js
@@ -547,4 +564,4 @@ releases/phase_0_smoke/evidence/<gate>-<timestamp>-device.json
 
 Android/Rokid 会自动尝试录屏、截图和 device profile。iOS 会自动采集 devicectl device profile，并在安装 `idevicescreenshot` 时自动截图，否则脚本会提示手动补截图或 15 秒录屏。
 
-采集脚本会把媒体证据验证结果追加到同一个 `.md` 报告的 `Evidence Bundle` 章节；Android/Rokid 和 iPad 都会把 device profile 追加到同一个 gate 报告末尾。
+采集脚本会把媒体证据验证结果追加到同一个 `.md` 报告的 `Evidence Bundle` 章节；Android/Rokid、Android ARCore 和 iPad 都会把 device profile 追加到同一个 gate 报告末尾。

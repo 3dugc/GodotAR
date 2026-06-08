@@ -23,6 +23,7 @@ const sourcePath = path.resolve(args.source || path.join(pluginDir, "src/GodotAR
 const headerPath = path.resolve(args.header || path.join(pluginDir, "src/GodotARKitPlugin.h"));
 const sessionSourcePath = path.resolve(args["session-source"] || path.join(pluginDir, "src/GodotARKitSession.mm"));
 const sessionHeaderPath = path.resolve(args["session-header"] || path.join(pluginDir, "src/GodotARKitSession.h"));
+const buildScriptPath = path.resolve(args["build-script"] || path.join(PROJECT_ROOT, "tools/c00/build_ios_xcode_project.sh"));
 
 const failures = [];
 const warnings = [];
@@ -81,6 +82,7 @@ const source = readText(sourcePath);
 const header = readText(headerPath);
 const sessionSource = readText(sessionSourcePath);
 const sessionHeader = readText(sessionHeaderPath);
+const buildScript = readText(buildScriptPath);
 if (!source) {
 	failures.push(`Missing plugin source for symbol check: ${sourcePath}`);
 } else {
@@ -148,6 +150,12 @@ if (!sessionHeader) {
 	}
 }
 
+if (!buildScript) {
+	failures.push(`Missing iPad build helper for export project check: ${buildScriptPath}`);
+} else {
+	requireSourceIncludes(buildScript, "check_ios_export_project.js", "iPad build helper must validate exported Xcode project ARKit plugin references before xcodebuild.");
+}
+
 const summary = {
 	pass: failures.length === 0,
 	file: gdipPath,
@@ -163,6 +171,7 @@ const summary = {
 	header: headerPath,
 	sessionSource: sessionSourcePath,
 	sessionHeader: sessionHeaderPath,
+	buildScript: buildScriptPath,
 };
 
 console.log(JSON.stringify(summary, null, 2));
@@ -201,6 +210,7 @@ function usage() {
 		"  --header <file>      C++ header used for runtime bridge checks.",
 		"  --session-source <file>  Objective-C++ ARKit session source.",
 		"  --session-header <file>  Objective-C++ ARKit session header.",
+		"  --build-script <file>    iPad Xcode build helper used for export-project checks.",
 		"  --require-binary     Treat a missing referenced xcframework as failure instead of warning.",
 	].join("\n"));
 }

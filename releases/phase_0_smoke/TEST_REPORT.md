@@ -35,7 +35,7 @@ Codex implementation status:
 - `ARPlaneManager.planes_changed` and `ARAnchorManager.anchors_changed` list-style events added for Unity manager migration.
 - `NativeXRProvider` now preserves native anchor dictionary ids and persistent ids from ARKit/ARCore singleton bridges instead of replacing them with generated ids.
 - `tools/c00/check_arfoundation_api_surface.js` now guards the migration API surface without requiring a Godot binary.
-- EditorSim/simulator gate added for local ARFoundation-style API validation through `--xr-platform=simulator`; it does not replace Rokid/iPad device gates.
+- EditorSim/simulator gate added for local ARFoundation-style API validation through `--xr-platform=simulator`; it does not replace Rokid/iPad/Android ARCore device gates.
 - iOS Simulator and Android Emulator are documented as auxiliary cycle outputs for export/startup/log validation only; they cannot satisfy the C00 ARKit/OpenXR publish gate.
 - `tools/c00/collect_ios_simulator_smoke.sh` and `tools/c00/run_device_cycle.sh ios-simulator` now provide a runnable iOS Simulator development gate that expects `backend:"EditorSim"` and validates the iOS export/startup/log path before iPad hardware.
 - Godot plugin-first boundary documented. No Godot engine patch is used in C00.
@@ -55,7 +55,8 @@ Codex implementation status:
 - `tools/c00/check_arkit_plugin_static.sh` now performs an iOS SDK Objective-C++ syntax smoke check for the ARKit plugin before the full Godot-header xcframework build.
 - `tools/c00/check_ios_plugin_artifacts.js` now validates the `GodotARKit.gdip`/template against Godot iOS plugin requirements, including config fields, xcframework reference, init/deinit symbols, capabilities, frameworks, and plist entries.
 - `tools/c00/check_ios_plugin_artifacts.js` now also validates the ARKit runtime bridge surface: native `start_session`/`stop_session`/tracking methods are bound, `GodotARKitSession` runs `ARWorldTrackingConfiguration`, implements `ARSessionDelegate`, and reports ARKit tracking state/reason.
-- `tools/c00/run_device_cycle.sh` now orchestrates preflight, optional ARKit plugin build, Godot export, device log collection, and gate validation for iPad/ARKit and Rokid/OpenXR.
+- `tools/c00/check_ios_export_project.js` now validates the exported iOS Xcode project before `xcodebuild`, checking for `GodotARKit`, `GodotARKit.xcframework`, ARKit/Metal frameworks, camera usage, and required device capabilities.
+- `tools/c00/run_device_cycle.sh` now orchestrates preflight, optional ARKit plugin build, Godot export, device log collection, and gate validation for iPad/ARKit, Rokid/OpenXR, and Android/ARCore.
 - `tools/c00/build_ios_xcode_project.sh` now builds the Godot iOS export zip into `builds/ipad/GodotXRFoundation.app`, and the iPad runner can use it automatically when `APP_PATH` is not set.
 - `tools/c00/run_device_cycle.sh all` now continues across iPad/Rokid/Android ARCore gate failures and runs the aggregate C00 phase verifier at the end.
 - `tools/c00/check_export_presets.js` now validates that `export_presets.cfg` contains the required C00 preset names before export, requires Rokid exports to include `--xr-platform=rokid`, and requires the iPad preset to enable `GodotARKit`.
@@ -98,6 +99,9 @@ Hardware status:
 | `node tools/c00/run_static_gates.js --gate all --report /private/tmp/godotar-static-gates.md` | Pass with warning | Static gate report passes; missing `export_presets.cfg` is recorded as warning |
 | `node --check tools/c00/check_ios_plugin_artifacts.js` | Pass | iOS plugin artifact checker parses |
 | `node tools/c00/check_ios_plugin_artifacts.js` | Pass with warning | Runtime bridge surface is present; warns that real `GodotARKit.xcframework` is not built on this host |
+| `node --check tools/c00/check_ios_export_project.js` | Pass | iOS export project checker parses |
+| Synthetic iOS export project check | Pass | Checker accepts a synthetic Xcode export containing `GodotARKit`, `GodotARKit.xcframework`, ARKit/Metal frameworks, camera usage, and required device capabilities |
+| Synthetic bad iOS export project check | Fail as expected | Checker rejects a synthetic Xcode export missing GodotARKit/plugin binary/framework references and `arkit` required capability |
 | `node --check tools/c00/check_godot_project_static.js` | Pass | Godot project/static scene checker parses |
 | `node tools/c00/check_godot_project_static.js` | Pass | C00 project settings, scene resources, load steps, required nodes, and NodePaths are intact |
 | `node --check tools/c00/check_arfoundation_api_surface.js` | Pass | ARFoundation migration API checker parses |
@@ -123,7 +127,7 @@ Hardware status:
 | Synthetic Rokid phase profile analysis | Pass | `verify_phase_evidence.js --gate rokid` accepts good Rokid profile analysis when media size is relaxed for synthetic files |
 | Synthetic bad Rokid phase profile analysis | Fail as expected | `verify_phase_evidence.js --gate rokid` rejects profile JSON where ADB and target package evidence are missing |
 | Synthetic iPad device profile smoke | Pass | `collect_ios_device_profile.js` writes Markdown/JSON with a fake devicectl command to verify report generation |
-| Synthetic manual evidence import | Pass | `tools/c00/import_device_evidence.sh` imports synthetic Rokid/iPad logs and media into a temp evidence directory and runs validators |
+| Synthetic manual evidence import | Pass | `tools/c00/import_device_evidence.sh` imports synthetic Rokid/iPad/Android ARCore logs and media into a temp evidence directory and runs validators |
 | Synthetic C00 device profile aggregate gate | Pass | `verify_phase_evidence.js` rejects missing profile evidence and accepts Rokid/iPad/Android ARCore logs, media, and profile Markdown/JSON when all required gates are supplied |
 | Synthetic iPad ARKit gate | Pass | `backend:"ARKit"`, `native_plugin:true` |
 | Synthetic iPad ARKit tracking gate | Pass | Validator rejects missing `arkit_tracking_state` / `arkit_tracking_reason` and accepts complete ARKit tracking evidence |

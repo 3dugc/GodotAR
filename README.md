@@ -43,7 +43,7 @@ Open this folder in Godot 4:
 outputs/godot_xr_foundation
 ```
 
-Run `demo/00_device_smoke_test.tscn` first. This is the first-cycle device gate for Rokid/OpenXR and iPad/ARKit.
+Run `demo/00_device_smoke_test.tscn` first. This is the first-cycle device gate for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.
 
 Then run `demo/main.tscn` for the placement sample.
 
@@ -61,7 +61,7 @@ The smoke test prints structured lines:
 GXF_SMOKE|{"cycle":"C00","event":"heartbeat","backend":"OpenXR","provider":"OpenXR",...}
 ```
 
-For C00, a real Rokid pass must show `backend=OpenXR`, and a real iPad pass must show `backend=ARKit`. `EditorSim` proves that the Godot app starts, but it does not satisfy the device gate.
+For C00, a real Rokid pass must show `backend=OpenXR`, a real iPad pass must show `backend=ARKit`, and a real Android phone/tablet pass must show `backend=ARCore`. `EditorSim` proves that the Godot app starts, but it does not satisfy the device gate.
 
 ## Key Files
 
@@ -105,7 +105,7 @@ For C00, a real Rokid pass must show `backend=OpenXR`, and a real iPad pass must
   Provider-level spec for OpenXR AR feature modules and device profiles.
 
 - `PROVIDER_PRIORITY_AND_RELEASE_GATES_CN.md`  
-  Defines OpenXR, ARKit, and ARCore as equal P0 providers, with Rokid/OpenXR and iPad/ARKit as every-cycle release gates.
+  Defines OpenXR, ARKit, and ARCore as equal P0 providers, with Rokid/OpenXR, iPad/ARKit, and Android/ARCore as C00 release gates.
 
 - `GODOT_PLUGIN_BOUNDARY_CN.md`
   Defines the addon/plugin-first architecture rule and engine-patch escalation rules.
