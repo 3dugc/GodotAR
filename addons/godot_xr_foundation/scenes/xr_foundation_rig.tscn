@@ -1,0 +1,21 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/xr_device_rig.gd" id="1_rig"]
+
+[node name="XRFoundationRig" type="XROrigin3D"]
+script = ExtResource("1_rig")
+
+[node name="XRCamera3D" type="XRCamera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+current = true
+
+[node name="LeftHand" type="XRController3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.45, 1.25, -0.45)
+tracker = &"left_hand"
+pose = &"default"
+
+[node name="RightHand" type="XRController3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45, 1.25, -0.45)
+tracker = &"right_hand"
+pose = &"default"
+

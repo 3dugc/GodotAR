@@ -1,0 +1,25 @@
+config_version=5
+
+[application]
+
+config/name="Godot XR Foundation Demo"
+run/main_scene="res://demo/main.tscn"
+config/features=PackedStringArray("4.3", "Mobile")
+
+[autoload]
+
+XRFoundation="*res://addons/godot_xr_foundation/scripts/xr_foundation.gd"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_xr_foundation/plugin.cfg")
+
+[rendering]
+
+renderer/rendering_method="mobile"
+
+[xr]
+
+openxr/enabled=true
+shaders/enabled=true
+

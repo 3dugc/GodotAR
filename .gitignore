@@ -1,0 +1,20 @@
+# Godot generated files
+.godot/
+.import/
+*.translation
+
+# Exported builds
+exports/
+releases/*/packages/
+*.apk
+*.aab
+*.ipa
+*.xcarchive
+*.dSYM
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
