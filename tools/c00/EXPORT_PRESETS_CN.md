@@ -117,8 +117,14 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 构建 ARKit 插件：
 
 ```bash
+tools/c00/prepare_godot_source.sh --tag <godot-tag>
+```
+
+```bash
 GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh
 ```
+
+`prepare_godot_source.sh` 会准备与 export template 匹配的 Godot source headers，并输出下一条 `GODOT_SOURCE_DIR=... build_xcframework.sh` 命令。如果已经有本机 Godot source tree，可以直接设置 `GODOT_SOURCE_DIR`。
 
 导出命令：
 

@@ -68,6 +68,11 @@ const checks = [
 	}] : []),
 	...(needsIOS(gate) ? [
 		{
+			name: "iPad Godot source preparation surface",
+			command: ["node", "tools/c00/check_ios_godot_source_surface.js"],
+			required: true,
+		},
+		{
 			name: "GodotARKit plugin config surface",
 			command: ["node", "tools/c00/check_ios_plugin_artifacts.js"],
 			required: true,

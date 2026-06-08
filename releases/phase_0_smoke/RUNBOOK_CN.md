@@ -50,6 +50,14 @@ node tools/c00/check_godot_project_static.js
 GODOT_BIN=/Applications/Godot.app/Contents/MacOS/Godot tools/c00/preflight.sh
 ```
 
+iPad/ARKit 真机构建需要与 iOS export template 版本匹配的 Godot source headers。设备机没有现成 source tree 时，先用 helper 准备：
+
+```bash
+tools/c00/prepare_godot_source.sh --tag <godot-tag>
+```
+
+例如 Godot 版本为 `4.4.1.stable.official` 时，tag 通常是 `4.4.1-stable`。脚本会输出 `GODOT_SOURCE_DIR=... ios/plugins/godot_arkit/build_xcframework.sh`，后续 iPad gate 使用同一个 `GODOT_SOURCE_DIR`。
+
 导出 preset 说明：
 
 ```text
@@ -312,7 +320,7 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 GODOT_SOURCE_DIR=/path/to/godot DEVICE=<device> tools/c00/run_device_cycle.sh ipad
 ```
 
-默认流程会先构建 `GodotARKit.xcframework`，再用 Godot 导出 `builds/ipad/c00.zip`，随后通过 `tools/c00/build_ios_xcode_project.sh` 自动发现导出的 `.xcodeproj` 和 scheme，用 `xcodebuild` 产出 `builds/ipad/GodotXRFoundation.app`。如果已经手工构建了 `.app`，可设置 `APP_PATH=builds/ipad/GodotXRFoundation.app` 跳过自动 Xcode 构建。
+如果还没有 `/path/to/godot`，先运行 `tools/c00/prepare_godot_source.sh --tag <godot-tag>`，并使用脚本输出的 `GODOT_SOURCE_DIR`。默认流程会先构建 `GodotARKit.xcframework`，再用 Godot 导出 `builds/ipad/c00.zip`，随后通过 `tools/c00/build_ios_xcode_project.sh` 自动发现导出的 `.xcodeproj` 和 scheme，用 `xcodebuild` 产出 `builds/ipad/GodotXRFoundation.app`。如果已经手工构建了 `.app`，可设置 `APP_PATH=builds/ipad/GodotXRFoundation.app` 跳过自动 Xcode 构建。
 `build_ios_xcode_project.sh` 会在 `xcodebuild` 前自动运行 `node tools/c00/check_ios_export_project.js --input <unpacked-ios-export>`，确认 Xcode project 已引用 `GodotARKit.xcframework`、`ARKit.framework`、`Metal.framework`，并且 plist 包含相机权限和 `arkit`/`metal` required device capabilities。
 
 底层脚本：

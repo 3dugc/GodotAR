@@ -91,7 +91,21 @@ get_planes() -> Array[Dictionary]
 
 ## 启用步骤
 
-1. 准备与 Godot iOS export template 匹配的 Godot source tree。
+1. 准备与 Godot iOS export template 匹配的 Godot source tree。设备机可以用 C00 helper 从官方 Godot 仓库准备 headers：
+
+```bash
+tools/c00/prepare_godot_source.sh --tag <godot-tag>
+```
+
+`<godot-tag>` 例如 `4.4.1-stable`，必须和本机 Godot iOS export template 的版本一致。脚本默认输出：
+
+```bash
+export GODOT_SOURCE_DIR=".godot/cache/c00/godot-source"
+GODOT_SOURCE_DIR=".godot/cache/c00/godot-source" ios/plugins/godot_arkit/build_xcframework.sh
+```
+
+如果本机 `godot --version` 能输出稳定版格式，也可以省略 `--tag` 让脚本从 `GODOT_BIN` 或 PATH 中的 `godot` 推断。
+
 2. 构建插件：
 
 ```bash
@@ -154,7 +168,10 @@ ios/plugins/godot_arkit/build_xcframework.sh
 
 `GODOT_SOURCE_DIR` 必须和 iOS export template 使用的 Godot 版本一致。Godot 官方 iOS plugin 文档要求插件库依赖 Godot engine headers，且插件文件位于 `res://ios/plugins` 下才能被 Godot editor 自动检测。
 
+如果本地已经有完整 Godot source tree，也可以跳过 `prepare_godot_source.sh`，直接设置 `GODOT_SOURCE_DIR=/path/to/godot`。C00 静态 gate 会通过 `node tools/c00/check_ios_godot_source_surface.js` 确认这个准备链路和构建说明没有被后续改动破坏。
+
 ## 参考
 
 - Godot iOS plugins: https://docs.godotengine.org/en/4.4/tutorials/platform/ios/ios_plugin.html
+- Godot source: https://github.com/godotengine/godot.git
 - Unity ARSession: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.1/api/UnityEngine.XR.ARFoundation.ARSession.html

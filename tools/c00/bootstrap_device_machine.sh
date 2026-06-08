@@ -180,7 +180,7 @@ if [[ -n "${GODOT_SOURCE_DIR:-${GODOT_SRC_DIR:-}}" ]]; then
 		add_row MISS "Godot source headers" "$godot_source is missing core/version.h or platform/ios."
 	fi
 else
-	add_row WARN "Godot source headers" "Set GODOT_SOURCE_DIR before building GodotARKit.xcframework."
+	add_row WARN "Godot source headers" "Run tools/c00/prepare_godot_source.sh --tag <godot-tag>, then set GODOT_SOURCE_DIR before building GodotARKit.xcframework."
 fi
 
 if "$PROJECT_ROOT/tools/c00/check_arkit_plugin_static.sh" >/dev/null 2>&1; then
@@ -281,16 +281,20 @@ fi
 	printf "   tools/c00/install_openxr_vendors.sh\n"
 	printf "   \`\`\`\n\n"
 	printf "3. Review signing, OpenXR loader/vendor, and iOS plugin options in Godot editor, then save \`export_presets.cfg\`.\n\n"
-	printf "4. Build the ARKit iOS plugin on the device machine:\n\n"
+	printf "4. Prepare Godot source headers for the ARKit plugin if missing:\n\n"
+	printf "   \`\`\`bash\n"
+	printf "   tools/c00/prepare_godot_source.sh --tag <godot-tag>\n"
+	printf "   \`\`\`\n\n"
+	printf "5. Build the ARKit iOS plugin on the device machine:\n\n"
 	printf "   \`\`\`bash\n"
 	printf "   GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh\n"
 	printf "   \`\`\`\n\n"
-	printf "5. Run the first phase gates:\n\n"
+	printf "6. Run the first phase gates:\n\n"
 	printf "   \`\`\`bash\n"
 	printf "   GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh all\n"
 	printf "   \`\`\`\n\n"
 	printf "   The iPad gate will build the exported Xcode project into \`builds/ipad/GodotXRFoundation.app\` when \`APP_PATH\` is empty.\n\n"
-	printf "6. Publish only when \`releases/phase_0_smoke/C00_PHASE_REPORT.md\` reports PASS for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.\n"
+	printf "7. Publish only when \`releases/phase_0_smoke/C00_PHASE_REPORT.md\` reports PASS for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.\n"
 } >> "$REPORT"
 
 cat "$REPORT"

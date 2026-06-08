@@ -58,9 +58,23 @@ tools/c00/preflight.sh android-arcore
 node tools/c00/run_static_gates.js --gate all --report releases/phase_0_smoke/evidence/static-gates.md
 ```
 
-该命令不导出、不安装、不连接设备。它汇总 Node 工具语法、shell 脚本语法、Godot project/scene 静态完整性、ARFoundation API surface、XRI API surface、Rokid/OpenXR export surface、OpenXR/Rokid provider surface、GodotARCore Android plugin surface、iOS plugin 配置和 ARKit Objective-C++ syntax smoke。缺少 `export_presets.cfg` 会作为 warning 记录，因为真正导出前仍需在设备机 Godot editor 里复核保存。
+该命令不导出、不安装、不连接设备。它汇总 Node 工具语法、shell 脚本语法、Godot project/scene 静态完整性、ARFoundation API surface、XRI API surface、Rokid/OpenXR export surface、OpenXR/Rokid provider surface、GodotARCore Android plugin surface、iPad Godot source 准备 surface、iOS plugin 配置和 ARKit Objective-C++ syntax smoke。缺少 `export_presets.cfg` 会作为 warning 记录，因为真正导出前仍需在设备机 Godot editor 里复核保存。
 
 iPad/ARKit gate 前先构建插件：
+
+```bash
+tools/c00/prepare_godot_source.sh --tag <godot-tag>
+```
+
+该脚本会把官方 Godot source tree 准备到 `.godot/cache/c00/godot-source`，并输出可直接复制的 `GODOT_SOURCE_DIR=...` 构建命令。`<godot-tag>` 必须和设备机使用的 Godot iOS export template 版本一致，例如 `4.4.1-stable`；如果本机 `godot --version` 能输出 `4.4.1.stable.official` 这类格式，也可以不传 `--tag` 让脚本自动推断。它只准备 headers，不 rebuild Godot，也不修改 engine 主干。
+
+静态检查 source 准备链路：
+
+```bash
+node tools/c00/check_ios_godot_source_surface.js
+```
+
+然后构建 ARKit iOS plugin：
 
 ```bash
 GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh
@@ -199,6 +213,12 @@ tools/c00/run_device_cycle.sh rokid
 GODOT_SOURCE_DIR=/path/to/godot \
 DEVICE=<ipad-uuid-or-name> \
 tools/c00/run_device_cycle.sh ipad
+```
+
+如果还没有 `/path/to/godot`，先运行：
+
+```bash
+tools/c00/prepare_godot_source.sh --tag <godot-tag>
 ```
 
 完整 C00 主线：
