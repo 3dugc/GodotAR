@@ -14,6 +14,15 @@
 	NSString *_trackingStateReason;
 }
 
+static NSArray *matrixArrayFromTransform(simd_float4x4 transform) {
+	return @[
+		@(transform.columns[0].x), @(transform.columns[0].y), @(transform.columns[0].z), @(transform.columns[0].w),
+		@(transform.columns[1].x), @(transform.columns[1].y), @(transform.columns[1].z), @(transform.columns[1].w),
+		@(transform.columns[2].x), @(transform.columns[2].y), @(transform.columns[2].z), @(transform.columns[2].w),
+		@(transform.columns[3].x), @(transform.columns[3].y), @(transform.columns[3].z), @(transform.columns[3].w),
+	];
+}
+
 - (instancetype)init {
 	self = [super init];
 	if (self) {
@@ -126,6 +135,7 @@
 			[hits addObject:@{
 				@"trackable_id": anchorId,
 				@"distance": @(distance),
+				@"transform": matrixArrayFromTransform(transform),
 				@"position": @[@(position.x), @(position.y), @(position.z)],
 				@"normal": @[@(0.0), @(1.0), @(0.0)],
 				@"target": @"estimated_plane",
@@ -143,6 +153,8 @@
 		vector_float3 center = anchor.center;
 		vector_float3 extent = anchor.extent;
 		vector_float4 worldCenter = simd_mul(anchor.transform, simd_make_float4(center.x, center.y, center.z, 1.0f));
+		simd_float4x4 planeTransform = anchor.transform;
+		planeTransform.columns[3] = simd_make_float4(worldCenter.x, worldCenter.y, worldCenter.z, 1.0f);
 		NSString *alignment = @"unknown";
 		switch (anchor.alignment) {
 			case ARPlaneAnchorAlignmentHorizontal:
@@ -156,6 +168,7 @@
 		}
 		[planes addObject:@{
 			@"trackable_id": anchor.identifier.UUIDString,
+			@"transform": matrixArrayFromTransform(planeTransform),
 			@"position": @[@(worldCenter.x), @(worldCenter.y), @(worldCenter.z)],
 			@"size": @[@(extent.x), @(extent.z)],
 			@"alignment": alignment,

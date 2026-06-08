@@ -20,6 +20,8 @@ const checks = [
 			["ARSessionState mapper", /func\s+ar_session_state_from_foundation_state\s*\(/],
 			["NotTrackingReason mapper", /func\s+not_tracking_reason_from_status\s*\(/],
 			["native reason string mapper", /func\s+not_tracking_reason_from_string\s*\(/],
+			["trackable type variant mapper", /func\s+trackable_type_from_variant\s*\(/],
+			["trackable type string mapper", /func\s+trackable_type_from_string\s*\(/],
 		],
 	},
 	{
@@ -112,6 +114,13 @@ const checks = [
 			["native notTrackingReason method", /func\s+get_not_tracking_reason\s*\(/],
 			["ARKit tracking reason passthrough", /arkit_tracking_reason/],
 			["native reason string mapper", /not_tracking_reason_from_string\(String\(value\)\)/],
+		],
+	},
+	{
+		file: "addons/godot_xr_foundation/scripts/xr_hit.gd",
+		requirements: [
+			["trackable type name fallback", /trackable_type_name/],
+			["trackable type variant conversion", /trackable_type_from_variant/],
 		],
 	},
 	{

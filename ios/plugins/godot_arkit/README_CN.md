@@ -13,6 +13,7 @@ C00 只要求 iPad 能证明 ARKit provider 可用：
 - `GodotARKit.get_capabilities()` 暴露 `arkit_tracking_state` 和 `arkit_tracking_reason`
 - `GodotARKit.hit_test()` 使用 ARKit `ARRaycastQuery` 返回 C00 级 native raycast hit 字典
 - `GodotARKit.get_planes()` 使用 ARKit `ARPlaneAnchor` 返回 C00 级 plane 字典
+- `hit_test()` / `get_planes()` 返回 native ARKit transform pose，供 `XRHit.get_pose()` 和 Unity-style placement workflow 使用
 - `GXF_SMOKE` 中出现 `backend:"ARKit"` 和 `session_state:"Running"`
 
 完整 plane classification、mesh、persistent anchor 和跨平台 trackable 行为进入 C04；C00 先保证 iPad gate 有最小 native ARKit raycast/plane evidence。
@@ -71,6 +72,7 @@ get_planes() -> Array[Dictionary]
 	"normal": Vector3.UP,
 	"transform": Transform3D(...),
 	"trackable_type": XRFoundationTypes.TrackableType.PLANE,
+	"trackable_type_name": "plane",
 	"raw_hit": "ARKitRaycast"
 }
 ```

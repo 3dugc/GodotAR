@@ -64,6 +64,8 @@ Codex implementation status:
 - `tools/c00/check_ios_plugin_artifacts.js` now validates the `GodotARKit.gdip`/template against Godot iOS plugin requirements, including config fields, xcframework reference, init/deinit symbols, capabilities, frameworks, and plist entries.
 - `tools/c00/check_ios_plugin_artifacts.js` now also validates the ARKit runtime bridge surface: native `start_session`/`stop_session`/tracking methods are bound, `GodotARKitSession` runs `ARWorldTrackingConfiguration`, implements `ARSessionDelegate`, and reports ARKit tracking state/reason.
 - `GodotARKit` now exposes C00-level native ARKit `hit_test` / `get_planes` bridge evidence backed by `ARRaycastQuery` and `ARPlaneAnchor`.
+- `GodotARKit` now preserves ARKit native transform matrices in raycast and plane dictionaries so Unity-style `XRHit.get_pose()` / placement workflows receive native pose evidence instead of position-only identity transforms.
+- `XRHit.from_dictionary()` now accepts readable native trackable type names such as `plane` in addition to integer enum values, making future native plugin bridges less brittle.
 - `ARPlaneManager` now polls provider planes while the session is running, so runtime ARKit plane anchors can reach the Unity-style manager layer after session start.
 - `GXF_SMOKE` now includes `trackables` metadata with plane/anchor counts and a center-screen `ARRaycastManager` raycast result; smoke and aggregate gates reject logs missing this metadata.
 - `tools/c00/check_ios_export_project.js` now validates the exported iOS Xcode project before `xcodebuild`, checking for `GodotARKit`, `GodotARKit.xcframework`, ARKit/Metal frameworks, camera usage, and required device capabilities.
@@ -195,7 +197,7 @@ Hardware status:
 | `node --check tools/c00/check_export_presets.js` | Pass | Preset checker parses |
 | ARKit plugin symbol/static check | Pass | `.gdip` init symbols are `extern "C"` and `GodotARKitPlugin` registers with `ClassDB` |
 | ARKit tracking state/static check | Pass | `GodotARKitSession` implements `ARSessionDelegate` and exposes ARKit tracking state/reason |
-| ARKit native raycast/plane static check | Pass | `GodotARKit` binds `hit_test` / `get_planes`, calls native `ARRaycastQuery`, and caches `ARPlaneAnchor` evidence |
+| ARKit native raycast/plane static check | Pass | `GodotARKit` binds `hit_test` / `get_planes`, calls native `ARRaycastQuery`, caches `ARPlaneAnchor` evidence, and preserves native transform matrices |
 | GodotARKit `.gdip` template check | Pass with warning | Plugin config matches Godot iOS plugin format; warns that real `GodotARKit.xcframework` is not built on this host |
 | ARKit plugin Objective-C++ syntax smoke | Pass | `tools/c00/check_arkit_plugin_static.sh` validates plugin sources against the local iOS SDK with Godot stubs |
 | `tools/c00/preflight.sh all` | Blocked by host prerequisites | Missing `godot`, `adb`, `export_presets.cfg`, `addons/godotopenxrvendors`, `GodotARKit.gdip`, `GodotARKit.xcframework`, and built native Android/iOS plugin artifacts; ARKit Objective-C++ syntax smoke passes |

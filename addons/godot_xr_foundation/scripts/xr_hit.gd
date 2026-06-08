@@ -26,11 +26,12 @@ func _init(
 
 
 static func from_dictionary(data: Dictionary) -> XRHit:
+	var type_value: Variant = data.get("trackable_type", data.get("trackable_type_name", XRFoundationTypes.TrackableType.UNKNOWN))
 	var hit := XRHit.new(
 		data.get("transform", Transform3D.IDENTITY),
 		float(data.get("distance", 0.0)),
 		StringName(data.get("trackable_id", "")),
-		int(data.get("trackable_type", XRFoundationTypes.TrackableType.UNKNOWN)),
+		XRFoundationTypes.trackable_type_from_variant(type_value),
 		data.get("raw_hit", null)
 	)
 	hit.position = data.get("position", hit.transform.origin)

@@ -238,3 +238,29 @@ static func not_tracking_reason_to_string(reason: int) -> StringName:
 			return &"Unsupported"
 		_:
 			return &"Unknown"
+
+
+static func trackable_type_from_variant(value: Variant, fallback: int = TrackableType.UNKNOWN) -> int:
+	if typeof(value) == TYPE_INT:
+		return int(value)
+	return trackable_type_from_string(String(value), fallback)
+
+
+static func trackable_type_from_string(value: String, fallback: int = TrackableType.UNKNOWN) -> int:
+	match value.strip_edges().to_lower().replace(" ", "_").replace("-", "_"):
+		"plane", "planes", "estimated_plane", "existing_plane", "plane_within_polygon":
+			return TrackableType.PLANE
+		"point", "points":
+			return TrackableType.POINT
+		"depth":
+			return TrackableType.DEPTH
+		"feature_point", "feature_points":
+			return TrackableType.FEATURE_POINT
+		"image", "images", "tracked_image":
+			return TrackableType.IMAGE
+		"anchor", "anchors":
+			return TrackableType.ANCHOR
+		"", "unknown":
+			return fallback
+		_:
+			return fallback

@@ -63,6 +63,22 @@ static Transform3D transform_from_position(const Vector3 &p_position) {
 	return transform;
 }
 
+static Transform3D transform_from_array(NSArray *p_values, const Vector3 &p_fallback_position) {
+	if (p_values == nil || p_values.count < 16) {
+		return transform_from_position(p_fallback_position);
+	}
+
+	Vector3 column0([p_values[0] doubleValue], [p_values[1] doubleValue], [p_values[2] doubleValue]);
+	Vector3 column1([p_values[4] doubleValue], [p_values[5] doubleValue], [p_values[6] doubleValue]);
+	Vector3 column2([p_values[8] doubleValue], [p_values[9] doubleValue], [p_values[10] doubleValue]);
+	Vector3 origin([p_values[12] doubleValue], [p_values[13] doubleValue], [p_values[14] doubleValue]);
+
+	Transform3D transform;
+	transform.basis = Basis(column0, column1, column2);
+	transform.origin = origin;
+	return transform;
+}
+
 GodotARKitPlugin *GodotARKitPlugin::get_singleton() {
 	return godot_arkit_singleton;
 }
@@ -186,13 +202,15 @@ Array GodotARKitPlugin::hit_test(const Vector3 &p_origin, const Vector3 &p_direc
 		maxDistance:p_max_distance];
 	for (NSDictionary *native_hit in native_hits) {
 		Vector3 position = vector3_from_array(native_hit[@"position"]);
+		Transform3D transform = transform_from_array(native_hit[@"transform"], position);
 		Dictionary hit;
 		hit["trackable_id"] = ns_string_to_godot(native_hit[@"trackable_id"]);
 		hit["distance"] = [native_hit[@"distance"] doubleValue];
 		hit["position"] = position;
 		hit["normal"] = vector3_from_array(native_hit[@"normal"]);
-		hit["transform"] = transform_from_position(position);
+		hit["transform"] = transform;
 		hit["trackable_type"] = 1;
+		hit["trackable_type_name"] = String("plane");
 		hit["raw_hit"] = String("ARKitRaycast");
 		hits.push_back(hit);
 	}
@@ -221,9 +239,10 @@ Array GodotARKitPlugin::get_planes() {
 	NSArray<NSDictionary *> *native_planes = [arkit_session planes];
 	for (NSDictionary *native_plane in native_planes) {
 		Vector3 position = vector3_from_array(native_plane[@"position"]);
+		Transform3D transform = transform_from_array(native_plane[@"transform"], position);
 		Dictionary plane;
 		plane["trackable_id"] = ns_string_to_godot(native_plane[@"trackable_id"]);
-		plane["transform"] = transform_from_position(position);
+		plane["transform"] = transform;
 		plane["size"] = vector2_from_array(native_plane[@"size"]);
 		plane["alignment"] = ns_string_to_godot(native_plane[@"alignment"]);
 		plane["label"] = ns_string_to_godot(native_plane[@"label"]);

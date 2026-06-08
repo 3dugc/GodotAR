@@ -108,6 +108,8 @@ if (!source) {
 	requireSourceIncludes(source, "[arkit_session stop]", "stop_session must call the native ARKit session stop path.");
 	requireSourceIncludes(source, "hitTestFromOrigin", "hit_test must call the native ARKit raycast path.");
 	requireSourceIncludes(source, "[arkit_session planes]", "get_planes must call the native ARKit plane path.");
+	requireSourceIncludes(source, "transform_from_array", "Source must preserve native ARKit transform matrices for Unity-style hit/plane poses.");
+	requireSourceIncludes(source, "trackable_type_name", "Source should expose a readable trackable type name for ARFoundation migration diagnostics.");
 	requireSourceIncludes(source, "arkit_tracking_state", "get_capabilities must expose arkit_tracking_state.");
 	requireSourceIncludes(source, "arkit_tracking_reason", "get_capabilities must expose arkit_tracking_reason.");
 }
@@ -139,6 +141,7 @@ if (!sessionSource) {
 	requireSourceIncludes(sessionSource, "didUpdateFrame", "GodotARKitSession must observe ARFrame updates.");
 	requireSourceIncludes(sessionSource, "ARRaycastQuery", "GodotARKitSession must use ARRaycastQuery for native raycasts.");
 	requireSourceIncludes(sessionSource, "raycast:query", "GodotARKitSession must call ARSession raycast:query.");
+	requireSourceIncludes(sessionSource, "matrixArrayFromTransform", "GodotARKitSession must export native ARKit matrices for hit/plane pose evidence.");
 	requireSourceIncludes(sessionSource, "ARPlaneAnchor", "GodotARKitSession must store ARPlaneAnchor plane evidence.");
 	requireSourceIncludes(sessionSource, "didAddAnchors", "GodotARKitSession must observe added ARKit anchors.");
 	requireSourceIncludes(sessionSource, "didUpdateAnchors", "GodotARKitSession must observe updated ARKit anchors.");

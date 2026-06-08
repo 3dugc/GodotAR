@@ -83,6 +83,9 @@ struct Vector3 {
 	double x = 0.0;
 	double y = 0.0;
 	double z = 0.0;
+	Vector3() = default;
+	Vector3(double p_x, double p_y, double p_z) :
+			x(p_x), y(p_y), z(p_z) {}
 };
 #endif
 EOF
@@ -93,6 +96,9 @@ cat > "$STUB_ROOT/core/math/vector2.h" <<'EOF'
 struct Vector2 {
 	double x = 0.0;
 	double y = 0.0;
+	Vector2() = default;
+	Vector2(double p_x, double p_y) :
+			x(p_x), y(p_y) {}
 };
 #endif
 EOF
@@ -101,7 +107,16 @@ cat > "$STUB_ROOT/core/math/transform_3d.h" <<'EOF'
 #ifndef GODOT_TRANSFORM3D_STUB_H
 #define GODOT_TRANSFORM3D_STUB_H
 #include "core/math/vector3.h"
+struct Basis {
+	Vector3 x;
+	Vector3 y;
+	Vector3 z;
+	Basis() = default;
+	Basis(const Vector3 &p_x, const Vector3 &p_y, const Vector3 &p_z) :
+			x(p_x), y(p_y), z(p_z) {}
+};
 struct Transform3D {
+	Basis basis;
 	Vector3 origin;
 };
 #endif
