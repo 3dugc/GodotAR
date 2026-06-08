@@ -92,6 +92,9 @@ For C00, a real Rokid pass must show `backend=OpenXR`, and a real iPad pass must
 - `releases/phase_0_smoke/`
   C00 device runbook and test report template.
 
+- `tools/c00/`
+  C00 preflight, export helper, device log collection, and gate validation scripts.
+
 - `SPEC_DRIVEN_EXECUTION_CN.md`  
   Spec-driven execution plan: every cycle must be runnable, detectable, and publishable.
 

@@ -5,6 +5,7 @@
 
 # Exported builds
 exports/
+builds/
 releases/*/packages/
 *.apk
 *.aab
@@ -17,4 +18,3 @@ releases/*/packages/
 Thumbs.db
 .idea/
 .vscode/
-

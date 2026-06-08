@@ -24,10 +24,12 @@ Codex implementation status:
 - Provider capability reports created.
 - Unity-style `ARSession` wrapper created.
 - Godot plugin-first boundary documented. No Godot engine patch is used in C00.
+- C00 preflight, export helper, Android/Rokid log collector, iPad log collector, and gate validator created under `tools/c00`.
 
 Hardware status:
 
 - Not executed in this Codex environment because Godot executable, Rokid hardware, and iPad hardware are not available here.
+- Local preflight currently reports missing `godot` and `adb`, with `node` and `xcrun` available.
 - Do not mark this report as passed until the device evidence below is filled.
 
 ## Device Evidence

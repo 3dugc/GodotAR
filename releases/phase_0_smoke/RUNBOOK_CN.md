@@ -12,6 +12,24 @@ res://demo/00_device_smoke_test.tscn
 
 也可以在编辑器中手动运行该场景。
 
+## 工具链预检
+
+```bash
+tools/c00/preflight.sh
+```
+
+如果本机 Godot 不在 PATH，可以设置：
+
+```bash
+GODOT_BIN=/Applications/Godot.app/Contents/MacOS/Godot tools/c00/preflight.sh
+```
+
+导出 preset 说明：
+
+```text
+tools/c00/EXPORT_PRESETS_CN.md
+```
+
 ## 插件优先边界
 
 C00 不修改 Godot 主干。
@@ -53,6 +71,12 @@ XRFoundation.start_session(XRFoundationTypes.Backend.OPENXR, {
 --xr-platform=rokid
 ```
 
+自动采集和验证：
+
+```bash
+APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godotengine.godotxrfoundation 30
+```
+
 失败判定：
 
 - `Backend: EditorSim`：Godot 应用启动了，但 OpenXR gate 未通过。
@@ -74,6 +98,12 @@ XRFoundation.start_session(XRFoundationTypes.Backend.OPENXR, {
 - `Backend: EditorSim`：iOS app 启动了，但 ARKit native plugin 没有被 Godot 识别。
 - `singleton_registered=false` 且 `interface_registered=false`：检查 `.gdip`、`.xcframework`、Xcode linking、iOS plugin singleton 名称。
 
+自动采集和验证：
+
+```bash
+APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <device> org.godotengine.godotxrfoundation 30
+```
+
 ## 归档材料
 
 每台设备至少保存：
@@ -83,6 +113,12 @@ XRFoundation.start_session(XRFoundationTypes.Backend.OPENXR, {
 - 设备型号、系统版本、Godot 版本、插件版本。
 - 使用的扩展路径：addon / Android plugin / iOS plugin / GDExtension / OpenXR vendor plugin / engine patch。
 - 是否通过 gate。
+
+脚本生成的 gate 报告在：
+
+```text
+releases/phase_0_smoke/evidence/
+```
 
 ## 参考原则
 
