@@ -34,6 +34,18 @@ case "$OUT_PATH" in
 	*) EXPORT_PATH="$PROJECT_ROOT/$OUT_PATH" ;;
 esac
 
+is_android_export=0
+case "$EXPORT_PATH" in
+	*.apk|*.aab) is_android_export=1 ;;
+esac
+
+if [ "$is_android_export" = "1" ] && [ "${GODOT_CONFIGURE_ANDROID_EXPORT:-auto}" != "0" ]; then
+	echo "Configuring Android export environment before Godot export..."
+	"$PROJECT_ROOT/tools/c00/configure_android_export_environment.sh" \
+		--godot "$GODOT" \
+		--install-build-template
+fi
+
 GODOT_XR_MODE="${GODOT_EXPORT_XR_MODE:-off}"
 GODOT_ARGS=(--headless)
 if [ -n "$GODOT_XR_MODE" ]; then

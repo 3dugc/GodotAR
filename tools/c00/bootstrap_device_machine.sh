@@ -108,6 +108,12 @@ find_godot_binary() {
 		return 0
 	fi
 
+	local bundled_path="$PROJECT_ROOT/.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot"
+	if [[ -x "$bundled_path" ]]; then
+		printf "%s" "$bundled_path"
+		return 0
+	fi
+
 	local app_path=""
 	app_path="$(find /Applications -maxdepth 3 -iname '*Godot*.app' 2>/dev/null | head -n 1 || true)"
 	if [[ -n "$app_path" && -x "$app_path/Contents/MacOS/Godot" ]]; then
@@ -118,10 +124,38 @@ find_godot_binary() {
 	return 1
 }
 
+find_adb_binary() {
+	if [[ -n "${ADB_BIN:-}" && -x "$ADB_BIN" ]]; then
+		printf "%s" "$ADB_BIN"
+		return 0
+	fi
+	if command -v adb >/dev/null 2>&1; then
+		command -v adb
+		return 0
+	fi
+	local bundled_path="$PROJECT_ROOT/.godot/cache/c00/android-sdk/platform-tools/adb"
+	if [[ -x "$bundled_path" ]]; then
+		printf "%s" "$bundled_path"
+		return 0
+	fi
+	return 1
+}
+
 check_command_row() {
 	local command_name="$1"
 	local purpose="$2"
 	if command -v "$command_name" >/dev/null 2>&1; then
+		add_row PASS "$command_name" "$(command -v "$command_name")"
+	else
+		add_row MISS "$command_name" "$purpose"
+	fi
+}
+
+check_working_command_row() {
+	local command_name="$1"
+	local probe="$2"
+	local purpose="$3"
+	if command -v "$command_name" >/dev/null 2>&1 && "$command_name" $probe >/dev/null 2>&1; then
 		add_row PASS "$command_name" "$(command -v "$command_name")"
 	else
 		add_row MISS "$command_name" "$purpose"
@@ -146,6 +180,42 @@ run_capture() {
 	return 1
 }
 
+resolve_template_version() {
+	if [[ -n "${GODOT_EXPORT_TEMPLATES_VERSION:-}" ]]; then
+		printf "%s" "$GODOT_EXPORT_TEMPLATES_VERSION"
+	else
+		printf "4.4.1.stable"
+	fi
+}
+
+resolve_export_templates_dir() {
+	local version
+	version="$(resolve_template_version)"
+	printf "%s" "${GODOT_EXPORT_TEMPLATES_DIR:-$HOME/Library/Application Support/Godot/export_templates/$version}"
+}
+
+resolve_android_sdk_dir() {
+	if [[ -n "${GODOT_ANDROID_SDK_PATH:-}" ]]; then
+		printf "%s" "$GODOT_ANDROID_SDK_PATH"
+	elif [[ -n "${ANDROID_SDK_ROOT:-}" ]]; then
+		printf "%s" "$ANDROID_SDK_ROOT"
+	elif [[ -n "${ANDROID_HOME:-}" ]]; then
+		printf "%s" "$ANDROID_HOME"
+	elif [[ -d "$HOME/Library/Android/sdk" ]]; then
+		printf "%s" "$HOME/Library/Android/sdk"
+	else
+		printf "%s" "$PROJECT_ROOT/.godot/cache/c00/android-sdk"
+	fi
+}
+
+resolve_android_debug_keystore() {
+	if [[ -n "${GODOT_ANDROID_KEYSTORE_DEBUG_PATH:-}" ]]; then
+		printf "%s" "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
+	else
+		printf "%s" "$PROJECT_ROOT/.godot/cache/c00/android/debug.keystore"
+	fi
+}
+
 {
 	printf "# C00 Device Machine Readiness\n\n"
 	printf "Generated: %s\n\n" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
@@ -163,9 +233,15 @@ else
 	add_row MISS "Godot binary" "Install Godot or set GODOT_BIN=/path/to/Godot."
 fi
 
-check_command_row adb "required for Rokid/Android install, logcat, screenshot, and recording"
+if adb_path="$(find_adb_binary)"; then
+	add_row PASS "adb" "$adb_path"
+else
+	add_row MISS "adb" "required for Rokid/Android install, logcat, screenshot, and recording"
+fi
 check_command_row xcrun "required for iPad install/launch and iOS SDK checks"
 check_command_row xcodebuild "required for building the Godot iOS export into an installable .app"
+check_working_command_row java "-version" "required by Android Gradle export; install a real JDK and set JAVA_HOME."
+check_working_command_row keytool "-help" "required to create or validate the Android debug keystore; install a real JDK."
 
 if command -v xcrun >/dev/null 2>&1; then
 	if sdk_path="$(run_capture xcrun --sdk iphoneos --show-sdk-path)"; then
@@ -253,6 +329,51 @@ else
 	add_row MISS "export_presets.cfg C00 presets" "Run tools/c00/bootstrap_device_machine.sh --write-export-presets, then review and save in Godot editor."
 fi
 
+templates_dir="$(resolve_export_templates_dir)"
+if [[ -f "$templates_dir/ios.zip" ]]; then
+	add_row PASS "Godot iOS export template" "$templates_dir/ios.zip"
+else
+	add_row MISS "Godot iOS export template" "Install Godot export templates, then ensure $templates_dir/ios.zip exists."
+fi
+
+if [[ -f "$templates_dir/android_source.zip" ]]; then
+	add_row PASS "Godot Android source template" "$templates_dir/android_source.zip"
+else
+	add_row MISS "Godot Android source template" "Install Godot export templates, then ensure $templates_dir/android_source.zip exists."
+fi
+
+android_sdk_dir="$(resolve_android_sdk_dir)"
+if [[ -d "$android_sdk_dir/platform-tools" ]]; then
+	add_row PASS "Android SDK platform-tools" "$android_sdk_dir/platform-tools"
+else
+	add_row MISS "Android SDK platform-tools" "Install Android SDK platform-tools or set GODOT_ANDROID_SDK_PATH/ANDROID_SDK_ROOT/ANDROID_HOME."
+fi
+
+if [[ -d "$android_sdk_dir/build-tools" ]]; then
+	add_row PASS "Android SDK build-tools" "$android_sdk_dir/build-tools"
+else
+	add_row MISS "Android SDK build-tools" "Install Android SDK build-tools so Godot can find apksigner."
+fi
+
+if find "$android_sdk_dir/build-tools" -path "*/apksigner" -type f -perm -111 2>/dev/null | head -n 1 | grep -q .; then
+	add_row PASS "Android apksigner" "$android_sdk_dir/build-tools"
+else
+	add_row MISS "Android apksigner" "Install Android SDK build-tools so an executable apksigner exists."
+fi
+
+debug_keystore="$(resolve_android_debug_keystore)"
+if [[ -f "$debug_keystore" ]]; then
+	add_row PASS "Android debug keystore" "$debug_keystore"
+else
+	add_row MISS "Android debug keystore" "Run tools/c00/configure_android_export_environment.sh --install-build-template."
+fi
+
+if [[ -f "$PROJECT_ROOT/android/build/build.gradle" ]]; then
+	add_row PASS "Android project build template" "android/build/build.gradle"
+else
+	add_row MISS "Android project build template" "Run tools/c00/install_android_build_template.sh after installing android_source.zip."
+fi
+
 static_report="$(dirname "$REPORT")/static-gates-${TIMESTAMP}.md"
 if static_output="$(run_capture node "$PROJECT_ROOT/tools/c00/run_static_gates.js" --gate all --report "$static_report")"; then
 	add_row PASS "C00 static gates" "$static_report"
@@ -292,21 +413,30 @@ fi
 	printf "   \`\`\`bash\n"
 	printf "   tools/c00/install_openxr_vendors.sh\n"
 	printf "   \`\`\`\n\n"
-	printf "3. Review signing, OpenXR loader/vendor, and iOS plugin options in Godot editor, then save \`export_presets.cfg\`.\n\n"
-	printf "4. Prepare Godot source headers for the ARKit plugin if missing:\n\n"
+	printf "3. Install Godot 4.4.1 export templates and project Android build template:\n\n"
+	printf "   \`\`\`bash\n"
+	printf "   tools/c00/install_godot_export_templates.sh --tpz <Godot_v4.4.1-stable_export_templates.tpz> --version 4.4.1.stable\n"
+	printf "   tools/c00/install_android_build_template.sh\n"
+	printf "   \`\`\`\n\n"
+	printf "4. Configure Android SDK, debug keystore, and Godot Android EditorSettings:\n\n"
+	printf "   \`\`\`bash\n"
+	printf "   GODOT_BIN=/path/to/Godot tools/c00/configure_android_export_environment.sh --install-build-template\n"
+	printf "   \`\`\`\n\n"
+	printf "5. Review signing, OpenXR loader/vendor, and iOS plugin options in Godot editor, then save \`export_presets.cfg\`.\n\n"
+	printf "6. Prepare Godot source headers for the ARKit plugin if missing:\n\n"
 	printf "   \`\`\`bash\n"
 	printf "   tools/c00/prepare_godot_source.sh --tag <godot-tag>\n"
 	printf "   \`\`\`\n\n"
-	printf "5. Build the ARKit iOS plugin on the device machine:\n\n"
+	printf "7. Build the ARKit iOS plugin on the device machine:\n\n"
 	printf "   \`\`\`bash\n"
 	printf "   GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh\n"
 	printf "   \`\`\`\n\n"
-	printf "6. Run the first phase gates:\n\n"
+	printf "8. Run the first phase gates:\n\n"
 	printf "   \`\`\`bash\n"
 	printf "   GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh all\n"
 	printf "   \`\`\`\n\n"
 	printf "   The iPad gate will build the exported Xcode project into \`builds/ipad/GodotXRFoundation.app\` when \`APP_PATH\` is empty.\n\n"
-	printf "7. Publish only when \`releases/phase_0_smoke/C00_PHASE_REPORT.md\` reports PASS for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.\n"
+	printf "9. Publish only when \`releases/phase_0_smoke/C00_PHASE_REPORT.md\` reports PASS for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.\n"
 } >> "$REPORT"
 
 cat "$REPORT"

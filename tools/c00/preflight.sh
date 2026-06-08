@@ -106,10 +106,30 @@ resolve_android_sdk_dir() {
 	fi
 }
 
+resolve_android_debug_keystore() {
+	if [ -n "${GODOT_ANDROID_KEYSTORE_DEBUG_PATH:-}" ]; then
+		printf "%s" "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
+	else
+		printf "%s" "$PROJECT_ROOT/.godot/cache/c00/android/debug.keystore"
+	fi
+}
+
 check_command() {
 	local name="$1"
 	local purpose="$2"
 	if command -v "$name" >/dev/null 2>&1; then
+		printf "OK   %-16s %s\n" "$name" "$(command -v "$name")"
+	else
+		printf "MISS %-16s %s\n" "$name" "$purpose"
+		status=1
+	fi
+}
+
+check_working_command() {
+	local name="$1"
+	local probe="$2"
+	local purpose="$3"
+	if command -v "$name" >/dev/null 2>&1 && "$name" $probe >/dev/null 2>&1; then
 		printf "OK   %-16s %s\n" "$name" "$(command -v "$name")"
 	else
 		printf "MISS %-16s %s\n" "$name" "$purpose"
@@ -260,6 +280,7 @@ fi
 if needs_android_tools; then
 	printf "\nAndroid export toolchain\n"
 	android_sdk_dir="$(resolve_android_sdk_dir)"
+	debug_keystore="$(resolve_android_debug_keystore)"
 	check_dir "$android_sdk_dir/platform-tools" "Android SDK platform-tools directory required by Godot export settings"
 	check_dir "$android_sdk_dir/build-tools" "Android SDK build-tools directory required by Godot export settings"
 	if find "$android_sdk_dir/build-tools" -path "*/apksigner" -type f -perm -111 2>/dev/null | head -n 1 | grep -q .; then
@@ -269,8 +290,10 @@ if needs_android_tools; then
 		printf "     Install Android SDK build-tools and point GODOT_ANDROID_SDK_PATH, ANDROID_SDK_ROOT, or ANDROID_HOME at the SDK root.\n"
 		status=1
 	fi
-	check_command java "required by Android Gradle export; set JAVA_HOME/PATH so Godot can find a Java SDK"
-	check_command keytool "required to create or validate the Android debug keystore"
+	check_working_command java "-version" "required by Android Gradle export; install a real JDK and set JAVA_HOME/PATH so Godot can find it"
+	check_working_command keytool "-help" "required to create or validate the Android debug keystore; install a real JDK"
+	check_file "$debug_keystore" "required for debug APK signing; run tools/c00/configure_android_export_environment.sh --install-build-template"
+	check_file "$PROJECT_ROOT/android/build/build.gradle" "required for Android Gradle exports; run tools/c00/install_android_build_template.sh after installing Godot export templates"
 fi
 
 if needs_arkit_static_check; then

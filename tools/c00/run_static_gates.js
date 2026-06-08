@@ -66,6 +66,11 @@ const checks = [
 		command: ["node", "tools/c00/check_arcore_gate_surface.js"],
 		required: true,
 	}] : []),
+	...(needsAndroidExport(gate) ? [{
+		name: "Android export environment surface",
+		command: ["node", "tools/c00/check_android_export_environment_surface.js"],
+		required: true,
+	}] : []),
 	...(needsIOS(gate) ? [
 		{
 			name: "iPad Godot source preparation surface",
@@ -248,6 +253,11 @@ function needsOpenXR(targetGate) {
 
 function needsARCore(targetGate) {
 	return targetGate === "all" || targetGate === "android-arcore";
+}
+
+
+function needsAndroidExport(targetGate) {
+	return targetGate === "all" || targetGate === "rokid" || targetGate === "android-arcore";
 }
 
 

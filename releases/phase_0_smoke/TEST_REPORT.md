@@ -99,7 +99,11 @@ Codex implementation status:
 - `export_presets.cfg` and `tools/c00/write_export_presets_template.js` now use Godot-compatible `;` comments. Godot 4.4 `ConfigFile` does not treat `#` as a comment, which made `preset.0` load as an empty section during real export.
 - `tools/c00/export_with_godot.sh` now passes `--xr-mode off` by default so build machines without a desktop OpenXR runtime can still perform command-line exports.
 - `tools/c00/install_godot_export_templates.sh` now installs an official Godot export templates `.tpz` into the Godot templates directory and validates that `ios.zip` and `android_source.zip` exist.
-- `tools/c00/preflight.sh` now checks real export prerequisites, including Godot export templates, Android SDK `platform-tools` / `build-tools` / `apksigner`, Java, and `keytool`.
+- `tools/c00/install_android_build_template.sh` now mirrors Godot 4.4's Android build-template install flow by extracting `android_source.zip` into `android/build`, writing `android/.build_version`, and checking for `build.gradle`.
+- `tools/c00/install_android_sdk_packages.sh` now installs the Android SDK packages Godot 4.4 expects for C00 exports when a device machine has `sdkmanager`: `platform-tools`, `platforms;android-34`, and `build-tools;34.0.0`.
+- `tools/c00/configure_android_export_environment.sh` now prepares the Android SDK path, JDK path, debug keystore, Godot Android EditorSettings, and project Android build template before Rokid/OpenXR or Android/ARCore export.
+- `tools/c00/export_with_godot.sh` now auto-runs Android export environment configuration before `.apk` / `.aab` export unless `GODOT_CONFIGURE_ANDROID_EXPORT=0` is set.
+- `tools/c00/preflight.sh` now checks real export prerequisites, including Godot export templates, project Android build template, Android SDK `platform-tools` / `build-tools` / `apksigner`, a working JDK (`java -version` and `keytool -help`), and debug keystore configuration.
 - `XRFoundation.resolve_platform_hint()` now reads both Godot command-line args and user args, and smoke/aggregate gates require launch platform evidence for Rokid, iPad, and Android ARCore device gates.
 - `tools/c00/collect_android_smoke.sh` now checks APK `assets/_cl_` for the required Godot Android `command_line/extra_args` (`--xr-platform=rokid` or `--xr-platform=arcore`) before install, and force-stops the package before launch so logs come from a fresh process with the intended XR platform.
 - C00 now includes an XRI-style smoke surface: `XRInteractionManager`, `XRRayInteractor`, `XRGrabInteractable`, hover/select/activate events, and `GXF_SMOKE.xri` runtime evidence from the demo scene.
@@ -111,8 +115,8 @@ Hardware status:
 - `GodotARKit.gdip` and `GodotARKit.xcframework` are built and pass `check_ios_plugin_artifacts.js --require-binary`.
 - `export_presets.cfg` is now loadable by Godot itself; `preset.0`, `preset.1`, and `preset.2` resolve to Rokid/OpenXR, Android ARCore, and iPad/ARKit respectively.
 - Real iPad export reached Godot's export-configuration gate and is currently blocked by missing official export template `~/Library/Application Support/Godot/export_templates/4.4.1.stable/ios.zip`.
-- Real Rokid export reached Godot's export-configuration gate and is currently blocked by missing official `android_source.zip`, missing project Android build template, and missing Android SDK build-tools / Java SDK / debug keystore configuration.
-- Attempts to download `Godot_v4.4.1-stable_export_templates.tpz` from GitHub, SourceForge, and `downloads.godotengine.org` failed in this environment at TLS/EOF before a secure connection was established. Install the `.tpz` manually or retry on a device machine with working access, then run `tools/c00/install_godot_export_templates.sh --tpz <file>`.
+- Real Rokid export reached Godot's export-configuration gate and is currently blocked by missing official `android_source.zip`, missing project Android build template, missing Android SDK build-tools / `apksigner`, missing real JDK, and missing debug keystore configuration.
+- Attempts to download `Godot_v4.4.1-stable_export_templates.tpz` from GitHub, SourceForge, and `downloads.godotengine.org` failed in this environment at TLS/EOF before a secure connection was established. A retry on 2026-06-08 against GitHub and SourceForge also failed with `SSL_ERROR_SYSCALL`. Install the `.tpz` manually or retry on a device machine with working access, then run `tools/c00/install_godot_export_templates.sh --tpz <file>`.
 - No Rokid/Android device is currently attached through ADB. The detected `iPad M4` is currently reported by `devicectl` as `unavailable`.
 - Do not mark this report as passed until the device evidence below is filled.
 

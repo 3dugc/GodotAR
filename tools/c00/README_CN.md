@@ -75,6 +75,37 @@ tools/c00/install_godot_export_templates.sh \
 
 如果 GitHub 下载失败，可以从 Godot 官方 4.4.1 archive 页面下载同名 standard export templates `.tpz` 后，把本地文件路径传给 `--tpz`。iPad 导出至少需要 `ios.zip`；Rokid/OpenXR 和 Android ARCore 的 Gradle 导出至少需要 `android_source.zip`。
 
+安装项目内 Android Gradle build template：
+
+```bash
+tools/c00/install_android_build_template.sh
+```
+
+该脚本按 Godot 4.4 的 `Project > Install Android Build Template` 逻辑，把 `android_source.zip` 解到 `android/build`，并写入 `android/.build_version` 与 `android/build/.gdignore`。Rokid/OpenXR 和 Android ARCore 都启用了 Gradle export，因此这个步骤是 APK 导出前置条件。
+
+如果设备机已有 Android command line tools，可以安装 Godot 4.4 默认 Android SDK 依赖：
+
+```bash
+tools/c00/install_android_sdk_packages.sh --yes
+```
+
+默认安装 `platform-tools`、`platforms;android-34`、`build-tools;34.0.0`。如果 `sdkmanager` 不在默认 SDK 目录里，传入 `--sdkmanager /path/to/sdkmanager`。
+
+Android/Rokid 导出还需要真实 JDK。macOS 的 `/usr/bin/java` / `/usr/bin/keytool` 可能只是系统 stub；`tools/c00/preflight.sh rokid` 会用 `java -version` 和 `keytool -help` 验证它们真的可运行。安装 JDK 后设置：
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home)
+```
+
+配置 Android SDK、debug keystore 和 Godot Android EditorSettings：
+
+```bash
+GODOT_BIN=/path/to/Godot \
+tools/c00/configure_android_export_environment.sh --install-build-template
+```
+
+该脚本会生成默认 debug keystore 到 `.godot/cache/c00/android/debug.keystore`，并通过 Godot editor binary 写入 `export/android/android_sdk_path`、`export/android/java_sdk_path`、`export/android/debug_keystore`、`export/android/debug_keystore_user` 和 `export/android/debug_keystore_pass`。`tools/c00/export_with_godot.sh` 在导出 `.apk` / `.aab` 前会自动调用它；如果需要完全手动控制，可设置 `GODOT_CONFIGURE_ANDROID_EXPORT=0`。
+
 命令行导出时，`tools/c00/export_with_godot.sh` 默认传入 `--xr-mode off`，避免开发机没有 OpenXR runtime 时阻塞导出流程。这个参数只影响构建机上的 Godot editor 进程，不会移除导出包里的 OpenXR/ARKit/ARCore 启动参数。
 
 iPad/ARKit gate 前先构建插件：
