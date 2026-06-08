@@ -12,6 +12,7 @@ releases/*/packages/
 *.ipa
 *.xcarchive
 *.dSYM
+ios/plugins/godot_arkit/.build/
 
 # OS/editor noise
 .DS_Store

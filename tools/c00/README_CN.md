@@ -15,7 +15,15 @@ tools/c00/preflight.sh
 - `adb`：Rokid/Android 日志采集。
 - `xcrun`：iPad 安装和启动。
 - `android/plugins`、`ios/plugins` 是否存在。
+- `ios/plugins/godot_arkit/GodotARKit.xcframework` 和 `.gdip` 是否存在。
 - C00 smoke scene 是否是 Godot 主场景。
+- `project.godot` 是否开启 OpenXR。
+
+iPad/ARKit gate 前先构建插件：
+
+```bash
+GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh
+```
 
 ## Rokid / Android 日志采集
 

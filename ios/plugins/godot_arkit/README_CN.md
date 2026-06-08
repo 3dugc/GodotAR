@@ -20,7 +20,7 @@ C00 只要求 iPad 能证明 ARKit provider 可用：
 - `src/GodotARKitPlugin.mm`
 - `src/GodotARKitSession.h`
 - `src/GodotARKitSession.mm`
-- `build_xcframework.sh`：占位构建入口，依赖 Godot iOS plugin headers 和 Xcode 工程配置。
+- `build_xcframework.sh`：实际构建入口，依赖 Godot source headers、Xcode command line tools，并产出 `GodotARKit.xcframework` 与 `GodotARKit.gdip`。
 
 ## Singleton API
 
@@ -41,21 +41,40 @@ get_planes() -> Array[Dictionary]
 
 ## 启用步骤
 
-1. 准备与 Godot iOS export template 匹配的 Godot headers。
-2. 用 Xcode 或脚本构建 `GodotARKit.xcframework`。
-3. 复制模板：
+1. 准备与 Godot iOS export template 匹配的 Godot source tree。
+2. 构建插件：
 
 ```bash
-cp ios/plugins/godot_arkit/GodotARKit.gdip.template ios/plugins/godot_arkit/GodotARKit.gdip
+GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh
 ```
 
-4. 确认 `GodotARKit.gdip` 中的 `binary` 指向实际 `GodotARKit.xcframework`。
-5. 在 Godot iOS export preset 的 Plugins 区域启用 `GodotARKit`。
-6. 运行 C00 iPad gate：
+3. 确认生成：
+
+```text
+ios/plugins/godot_arkit/GodotARKit.xcframework
+ios/plugins/godot_arkit/GodotARKit.gdip
+```
+
+4. 在 Godot iOS export preset 的 Plugins 区域启用 `GodotARKit`。
+5. 运行 C00 iPad gate：
 
 ```bash
 APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <device> org.godotengine.godotxrfoundation 30
 ```
+
+## 构建参数
+
+默认构建 `release_debug`，同时包含 device `arm64` 和 simulator `arm64/x86_64`：
+
+```bash
+GODOT_SOURCE_DIR=/path/to/godot \
+TARGET=release_debug \
+IOS_MIN_VERSION=12.0 \
+SIM_ARCHS="arm64 x86_64" \
+ios/plugins/godot_arkit/build_xcframework.sh
+```
+
+`GODOT_SOURCE_DIR` 必须和 iOS export template 使用的 Godot 版本一致。Godot 官方 iOS plugin 文档要求插件库依赖 Godot engine headers，且插件文件位于 `res://ios/plugins` 下才能被 Godot editor 自动检测。
 
 ## 参考
 

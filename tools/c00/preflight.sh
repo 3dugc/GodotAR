@@ -16,6 +16,30 @@ check_command() {
 	fi
 }
 
+check_file() {
+	local path="$1"
+	local purpose="$2"
+	if [ -f "$path" ]; then
+		printf "OK   %s\n" "$path"
+	else
+		printf "MISS %s\n" "$path"
+		printf "     %s\n" "$purpose"
+		status=1
+	fi
+}
+
+check_dir() {
+	local path="$1"
+	local purpose="$2"
+	if [ -d "$path" ]; then
+		printf "OK   %s\n" "$path"
+	else
+		printf "MISS %s\n" "$path"
+		printf "     %s\n" "$purpose"
+		status=1
+	fi
+}
+
 printf "C00 device smoke preflight\n"
 printf "Project: %s\n\n" "$PROJECT_ROOT"
 
@@ -38,6 +62,10 @@ for dir in "$PROJECT_ROOT/android/plugins" "$PROJECT_ROOT/ios/plugins"; do
 	fi
 done
 
+printf "\nNative plugin artifacts\n"
+check_file "$PROJECT_ROOT/ios/plugins/godot_arkit/GodotARKit.gdip" "required for the iPad/ARKit gate; run ios/plugins/godot_arkit/build_xcframework.sh"
+check_dir "$PROJECT_ROOT/ios/plugins/godot_arkit/GodotARKit.xcframework" "required for the iPad/ARKit gate; run ios/plugins/godot_arkit/build_xcframework.sh"
+
 printf "\nGodot project checks\n"
 if [ -f "$PROJECT_ROOT/project.godot" ]; then
 	printf "OK   project.godot\n"
@@ -50,6 +78,13 @@ if grep -q 'run/main_scene="res://demo/00_device_smoke_test.tscn"' "$PROJECT_ROO
 	printf "OK   C00 smoke scene is main_scene\n"
 else
 	printf "MISS C00 smoke scene is not main_scene\n"
+	status=1
+fi
+
+if grep -q 'openxr/enabled=true' "$PROJECT_ROOT/project.godot"; then
+	printf "OK   OpenXR is enabled\n"
+else
+	printf "MISS OpenXR is not enabled in project.godot\n"
 	status=1
 fi
 

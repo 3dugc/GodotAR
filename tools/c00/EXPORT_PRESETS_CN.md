@@ -67,10 +67,18 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 
 - ARKit iOS plugin enabled
 - Plugin files under `res://ios/plugins`
+- `ios/plugins/godot_arkit/GodotARKit.xcframework` exists
+- `ios/plugins/godot_arkit/GodotARKit.gdip` exists
 - Bundle Identifier: 建议 `org.godotengine.godotxrfoundation`
 - Team ID / signing: 使用本机 Apple Developer 配置
 - Main scene: `res://demo/00_device_smoke_test.tscn`
 - Export path: `builds/ipad/c00.zip`
+
+构建 ARKit 插件：
+
+```bash
+GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh
+```
 
 导出命令：
 

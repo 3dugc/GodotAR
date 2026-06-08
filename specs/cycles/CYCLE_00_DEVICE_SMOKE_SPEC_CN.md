@@ -86,6 +86,7 @@ demo/00_device_smoke_test.tscn
 - `tools/c00/collect_android_smoke.sh`
 - `tools/c00/collect_ios_smoke.sh`
 - `tools/c00/export_with_godot.sh`
+- `ios/plugins/godot_arkit/build_xcframework.sh`
 
 统一日志格式：
 

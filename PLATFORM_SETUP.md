@@ -72,7 +72,15 @@ The repository includes a first-party skeleton at:
 res://ios/plugins/godot_arkit
 ```
 
-It defines the expected `GodotARKit` singleton API and `.gdip` template. Build `GodotARKit.xcframework`, copy `GodotARKit.gdip.template` to `GodotARKit.gdip`, then enable the plugin in the iOS export preset.
+It defines the expected `GodotARKit` singleton API and `.gdip` template. Build `GodotARKit.xcframework` and `GodotARKit.gdip`, then enable the plugin in the iOS export preset.
+
+Build the plugin on the iOS export machine:
+
+```bash
+GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh
+```
+
+The script writes `GodotARKit.xcframework` and `GodotARKit.gdip` next to the template.
 
 The provider searches for:
 
