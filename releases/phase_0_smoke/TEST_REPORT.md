@@ -72,6 +72,7 @@ Codex implementation status:
 - `tools/c00/collect_android_smoke.sh` now appends the Android device profile analysis report to the same C00 gate report.
 - iPad collection now writes a devicectl-backed device profile report and JSON with device details, display, lock state, target bundle status, and raw JSON command evidence.
 - iPad collection now installs the `.app` before collecting the devicectl profile when `APP_PATH` is set, then writes an iPad device profile analysis report that checks selected device, target bundle install state, display evidence, and lock-state risk.
+- iPad/Rokid/Android collectors now continue assembling media evidence, device profile, and profile analysis sections after smoke validation failure, then exit non-zero so failed device runs still produce useful diagnostic reports.
 - C00 aggregate verification now requires device profile Markdown and JSON evidence for Rokid/OpenXR, iPad/ARKit, and Android/ARCore; manual evidence import can carry those files into the standard evidence layout.
 - `tools/c00/validate_evidence_bundle.js` now enforces publishable evidence: Rokid/Android require screenshot plus recording; iPad requires at least one screenshot or recording.
 - `tools/c00/verify_phase_evidence.js` now enforces the full C00 publish gate by requiring Rokid/OpenXR, iPad/ARKit, and Android/ARCore evidence in one aggregate report by default.
@@ -108,6 +109,8 @@ Hardware status:
 | `node tools/c00/run_static_gates.js --gate all --report /private/tmp/godotar-static-gates.md` | Pass with warning | Static gate report passes; missing `export_presets.cfg` is recorded as warning |
 | `node --check tools/c00/check_launch_platform_surface.js` | Pass | Launch platform surface checker parses |
 | `node tools/c00/check_launch_platform_surface.js` | Pass | Runtime/platform hint parser, smoke metadata, and device gate launch evidence checks are present |
+| `node --check tools/c00/check_device_collector_diagnostics_surface.js` | Pass | Device collector diagnostics checker parses |
+| `node tools/c00/check_device_collector_diagnostics_surface.js` | Pass | iPad/Rokid/Android collectors preserve media/profile diagnostics after smoke validation failure |
 | `node --check tools/c00/check_ios_plugin_artifacts.js` | Pass | iOS plugin artifact checker parses |
 | `node tools/c00/check_ios_plugin_artifacts.js` | Pass with warning | Runtime bridge surface is present; warns that real `GodotARKit.xcframework` is not built on this host |
 | `tools/c00/check_arkit_plugin_static.sh` | Pass | ARKit plugin compiles against the local iPhone Simulator SDK with Godot stubs |
@@ -149,6 +152,7 @@ Hardware status:
 | Synthetic iPad device profile analysis | Pass | `analyze_ios_device_profile.js` accepts a selected iPad, installed target bundle, display evidence, and unlocked state |
 | Synthetic bad iPad device profile analysis | Fail as expected | Analyzer rejects missing selected device, missing target bundle, and locked device evidence |
 | Synthetic iPad aggregate profile analysis | Pass | `verify_phase_evidence.js --gate ipad` accepts good iPad profile analysis and rejects locked/missing-target profile JSON |
+| Synthetic collector failure diagnostics | Pass | Mocked iPad and Rokid collectors exit non-zero after smoke/media validation failure while still appending device profile and profile analysis to the gate report |
 | Synthetic manual evidence import | Pass | `tools/c00/import_device_evidence.sh` imports synthetic Rokid/iPad/Android ARCore logs and media into a temp evidence directory and runs validators |
 | Synthetic C00 device profile aggregate gate | Pass | `verify_phase_evidence.js` rejects missing profile evidence and accepts Rokid/iPad/Android ARCore logs, media, and profile Markdown/JSON when all required gates are supplied |
 | Synthetic iPad ARKit gate | Pass | `backend:"ARKit"`, `native_plugin:true` |
@@ -302,6 +306,7 @@ Notes:
 - C00 device reports should include runtime metadata so startup arguments, Godot version, rendering method, and XR project settings are visible in the gate report.
 - Android/Rokid reports should be collected from APKs whose `assets/_cl_` contains the required `--xr-platform` value, and the app should be force-stopped before launch to avoid stale process evidence.
 - iPad reports should include device profile analysis proving the target bundle is installed on the selected device and the device is not locked before ARKit launch.
+- Failed device runs should still include media evidence and device profile diagnostics in the gate report.
 - `EditorSim` is useful evidence that the app starts, but never satisfies a device AR gate.
 - EditorSim/simulator gate validates migrated service code and smoke logging only; C00 publish still requires Rokid/OpenXR, iPad/ARKit, and Android/ARCore evidence.
 - OpenXR with only `opaque` blend mode is an OpenXR rendering pass, not an AR product pass.

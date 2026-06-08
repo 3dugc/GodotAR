@@ -101,6 +101,7 @@ tools/c00/run_device_cycle.sh all
 `all` 模式默认会继续执行后续 gate，即使前一个 gate 失败；最后会自动运行 `tools/c00/verify_phase_evidence.js` 并生成 `C00_PHASE_REPORT.md`。如果希望失败即停，设置 `CONTINUE_ON_FAILURE=0`。
 如需在设备 gate 前先跑本地模拟器，设置 `INCLUDE_EDITOR_SIM=1`。
 如需临时只聚合某几台设备，设置 `PHASE_GATES=rokid,ipad`；C00 发布默认要求 `rokid,ipad,android-arcore`。
+单台 collector 即使 smoke validation 失败，也会继续做媒体证据验证并追加 device profile / profile analysis，最后再返回非零状态；失败时优先打开对应 `releases/phase_0_smoke/evidence/<gate>-*.md`。
 
 ## 插件优先边界
 

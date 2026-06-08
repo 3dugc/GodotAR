@@ -21,6 +21,7 @@ PROFILE_PATH="$OUT_DIR/${GATE}-${STAMP}-device.md"
 PROFILE_JSON_PATH="$OUT_DIR/${GATE}-${STAMP}-device.json"
 PROFILE_ANALYSIS_PATH="$OUT_DIR/${GATE}-${STAMP}-device-analysis.md"
 REMOTE_VIDEO="/sdcard/gxf-${GATE}-${STAMP}.mp4"
+COLLECT_STATUS=0
 
 mkdir -p "$OUT_DIR"
 
@@ -136,11 +137,18 @@ if [ "$CAPTURE_MEDIA" != "0" ]; then
 fi
 
 echo "Validating gate: $GATE"
+set +e
 node "$PROJECT_ROOT/tools/c00/validate_smoke_log.js" \
 	--gate "$GATE" \
 	--log "$LOG_PATH" \
 	--report "$REPORT_PATH" \
 	$EXTRA_VALIDATE_ARGS
+SMOKE_STATUS="$?"
+set -e
+if [ "$SMOKE_STATUS" -ne 0 ]; then
+	COLLECT_STATUS="$SMOKE_STATUS"
+	echo "Smoke validation failed with exit $SMOKE_STATUS; continuing to evidence/profile report assembly." >&2
+fi
 
 EVIDENCE_ARGS=(--gate "$GATE" --screenshot "$SCREENSHOT_PATH" --video "$VIDEO_PATH" --report "$REPORT_PATH")
 if [ "$ALLOW_MISSING_MEDIA" = "1" ]; then
@@ -148,7 +156,14 @@ if [ "$ALLOW_MISSING_MEDIA" = "1" ]; then
 fi
 
 echo "Validating evidence bundle"
+set +e
 node "$PROJECT_ROOT/tools/c00/validate_evidence_bundle.js" "${EVIDENCE_ARGS[@]}"
+EVIDENCE_STATUS="$?"
+set -e
+if [ "$EVIDENCE_STATUS" -ne 0 ]; then
+	COLLECT_STATUS="$EVIDENCE_STATUS"
+	echo "Evidence bundle validation failed with exit $EVIDENCE_STATUS; appending device diagnostics before exit." >&2
+fi
 
 if [ -f "$PROFILE_PATH" ]; then
 	cat "$PROFILE_PATH" >> "$REPORT_PATH"
@@ -160,3 +175,4 @@ if [ -f "$PROFILE_ANALYSIS_PATH" ]; then
 fi
 
 echo "Report: $REPORT_PATH"
+exit "$COLLECT_STATUS"

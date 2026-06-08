@@ -34,6 +34,11 @@ const checks = [
 		required: true,
 	},
 	{
+		name: "Device collector diagnostics surface",
+		command: ["node", "tools/c00/check_device_collector_diagnostics_surface.js"],
+		required: true,
+	},
+	{
 		name: "ARFoundation migration API surface",
 		command: ["node", "tools/c00/check_arfoundation_api_surface.js"],
 		required: true,

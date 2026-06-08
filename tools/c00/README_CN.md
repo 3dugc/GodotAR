@@ -127,6 +127,14 @@ node tools/c00/check_launch_platform_surface.js
 
 该检查确认运行时会同时解析 Godot 普通 command-line args 和 user args，`GXF_SMOKE.runtime` 会输出 `resolved_platform_hint`，并确认 Rokid/iPad/Android ARCore 的 smoke/aggregate gate 会拒绝缺少目标启动平台证据的日志。
 
+检查采集失败诊断链：
+
+```bash
+node tools/c00/check_device_collector_diagnostics_surface.js
+```
+
+该检查确认 iPad/Rokid/Android collector 在 smoke validation 失败后仍会继续做媒体证据验证、追加 device profile 和 profile analysis，最后再用非零状态退出。这样第一次真机失败也会留下可诊断报告。
+
 检查 iPad 设备画像分析链：
 
 ```bash
@@ -586,3 +594,4 @@ releases/phase_0_smoke/evidence/<gate>-<timestamp>-device.json
 Android/Rokid 会自动尝试录屏、截图和 device profile。iOS 会自动采集 devicectl device profile，并在安装 `idevicescreenshot` 时自动截图，否则脚本会提示手动补截图或 15 秒录屏。
 
 采集脚本会把媒体证据验证结果追加到同一个 `.md` 报告的 `Evidence Bundle` 章节；Android/Rokid、Android ARCore 和 iPad 都会把 device profile 追加到同一个 gate 报告末尾。iPad 还会追加 `ipad-*-device-analysis.md`，用于快速看到目标 bundle 和锁屏状态风险。
+即使 `validate_smoke_log.js` 失败，collector 也会继续追加媒体证据和设备画像诊断，然后以非零状态退出；不要只看命令退出码，失败时也要打开对应 `.md` 报告。
