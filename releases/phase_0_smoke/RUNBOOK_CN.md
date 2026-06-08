@@ -115,6 +115,8 @@ command_line/extra_args="--xr-platform=rokid"
 tools/c00/run_device_cycle.sh rokid
 ```
 
+默认会同时采集日志、gate 报告、截图和 15 秒录屏；如设备不支持 `screenrecord`，请手动补录屏。
+
 底层脚本：
 
 ```bash
@@ -157,6 +159,7 @@ APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <devic
 ```
 
 `collect_ios_smoke.sh` 默认传入 `--xr-platform=ipad`；如需改成 iPhone 验证，可设置 `IOS_XR_PLATFORM=iphone`。
+如果本机安装了 `idevicescreenshot`，脚本会自动截图；否则请手动补一张截图或 15 秒录屏。
 
 ## 归档材料
 
@@ -172,6 +175,15 @@ APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <devic
 
 ```text
 releases/phase_0_smoke/evidence/
+```
+
+自动产物命名：
+
+```text
+<gate>-<timestamp>.log
+<gate>-<timestamp>.md
+<gate>-<timestamp>.png
+<gate>-<timestamp>.mp4
 ```
 
 ## 参考原则

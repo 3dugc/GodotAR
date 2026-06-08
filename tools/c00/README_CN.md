@@ -63,6 +63,8 @@ tools/c00/run_device_cycle.sh all
 - `RUN_EXPORT=0`：跳过 Godot 导出，直接采集已安装应用。
 - `RUN_COLLECT=0`：只做预检和导出。
 - `BUILD_ARKIT_PLUGIN=0`：跳过 ARKit 插件构建。
+- `CAPTURE_MEDIA=0`：跳过截图/录屏采集。
+- `VIDEO_SECONDS=15`：Android/Rokid 录屏时长。
 - `INCLUDE_ANDROID_ARCORE=1`：`all` 模式额外跑 Android ARCore gate。
 
 ## Export Preset 检查
@@ -181,6 +183,8 @@ node tools/c00/validate_smoke_log.js --gate ipad --log path/to/ipad.log --report
 ```text
 releases/phase_0_smoke/evidence/<gate>-<timestamp>.log
 releases/phase_0_smoke/evidence/<gate>-<timestamp>.md
+releases/phase_0_smoke/evidence/<gate>-<timestamp>.png
+releases/phase_0_smoke/evidence/<gate>-<timestamp>.mp4
 ```
 
-这些文件是设备证据。提交发布报告时，把通过的日志、截图或录屏一起归档。
+Android/Rokid 会自动尝试录屏和截图。iOS 会在安装 `idevicescreenshot` 时自动截图，否则脚本会提示手动补截图或 15 秒录屏。

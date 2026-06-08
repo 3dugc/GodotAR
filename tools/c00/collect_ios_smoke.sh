@@ -8,10 +8,12 @@ DURATION="${3:-30}"
 APP_PATH="${APP_PATH:-}"
 EXTRA_VALIDATE_ARGS="${EXTRA_VALIDATE_ARGS:-}"
 IOS_XR_PLATFORM="${IOS_XR_PLATFORM:-ipad}"
+CAPTURE_MEDIA="${CAPTURE_MEDIA:-1}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="$PROJECT_ROOT/releases/phase_0_smoke/evidence"
 LOG_PATH="$OUT_DIR/ipad-${STAMP}.log"
 REPORT_PATH="$OUT_DIR/ipad-${STAMP}.md"
+SCREENSHOT_PATH="$OUT_DIR/ipad-${STAMP}.png"
 
 mkdir -p "$OUT_DIR"
 
@@ -60,6 +62,15 @@ if ! grep -q "GXF_SMOKE" "$LOG_PATH"; then
 		wait "$LOG_PID" >/dev/null 2>&1 || true
 	else
 		echo "No iOS syslog tool found. If validation fails, export logs from Xcode/Console.app and run validate_smoke_log.js manually."
+	fi
+fi
+
+if [ "$CAPTURE_MEDIA" != "0" ]; then
+	if command -v idevicescreenshot >/dev/null 2>&1; then
+		echo "Capturing iOS screenshot -> $SCREENSHOT_PATH"
+		idevicescreenshot "$SCREENSHOT_PATH" >/dev/null 2>&1 || echo "iOS screenshot capture failed; capture screenshot or 15s recording manually."
+	else
+		echo "No iOS screenshot tool found. Capture a screenshot or 15s recording manually for the C00 evidence bundle."
 	fi
 fi
 
