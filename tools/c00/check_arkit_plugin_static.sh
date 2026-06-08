@@ -87,10 +87,23 @@ struct Vector3 {
 #endif
 EOF
 
+cat > "$STUB_ROOT/core/math/vector2.h" <<'EOF'
+#ifndef GODOT_VECTOR2_STUB_H
+#define GODOT_VECTOR2_STUB_H
+struct Vector2 {
+	double x = 0.0;
+	double y = 0.0;
+};
+#endif
+EOF
+
 cat > "$STUB_ROOT/core/math/transform_3d.h" <<'EOF'
 #ifndef GODOT_TRANSFORM3D_STUB_H
 #define GODOT_TRANSFORM3D_STUB_H
-struct Transform3D {};
+#include "core/math/vector3.h"
+struct Transform3D {
+	Vector3 origin;
+};
 #endif
 EOF
 
@@ -117,7 +130,11 @@ EOF
 cat > "$STUB_ROOT/core/variant/array.h" <<'EOF'
 #ifndef GODOT_ARRAY_STUB_H
 #define GODOT_ARRAY_STUB_H
-class Array {};
+class Array {
+public:
+	template <typename T>
+	void push_back(const T &) {}
+};
 #endif
 EOF
 

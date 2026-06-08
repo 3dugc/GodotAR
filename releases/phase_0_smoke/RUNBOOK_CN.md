@@ -263,6 +263,7 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 - `capabilities.native_plugin=true`。
 - `capabilities.runtime="ARKit"` 或 `capabilities.arkit_supported=true`。
 - `capabilities.arkit_tracking_state` 和 `capabilities.arkit_tracking_reason` 能说明 ARKit 当前是 `normal`、`limited` 还是 `not_available`。
+- `node tools/c00/check_ios_plugin_artifacts.js` 应确认 `hit_test` / `get_planes` 已绑定，并且 native session 使用 `ARRaycastQuery` / `ARPlaneAnchor`，用于证明 iPad bridge 已接到 C00 级 ARFoundation raycast/plane 入口。
 
 失败判定：
 

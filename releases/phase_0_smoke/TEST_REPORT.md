@@ -55,6 +55,7 @@ Codex implementation status:
 - `tools/c00/check_arkit_plugin_static.sh` now performs an iOS SDK Objective-C++ syntax smoke check for the ARKit plugin before the full Godot-header xcframework build.
 - `tools/c00/check_ios_plugin_artifacts.js` now validates the `GodotARKit.gdip`/template against Godot iOS plugin requirements, including config fields, xcframework reference, init/deinit symbols, capabilities, frameworks, and plist entries.
 - `tools/c00/check_ios_plugin_artifacts.js` now also validates the ARKit runtime bridge surface: native `start_session`/`stop_session`/tracking methods are bound, `GodotARKitSession` runs `ARWorldTrackingConfiguration`, implements `ARSessionDelegate`, and reports ARKit tracking state/reason.
+- `GodotARKit` now exposes C00-level native ARKit `hit_test` / `get_planes` bridge evidence backed by `ARRaycastQuery` and `ARPlaneAnchor`.
 - `tools/c00/check_ios_export_project.js` now validates the exported iOS Xcode project before `xcodebuild`, checking for `GodotARKit`, `GodotARKit.xcframework`, ARKit/Metal frameworks, camera usage, and required device capabilities.
 - `tools/c00/run_device_cycle.sh` now orchestrates preflight, optional ARKit plugin build, Godot export, device log collection, and gate validation for iPad/ARKit, Rokid/OpenXR, and Android/ARCore.
 - `tools/c00/build_ios_xcode_project.sh` now builds the Godot iOS export zip into `builds/ipad/GodotXRFoundation.app`, and the iPad runner can use it automatically when `APP_PATH` is not set.
@@ -103,6 +104,8 @@ Hardware status:
 | `node tools/c00/check_launch_platform_surface.js` | Pass | Runtime/platform hint parser, smoke metadata, and device gate launch evidence checks are present |
 | `node --check tools/c00/check_ios_plugin_artifacts.js` | Pass | iOS plugin artifact checker parses |
 | `node tools/c00/check_ios_plugin_artifacts.js` | Pass with warning | Runtime bridge surface is present; warns that real `GodotARKit.xcframework` is not built on this host |
+| `tools/c00/check_arkit_plugin_static.sh` | Pass | ARKit plugin compiles against the local iPhone Simulator SDK with Godot stubs |
+| `SDK_NAME=iphoneos tools/c00/check_arkit_plugin_static.sh` | Pass | ARKit plugin compiles against the local iPhoneOS SDK with Godot stubs |
 | `node --check tools/c00/check_ios_export_project.js` | Pass | iOS export project checker parses |
 | Synthetic iOS export project check | Pass | Checker accepts a synthetic Xcode export containing `GodotARKit`, `GodotARKit.xcframework`, ARKit/Metal frameworks, camera usage, and required device capabilities |
 | Synthetic bad iOS export project check | Fail as expected | Checker rejects a synthetic Xcode export missing GodotARKit/plugin binary/framework references and `arkit` required capability |
@@ -158,6 +161,7 @@ Hardware status:
 | `node --check tools/c00/check_export_presets.js` | Pass | Preset checker parses |
 | ARKit plugin symbol/static check | Pass | `.gdip` init symbols are `extern "C"` and `GodotARKitPlugin` registers with `ClassDB` |
 | ARKit tracking state/static check | Pass | `GodotARKitSession` implements `ARSessionDelegate` and exposes ARKit tracking state/reason |
+| ARKit native raycast/plane static check | Pass | `GodotARKit` binds `hit_test` / `get_planes`, calls native `ARRaycastQuery`, and caches `ARPlaneAnchor` evidence |
 | GodotARKit `.gdip` template check | Pass with warning | Plugin config matches Godot iOS plugin format; warns that real `GodotARKit.xcframework` is not built on this host |
 | ARKit plugin Objective-C++ syntax smoke | Pass | `tools/c00/check_arkit_plugin_static.sh` validates plugin sources against the local iOS SDK with Godot stubs |
 | `tools/c00/preflight.sh all` | Blocked by host prerequisites | Missing `godot`, `adb`, `export_presets.cfg`, `GodotARKit.gdip`, and `GodotARKit.xcframework`; ARKit Objective-C++ syntax smoke passes |

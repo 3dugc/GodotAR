@@ -102,8 +102,12 @@ if (!source) {
 	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"is_running\")", "Source must bind is_running for runtime smoke diagnostics.");
 	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"get_tracking_status\")", "Source must bind get_tracking_status for ARFoundation state mapping.");
 	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"get_capabilities\")", "Source must bind get_capabilities for iPad C00 evidence.");
+	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"hit_test\"", "Source must bind hit_test for ARRaycastManager migration smoke.");
+	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"get_planes\"", "Source must bind get_planes for ARPlaneManager migration smoke.");
 	requireSourceIncludes(source, "[arkit_session start]", "start_session must call the native ARKit session start path.");
 	requireSourceIncludes(source, "[arkit_session stop]", "stop_session must call the native ARKit session stop path.");
+	requireSourceIncludes(source, "hitTestFromOrigin", "hit_test must call the native ARKit raycast path.");
+	requireSourceIncludes(source, "[arkit_session planes]", "get_planes must call the native ARKit plane path.");
 	requireSourceIncludes(source, "arkit_tracking_state", "get_capabilities must expose arkit_tracking_state.");
 	requireSourceIncludes(source, "arkit_tracking_reason", "get_capabilities must expose arkit_tracking_reason.");
 }
@@ -117,6 +121,8 @@ if (!header) {
 		"bool is_running();",
 		"int get_tracking_status();",
 		"Dictionary get_capabilities();",
+		"Array hit_test(const Vector3 &origin, const Vector3 &direction, double max_distance);",
+		"Array get_planes();",
 	]) {
 		requireSourceIncludes(header, declaration, `Header must declare ${declaration}`);
 	}
@@ -131,6 +137,12 @@ if (!sessionSource) {
 	requireSourceIncludes(sessionSource, "planeDetection", "GodotARKitSession should request horizontal/vertical plane detection for C00 diagnostics.");
 	requireSourceIncludes(sessionSource, "cameraDidChangeTrackingState", "GodotARKitSession must observe ARKit tracking state changes.");
 	requireSourceIncludes(sessionSource, "didUpdateFrame", "GodotARKitSession must observe ARFrame updates.");
+	requireSourceIncludes(sessionSource, "ARRaycastQuery", "GodotARKitSession must use ARRaycastQuery for native raycasts.");
+	requireSourceIncludes(sessionSource, "raycast:query", "GodotARKitSession must call ARSession raycast:query.");
+	requireSourceIncludes(sessionSource, "ARPlaneAnchor", "GodotARKitSession must store ARPlaneAnchor plane evidence.");
+	requireSourceIncludes(sessionSource, "didAddAnchors", "GodotARKitSession must observe added ARKit anchors.");
+	requireSourceIncludes(sessionSource, "didUpdateAnchors", "GodotARKitSession must observe updated ARKit anchors.");
+	requireSourceIncludes(sessionSource, "didRemoveAnchors", "GodotARKitSession must observe removed ARKit anchors.");
 	requireSourceIncludes(sessionSource, "arkit_running", "GodotARKitSession capabilities must expose arkit_running.");
 	requireSourceIncludes(sessionSource, "arkit_tracking_state", "GodotARKitSession capabilities must expose arkit_tracking_state.");
 	requireSourceIncludes(sessionSource, "arkit_tracking_reason", "GodotARKitSession capabilities must expose arkit_tracking_reason.");
@@ -145,6 +157,8 @@ if (!sessionHeader) {
 		"- (BOOL)isRunning;",
 		"- (NSInteger)trackingStatus;",
 		"- (NSDictionary *)capabilities;",
+		"- (NSArray<NSDictionary *> *)hitTestFromOrigin:",
+		"- (NSArray<NSDictionary *> *)planes;",
 	]) {
 		requireSourceIncludes(sessionHeader, declaration, `Session header must declare ${declaration}`);
 	}

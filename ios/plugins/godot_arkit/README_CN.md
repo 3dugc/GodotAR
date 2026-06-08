@@ -11,9 +11,11 @@ C00 只要求 iPad 能证明 ARKit provider 可用：
 - `GodotARKit.get_capabilities().native_plugin == true`
 - `GodotARKit.get_tracking_status()` 返回 Godot `XRInterface` tracking status，并能区分 `normal`、`limited`、`not_available`
 - `GodotARKit.get_capabilities()` 暴露 `arkit_tracking_state` 和 `arkit_tracking_reason`
+- `GodotARKit.hit_test()` 使用 ARKit `ARRaycastQuery` 返回 C00 级 native raycast hit 字典
+- `GodotARKit.get_planes()` 使用 ARKit `ARPlaneAnchor` 返回 C00 级 plane 字典
 - `GXF_SMOKE` 中出现 `backend:"ARKit"` 和 `session_state:"Running"`
 
-真实平面检测、raycast、anchor 可以在 C04 补完。
+完整 plane classification、mesh、persistent anchor 和跨平台 trackable 行为进入 C04；C00 先保证 iPad gate 有最小 native ARKit raycast/plane evidence。
 
 `.gdip` 中的 `initialization` / `deinitialization` 函数以 `extern "C"` 导出，避免 C++ name mangling 导致 Godot 找不到符号。`GodotARKitPlugin` 会在初始化时通过 `ClassDB::register_class` 注册，确保 GDScript 可以调用 singleton 方法。
 
@@ -58,6 +60,34 @@ get_planes() -> Array[Dictionary]
 ```
 
 `arkit_tracking_status` 是插件内部状态：`0=not_available`、`1=limited`、`2=normal`。`GodotARKit.get_tracking_status()` 会把它映射成 Godot `XRInterface` / `ARVRInterface` 的 tracking status，便于 `NativeXRProvider` 和上层 ARFoundation-style API 使用。
+
+`hit_test()` 返回字段：
+
+```gdscript
+{
+	"trackable_id": "...",
+	"distance": 1.2,
+	"position": Vector3(...),
+	"normal": Vector3.UP,
+	"transform": Transform3D(...),
+	"trackable_type": XRFoundationTypes.TrackableType.PLANE,
+	"raw_hit": "ARKitRaycast"
+}
+```
+
+`get_planes()` 返回字段：
+
+```gdscript
+{
+	"trackable_id": "...",
+	"transform": Transform3D(...),
+	"size": Vector2(...),
+	"alignment": "horizontal|vertical",
+	"label": "",
+	"tracking_state": XRFoundationTypes.TrackingState.TRACKING,
+	"raw_tracker": "ARKitPlaneAnchor"
+}
+```
 
 ## 启用步骤
 

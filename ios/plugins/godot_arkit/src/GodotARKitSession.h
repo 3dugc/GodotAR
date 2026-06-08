@@ -1,4 +1,5 @@
 #import <Foundation/Foundation.h>
+#import <simd/simd.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -12,6 +13,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSString *)trackingStateName;
 - (NSString *)trackingStateReason;
 - (NSDictionary *)capabilities;
+- (NSArray<NSDictionary *> *)hitTestFromOrigin:(simd_float3)origin direction:(simd_float3)direction maxDistance:(double)maxDistance;
+- (NSArray<NSDictionary *> *)planes;
 
 @end
 

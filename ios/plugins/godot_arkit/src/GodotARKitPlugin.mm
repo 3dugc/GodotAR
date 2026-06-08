@@ -7,6 +7,7 @@
 
 #if VERSION_MAJOR == 4
 #include "core/config/engine.h"
+#include "core/math/vector2.h"
 #include "servers/xr/xr_interface.h"
 #define GODOT_AR_STATE_NORMAL_TRACKING XRInterface::XR_NORMAL_TRACKING
 #define GODOT_AR_STATE_UNKNOWN_TRACKING XRInterface::XR_UNKNOWN_TRACKING
@@ -31,6 +32,35 @@ static String ns_string_to_godot(NSString *p_value) {
 		return String();
 	}
 	return String::utf8([p_value UTF8String]);
+}
+
+static simd_float3 vector3_to_simd(const Vector3 &p_value) {
+	return simd_make_float3((float)p_value.x, (float)p_value.y, (float)p_value.z);
+}
+
+static Vector3 vector3_from_array(NSArray *p_values) {
+	Vector3 value;
+	if (p_values.count >= 3) {
+		value.x = [p_values[0] doubleValue];
+		value.y = [p_values[1] doubleValue];
+		value.z = [p_values[2] doubleValue];
+	}
+	return value;
+}
+
+static Vector2 vector2_from_array(NSArray *p_values) {
+	Vector2 value;
+	if (p_values.count >= 2) {
+		value.x = [p_values[0] doubleValue];
+		value.y = [p_values[1] doubleValue];
+	}
+	return value;
+}
+
+static Transform3D transform_from_position(const Vector3 &p_position) {
+	Transform3D transform;
+	transform.origin = p_position;
+	return transform;
 }
 
 GodotARKitPlugin *GodotARKitPlugin::get_singleton() {
@@ -144,11 +174,28 @@ Dictionary GodotARKitPlugin::get_capabilities() {
 }
 
 Array GodotARKitPlugin::hit_test(const Vector3 &p_origin, const Vector3 &p_direction, double p_max_distance) {
-	(void)p_origin;
-	(void)p_direction;
-	(void)p_max_distance;
-
 	Array hits;
+	GodotARKitSession *arkit_session = get_session(session);
+	if (arkit_session == nil) {
+		return hits;
+	}
+
+	NSArray<NSDictionary *> *native_hits = [arkit_session
+		hitTestFromOrigin:vector3_to_simd(p_origin)
+		direction:vector3_to_simd(p_direction)
+		maxDistance:p_max_distance];
+	for (NSDictionary *native_hit in native_hits) {
+		Vector3 position = vector3_from_array(native_hit[@"position"]);
+		Dictionary hit;
+		hit["trackable_id"] = ns_string_to_godot(native_hit[@"trackable_id"]);
+		hit["distance"] = [native_hit[@"distance"] doubleValue];
+		hit["position"] = position;
+		hit["normal"] = vector3_from_array(native_hit[@"normal"]);
+		hit["transform"] = transform_from_position(position);
+		hit["trackable_type"] = 1;
+		hit["raw_hit"] = String("ARKitRaycast");
+		hits.push_back(hit);
+	}
 	return hits;
 }
 
@@ -166,6 +213,24 @@ Dictionary GodotARKitPlugin::create_anchor(const Transform3D &p_transform, Varia
 
 Array GodotARKitPlugin::get_planes() {
 	Array planes;
+	GodotARKitSession *arkit_session = get_session(session);
+	if (arkit_session == nil) {
+		return planes;
+	}
+
+	NSArray<NSDictionary *> *native_planes = [arkit_session planes];
+	for (NSDictionary *native_plane in native_planes) {
+		Vector3 position = vector3_from_array(native_plane[@"position"]);
+		Dictionary plane;
+		plane["trackable_id"] = ns_string_to_godot(native_plane[@"trackable_id"]);
+		plane["transform"] = transform_from_position(position);
+		plane["size"] = vector2_from_array(native_plane[@"size"]);
+		plane["alignment"] = ns_string_to_godot(native_plane[@"alignment"]);
+		plane["label"] = ns_string_to_godot(native_plane[@"label"]);
+		plane["tracking_state"] = 2;
+		plane["raw_tracker"] = String("ARKitPlaneAnchor");
+		planes.push_back(plane);
+	}
 	return planes;
 }
 
