@@ -209,6 +209,7 @@ APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <devic
 ```
 
 `collect_ios_smoke.sh` 默认传入 `--xr-platform=ipad`；如需改成 iPhone 验证，可设置 `IOS_XR_PLATFORM=iphone`。
+脚本会生成 `ipad-<timestamp>-device.md/json` 设备画像，使用 `devicectl --json-output` 记录 device details、display、lock state、目标 bundle 安装状态和原始 JSON。
 如果本机安装了 `idevicescreenshot`，脚本会自动截图；否则请手动补一张截图或 15 秒录屏。
 手动素材可以通过 `MANUAL_MEDIA_PATH=/path/to/ipad.mov` 传给采集脚本；没有任何媒体素材时，iPad gate 默认失败。
 
@@ -254,6 +255,7 @@ releases/phase_0_smoke/evidence/
 - smoke log gate：验证 `GXF_SMOKE`、backend、native plugin、ARKit/OpenXR 证据。
 - evidence bundle gate：验证截图和录屏是否存在并非空文件。
 - Android/Rokid device profile：记录设备属性、target package、XR 相关包和关键 feature。
+- iPad device profile：记录 devicectl details、display、lock state、目标 bundle 安装状态和原始 JSON。
 
 smoke log gate 还会展示 `Runtime Metadata`，用于确认 Godot 版本、启动参数和 XR/rendering project setting 是否符合设备 gate。
 

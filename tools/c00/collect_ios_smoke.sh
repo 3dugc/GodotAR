@@ -16,6 +16,8 @@ OUT_DIR="$PROJECT_ROOT/releases/phase_0_smoke/evidence"
 LOG_PATH="$OUT_DIR/ipad-${STAMP}.log"
 REPORT_PATH="$OUT_DIR/ipad-${STAMP}.md"
 SCREENSHOT_PATH="$OUT_DIR/ipad-${STAMP}.png"
+PROFILE_PATH="$OUT_DIR/ipad-${STAMP}-device.md"
+PROFILE_JSON_PATH="$OUT_DIR/ipad-${STAMP}-device.json"
 
 mkdir -p "$OUT_DIR"
 
@@ -27,6 +29,15 @@ fi
 if [ -z "$DEVICE" ]; then
 	echo "Device argument is required. Run: xcrun devicectl list devices"
 	exit 2
+fi
+
+echo "Collecting iPad device profile -> $PROFILE_PATH"
+if ! node "$PROJECT_ROOT/tools/c00/collect_ios_device_profile.js" \
+	--device "$DEVICE" \
+	--bundle "$BUNDLE_ID" \
+	--report "$PROFILE_PATH" \
+	--json "$PROFILE_JSON_PATH"; then
+	echo "iPad device profile collection failed; continuing to smoke collection."
 fi
 
 if [ -n "$APP_PATH" ]; then
@@ -94,5 +105,10 @@ fi
 
 echo "Validating evidence bundle"
 node "$PROJECT_ROOT/tools/c00/validate_evidence_bundle.js" "${EVIDENCE_ARGS[@]}"
+
+if [ -f "$PROFILE_PATH" ]; then
+	cat "$PROFILE_PATH" >> "$REPORT_PATH"
+	echo "Device profile: $PROFILE_PATH"
+fi
 
 echo "Report: $REPORT_PATH"
