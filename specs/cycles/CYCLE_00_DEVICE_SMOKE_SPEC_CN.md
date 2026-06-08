@@ -79,6 +79,12 @@ demo/00_device_smoke_test.tscn
 - `ARSession.Install(...)`
 - `ARSession.Reset()`
 - `ARSession.state()`
+- `ARRaycastManager.TryRaycast(...)`
+- `ARRaycastManager.RaycastToList(...)`
+- `ARRaycastManager.TryScreenRaycast(...)`
+- `XRHit.get_pose()`
+- `ARAnchorManager.TryAddAnchorAsync(...)`
+- `ARAnchorManager.TryRemoveAnchor(...)`
 - `XRFoundation.check_availability(...)`
 - `XRFoundation.install(...)`
 - `XRFoundation.reset_session(...)`

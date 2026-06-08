@@ -40,8 +40,11 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 | `ARSession.Install()` | `ARSession.Install(...)` or `XRFoundation.install(...)` |
 | `ARSession.Reset()` | `ARSession.Reset()`, `XRFoundation.reset_session(...)`, or `XRDeviceRig.recenter()` |
 | `ARSession.state` | `ARSession.state()` or `XRFoundation.state` |
-| `ARRaycastManager.Raycast(...)` | `ARRaycastManager.Raycast(...)`, `raycast(...)`, or `ScreenRaycast(...)` |
+| `ARRaycastManager.Raycast(...)` | `ARRaycastManager.Raycast(...)`, `TryRaycast(...)`, `RaycastToList(...)`, `ScreenRaycast(...)`, or `TryScreenRaycast(...)` |
+| `ARRaycastHit.pose` | `XRHit.get_pose()`, `XRHit.GetPose()`, or `XRHit.to_dictionary().pose` |
 | `ARAnchorManager.AddAnchor(...)` | `ARAnchorManager.AddAnchor(...)` or `add_anchor(...)` |
+| `ARAnchorManager.TryAddAnchorAsync(Pose)` | `ARAnchorManager.TryAddAnchorAsync(transform_or_pose_dictionary)` |
+| `ARAnchorManager.TryRemoveAnchor(anchor)` | `ARAnchorManager.TryRemoveAnchor(anchor)` |
 | `ARPlaneManager.trackables` | `ARPlaneManager.GetAllPlanes()` or `get_all_planes()` |
 | `XROrigin.Camera` | `XRDeviceRig.get_camera()` |
 | `XRRayInteractor` | `XRRayInteractor` |
@@ -89,6 +92,23 @@ func place_from_screen(screen_position: Vector2) -> void:
 		return
 
 	var anchor := anchor_manager.add_anchor(hits[0].transform)
+	var instance := preload("res://prefabs/placed_object.tscn").instantiate()
+	anchor.node.add_child(instance)
+```
+
+Unity-style list output is also supported:
+
+```gdscript
+func place_from_screen_unity_style(screen_position: Vector2) -> void:
+	var hits: Array = []
+	if not raycast_manager.TryScreenRaycast(camera, screen_position, hits):
+		return
+
+	var result := anchor_manager.TryAddAnchorAsync(hits[0].get_pose())
+	if not bool(result.get("success", false)):
+		return
+
+	var anchor: ARAnchor = result.get("anchor")
 	var instance := preload("res://prefabs/placed_object.tscn").instantiate()
 	anchor.node.add_child(instance)
 ```

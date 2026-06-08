@@ -37,3 +37,23 @@ static func from_dictionary(data: Dictionary) -> XRHit:
 	hit.normal = data.get("normal", Vector3.UP)
 	return hit
 
+
+func get_pose() -> Transform3D:
+	return transform
+
+
+func GetPose() -> Transform3D:
+	return get_pose()
+
+
+func to_dictionary() -> Dictionary:
+	return {
+		"transform": transform,
+		"pose": transform,
+		"position": position,
+		"normal": normal,
+		"distance": distance,
+		"trackable_id": trackable_id,
+		"trackable_type": trackable_type,
+		"raw_hit": raw_hit,
+	}
