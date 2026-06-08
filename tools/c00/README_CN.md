@@ -68,6 +68,12 @@ tools/c00/prepare_godot_source.sh --tag <godot-tag>
 
 该脚本会把官方 Godot source tree 准备到 `.godot/cache/c00/godot-source`，并输出可直接复制的 `GODOT_SOURCE_DIR=...` 构建命令。`<godot-tag>` 必须和设备机使用的 Godot iOS export template 版本一致，例如 `4.4.1-stable`；如果本机 `godot --version` 能输出 `4.4.1.stable.official` 这类格式，也可以不传 `--tag` 让脚本自动推断。它只准备 headers，不 rebuild Godot，也不修改 engine 主干。
 
+`run_device_cycle.sh` 会自动识别 `.godot/cache/c00/godot-source`。如果该目录还不存在，也可以用 `GODOT_TAG=<godot-tag>` 让 iPad gate 在构建 ARKit 插件前自动准备 source headers：
+
+```bash
+GODOT_TAG=4.4.1-stable DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh ipad
+```
+
 静态检查 source 准备链路：
 
 ```bash
@@ -221,6 +227,12 @@ tools/c00/run_device_cycle.sh ipad
 tools/c00/prepare_godot_source.sh --tag <godot-tag>
 ```
 
+也可以把 tag 交给 runner，让它自动准备默认 source 目录：
+
+```bash
+GODOT_TAG=<godot-tag> DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh ipad
+```
+
 完整 C00 主线：
 
 ```bash
@@ -233,9 +245,12 @@ tools/c00/run_device_cycle.sh all
 
 常用开关：
 
+- `DRY_RUN=1`：只解析 source、export、build、collect、phase verify 的将执行命令，不调用 Godot/Xcode/ADB/devicectl。
 - `RUN_EXPORT=0`：跳过 Godot 导出，直接采集已安装应用。
 - `RUN_COLLECT=0`：只做预检和导出。
 - `BUILD_ARKIT_PLUGIN=0`：跳过 ARKit 插件构建。
+- `GODOT_TAG=4.4.1-stable`：当 `.godot/cache/c00/godot-source` 不存在时，允许 iPad gate 自动准备匹配 Godot source headers。
+- `AUTO_PREPARE_GODOT_SOURCE=0`：禁止 iPad gate 自动调用 `prepare_godot_source.sh`。
 - `BUILD_IPAD_APP=0`：跳过 iOS Xcode project 自动构建；如果已手工构建，可直接设置 `APP_PATH`。
 - `IPAD_APP_PATH=builds/ipad/GodotXRFoundation.app`：iPad 自动构建后的稳定 `.app` 输出路径。
 - `SCHEME=<xcode-scheme>` / `TARGET_NAME=<xcode-target>`：导出的 Xcode project 无法自动识别 scheme 时显式指定。
@@ -251,6 +266,14 @@ tools/c00/run_device_cycle.sh all
 - `PHASE_GATES=rokid,ipad`：覆盖聚合验证 gate 列表，适合设备机暂时只验证某几台；C00 发布默认要求 `rokid,ipad,android-arcore`。
 - `INCLUDE_EDITOR_SIM=1`：`all` 模式先跑 EditorSim gate。
 - `INCLUDE_IOS_SIMULATOR=1`：`all` 模式先跑 iOS Simulator 辅助 gate。
+
+设备机首次接入前可先 dry-run 编排：
+
+```bash
+DRY_RUN=1 GODOT_TAG=<godot-tag> DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh all
+```
+
+该命令只打印将执行的 source 准备、ARKit 插件构建、导出、Xcode 构建、设备采集和聚合验证命令，不会改动设备或调用真实构建。
 
 ## EditorSim / 模拟器
 

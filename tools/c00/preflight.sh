@@ -3,6 +3,7 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GATE="${1:-all}"
+DEFAULT_GODOT_SOURCE_DIR="$PROJECT_ROOT/.godot/cache/c00/godot-source"
 
 status=0
 
@@ -108,6 +109,34 @@ check_dir() {
 	fi
 }
 
+warn_item() {
+	local item="$1"
+	local detail="$2"
+	printf "WARN %s\n" "$item"
+	printf "     %s\n" "$detail"
+}
+
+is_valid_godot_source() {
+	local dir="$1"
+	[ -f "$dir/core/version.h" ] \
+		&& [ -f "$dir/core/object/class_db.h" ] \
+		&& [ -f "$dir/core/config/engine.h" ] \
+		&& [ -d "$dir/platform/ios" ]
+}
+
+resolve_godot_source_dir() {
+	local source="${GODOT_SOURCE_DIR:-${GODOT_SRC_DIR:-}}"
+	if [ -n "$source" ]; then
+		printf "%s" "$source"
+		return 0
+	fi
+	if is_valid_godot_source "$DEFAULT_GODOT_SOURCE_DIR"; then
+		printf "%s" "$DEFAULT_GODOT_SOURCE_DIR"
+		return 0
+	fi
+	return 1
+}
+
 printf "C00 device smoke preflight\n"
 printf "Project: %s\n\n" "$PROJECT_ROOT"
 printf "Gate: %s\n\n" "$GATE"
@@ -143,6 +172,17 @@ fi
 
 if needs_ios_plugin_artifacts; then
 	printf "\nNative plugin artifacts\n"
+	if godot_source="$(resolve_godot_source_dir)"; then
+		if is_valid_godot_source "$godot_source"; then
+			printf "OK   Godot source headers %s\n" "$godot_source"
+		else
+			printf "MISS Godot source headers %s\n" "$godot_source"
+			printf "     Missing core/version.h, core/object/class_db.h, core/config/engine.h, or platform/ios.\n"
+			status=1
+		fi
+	else
+		warn_item "Godot source headers" "Run tools/c00/prepare_godot_source.sh --tag <godot-tag>, or set GODOT_SOURCE_DIR before rebuilding GodotARKit.xcframework."
+	fi
 	if node "$PROJECT_ROOT/tools/c00/check_ios_plugin_artifacts.js"; then
 		printf "OK   GodotARKit.gdip template/plugin config check\n"
 	else

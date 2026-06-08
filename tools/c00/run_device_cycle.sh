@@ -4,12 +4,14 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GATE="${1:-}"
 DEVICE="${2:-${DEVICE:-}}"
+DEFAULT_GODOT_SOURCE_DIR="$PROJECT_ROOT/.godot/cache/c00/godot-source"
 
 PACKAGE="${PACKAGE:-org.godotengine.godotxrfoundation}"
 DURATION="${DURATION:-30}"
 RUN_PREFLIGHT="${RUN_PREFLIGHT:-1}"
 RUN_EXPORT="${RUN_EXPORT:-1}"
 RUN_COLLECT="${RUN_COLLECT:-1}"
+DRY_RUN="${DRY_RUN:-0}"
 BUILD_ARKIT_PLUGIN="${BUILD_ARKIT_PLUGIN:-auto}"
 BUILD_IPAD_APP="${BUILD_IPAD_APP:-auto}"
 INCLUDE_EDITOR_SIM="${INCLUDE_EDITOR_SIM:-0}"
@@ -50,6 +52,7 @@ Common environment:
   RUN_PREFLIGHT=1
   RUN_EXPORT=1
   RUN_COLLECT=1
+  DRY_RUN=1                         Resolve and print actions without running Godot/Xcode/device commands.
 
 Evidence:
   CAPTURE_MEDIA=1                  Capture screenshot/recording where supported.
@@ -60,6 +63,8 @@ Evidence:
 
 iPad / ARKit:
   GODOT_SOURCE_DIR=/path/to/godot     Build GodotARKit.xcframework before export.
+  GODOT_TAG=4.4.1-stable             Optional source tag for automatic source preparation.
+  AUTO_PREPARE_GODOT_SOURCE=auto|1|0 Default auto: prepare only when GODOT_TAG/BRANCH/COMMIT is set.
   BUILD_ARKIT_PLUGIN=auto|1|0        Default auto: build only when GODOT_SOURCE_DIR is set.
   BUILD_IPAD_APP=auto|1|0            Build exported Xcode project into .app when APP_PATH is empty.
   IPAD_APP_PATH="$IPAD_APP_PATH"
@@ -108,16 +113,90 @@ project_path() {
 	esac
 }
 
+is_valid_godot_source() {
+	local dir="$1"
+	[[ -f "$dir/core/version.h" \
+		&& -f "$dir/core/object/class_db.h" \
+		&& -f "$dir/core/config/engine.h" \
+		&& -d "$dir/platform/ios" ]]
+}
+
+resolve_godot_source_for_arkit() {
+	local source="${GODOT_SOURCE_DIR:-${GODOT_SRC_DIR:-}}"
+	if [[ -n "$source" ]]; then
+		if ! is_valid_godot_source "$source"; then
+			echo "GODOT_SOURCE_DIR is set but is not a valid Godot source tree: $source" >&2
+			return 1
+		fi
+		GODOT_SOURCE_DIR="$(cd "$source" && pwd)"
+		export GODOT_SOURCE_DIR
+		return 0
+	fi
+
+	if is_valid_godot_source "$DEFAULT_GODOT_SOURCE_DIR"; then
+		GODOT_SOURCE_DIR="$DEFAULT_GODOT_SOURCE_DIR"
+		export GODOT_SOURCE_DIR
+		echo "Using prepared Godot source tree: $GODOT_SOURCE_DIR"
+		return 0
+	fi
+
+	local auto_prepare="${AUTO_PREPARE_GODOT_SOURCE:-auto}"
+	if [[ "$auto_prepare" == "0" ]]; then
+		return 1
+	fi
+	if [[ "$auto_prepare" == "auto" \
+		&& -z "${GODOT_TAG:-}" \
+		&& -z "${GODOT_BRANCH:-}" \
+		&& -z "${GODOT_COMMIT:-}" ]]; then
+		return 1
+	fi
+
+	local prepare_args=(--dir "$DEFAULT_GODOT_SOURCE_DIR" --no-env)
+	if [[ -n "${GODOT_TAG:-}" ]]; then
+		prepare_args+=(--tag "$GODOT_TAG")
+	fi
+	if [[ -n "${GODOT_BRANCH:-}" ]]; then
+		prepare_args+=(--branch "$GODOT_BRANCH")
+	fi
+	if [[ -n "${GODOT_COMMIT:-}" ]]; then
+		prepare_args+=(--commit "$GODOT_COMMIT")
+	fi
+	if [[ -n "${GODOT_REPO:-}" ]]; then
+		prepare_args+=(--repo "$GODOT_REPO")
+	fi
+
+	echo "Preparing Godot source headers for ARKit plugin..."
+	if [[ "$DRY_RUN" == "1" ]]; then
+		echo "DRY RUN: $PROJECT_ROOT/tools/c00/prepare_godot_source.sh ${prepare_args[*]}"
+		GODOT_SOURCE_DIR="$DEFAULT_GODOT_SOURCE_DIR"
+		export GODOT_SOURCE_DIR
+		return 0
+	fi
+	"$PROJECT_ROOT/tools/c00/prepare_godot_source.sh" "${prepare_args[@]}"
+	GODOT_SOURCE_DIR="$DEFAULT_GODOT_SOURCE_DIR"
+	export GODOT_SOURCE_DIR
+}
+
 build_arkit_plugin_if_requested() {
 	if [[ "$BUILD_ARKIT_PLUGIN" == "0" ]]; then
 		return
 	fi
 
-	if [[ "$BUILD_ARKIT_PLUGIN" == "auto" && -z "${GODOT_SOURCE_DIR:-${GODOT_SRC_DIR:-}}" ]]; then
+	if ! resolve_godot_source_for_arkit; then
+		if [[ "$BUILD_ARKIT_PLUGIN" == "1" ]]; then
+			echo "Godot source headers are required to build GodotARKit.xcframework." >&2
+			echo "Run tools/c00/prepare_godot_source.sh --tag <godot-tag>, or set GODOT_SOURCE_DIR." >&2
+			return 2
+		fi
+		echo "No Godot source headers found; skipping ARKit plugin build in auto mode."
 		return
 	fi
 
 	echo "Building ARKit iOS plugin..."
+	if [[ "$DRY_RUN" == "1" ]]; then
+		echo "DRY RUN: GODOT_SOURCE_DIR=$GODOT_SOURCE_DIR ios/plugins/godot_arkit/build_xcframework.sh"
+		return
+	fi
 	"$PROJECT_ROOT/ios/plugins/godot_arkit/build_xcframework.sh"
 }
 
@@ -132,6 +211,14 @@ build_ipad_app_if_requested() {
 
 	local export_zip
 	export_zip="$(project_path "$IPAD_EXPORT_PATH")"
+	local app_output
+	app_output="$(project_path "$IPAD_APP_PATH")"
+	if [[ "$DRY_RUN" == "1" ]]; then
+		echo "DRY RUN: APP_OUTPUT_PATH=$app_output tools/c00/build_ios_xcode_project.sh $export_zip $DEVICE"
+		APP_PATH="$app_output"
+		export APP_PATH
+		return
+	fi
 	if [[ ! -f "$export_zip" ]]; then
 		if [[ "$BUILD_IPAD_APP" == "1" ]]; then
 			echo "iPad export zip is missing: $export_zip" >&2
@@ -145,8 +232,6 @@ build_ipad_app_if_requested() {
 		return
 	fi
 
-	local app_output
-	app_output="$(project_path "$IPAD_APP_PATH")"
 	echo "Building iPad Xcode export into app bundle..."
 	APP_OUTPUT_PATH="$app_output" "$PROJECT_ROOT/tools/c00/build_ios_xcode_project.sh" "$export_zip" "$DEVICE"
 	APP_PATH="$app_output"
@@ -161,6 +246,14 @@ build_ios_simulator_app_if_requested() {
 
 	local export_zip
 	export_zip="$(project_path "$IOS_SIMULATOR_EXPORT_PATH")"
+	local app_output
+	app_output="$(project_path "$IOS_SIMULATOR_APP_PATH")"
+	if [[ "$DRY_RUN" == "1" ]]; then
+		echo "DRY RUN: IOS_BUILD_PLATFORM=simulator APP_OUTPUT_PATH=$app_output tools/c00/build_ios_xcode_project.sh $export_zip"
+		APP_PATH="$app_output"
+		export APP_PATH
+		return
+	fi
 	if [[ ! -f "$export_zip" ]]; then
 		echo "iOS Simulator export zip is missing: $export_zip" >&2
 		return 2
@@ -170,8 +263,6 @@ build_ios_simulator_app_if_requested() {
 		return 2
 	fi
 
-	local app_output
-	app_output="$(project_path "$IOS_SIMULATOR_APP_PATH")"
 	echo "Building iOS Simulator Xcode export into app bundle..."
 	IOS_BUILD_PLATFORM=simulator \
 	ALLOW_PROVISIONING_UPDATES=0 \
@@ -190,12 +281,36 @@ run_preflight() {
 	if [[ "$RUN_PREFLIGHT" == "0" ]]; then
 		return
 	fi
+	if [[ "$DRY_RUN" == "1" ]]; then
+		echo "DRY RUN: tools/c00/preflight.sh $gate"
+		return
+	fi
 	"$PROJECT_ROOT/tools/c00/preflight.sh" "$gate"
 }
 
 run_export() {
 	local gate="$1"
 	if [[ "$RUN_EXPORT" == "0" ]]; then
+		return
+	fi
+	if [[ "$DRY_RUN" == "1" ]]; then
+		case "$gate" in
+			rokid)
+				echo "DRY RUN: tools/c00/export_with_godot.sh \"$ROKID_PRESET\" \"${APK_PATH:-$ROKID_APK_PATH}\""
+				;;
+			android-arcore)
+				echo "DRY RUN: tools/c00/export_with_godot.sh \"$ANDROID_ARCORE_PRESET\" \"${APK_PATH:-$ANDROID_ARCORE_APK_PATH}\""
+				;;
+			ipad)
+				echo "DRY RUN: tools/c00/export_with_godot.sh \"$IPAD_PRESET\" \"$IPAD_EXPORT_PATH\""
+				;;
+			ios-simulator)
+				echo "DRY RUN: tools/c00/export_with_godot.sh \"$IPAD_PRESET\" \"$IOS_SIMULATOR_EXPORT_PATH\""
+				;;
+			editor)
+				echo "DRY RUN: editor gate export skipped"
+				;;
+		esac
 		return
 	fi
 
@@ -229,6 +344,26 @@ run_export() {
 run_collect() {
 	local gate="$1"
 	if [[ "$RUN_COLLECT" == "0" ]]; then
+		return
+	fi
+	if [[ "$DRY_RUN" == "1" ]]; then
+		case "$gate" in
+			editor)
+				echo "DRY RUN: tools/c00/collect_editor_smoke.sh $DURATION"
+				;;
+			ios-simulator)
+				echo "DRY RUN: APP_PATH=${APP_PATH:-$IOS_SIMULATOR_APP_PATH} tools/c00/collect_ios_simulator_smoke.sh $SIMULATOR_DEVICE $PACKAGE $DURATION"
+				;;
+			rokid)
+				echo "DRY RUN: APK_PATH=${APK_PATH:-$(project_path "$ROKID_APK_PATH")} tools/c00/collect_android_smoke.sh rokid $PACKAGE $DURATION"
+				;;
+			android-arcore)
+				echo "DRY RUN: APK_PATH=${APK_PATH:-$(project_path "$ANDROID_ARCORE_APK_PATH")} tools/c00/collect_android_smoke.sh android-arcore $PACKAGE $DURATION"
+				;;
+			ipad)
+				echo "DRY RUN: APP_PATH=${APP_PATH:-$IPAD_APP_PATH} tools/c00/collect_ios_smoke.sh ${DEVICE:-<ipad-device>} $PACKAGE $DURATION"
+				;;
+		esac
 		return
 	fi
 
@@ -304,6 +439,11 @@ run_gate_for_all() {
 
 run_phase_verify() {
 	if [[ "$RUN_PHASE_VERIFY" == "0" ]]; then
+		return 0
+	fi
+	if [[ "$DRY_RUN" == "1" ]]; then
+		echo
+		echo "DRY RUN: tools/c00/verify_phase_evidence.js --report $(project_path "$PHASE_REPORT")"
 		return 0
 	fi
 

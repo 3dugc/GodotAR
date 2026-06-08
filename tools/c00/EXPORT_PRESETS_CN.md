@@ -125,6 +125,7 @@ GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh
 ```
 
 `prepare_godot_source.sh` 会准备与 export template 匹配的 Godot source headers，并输出下一条 `GODOT_SOURCE_DIR=... build_xcframework.sh` 命令。如果已经有本机 Godot source tree，可以直接设置 `GODOT_SOURCE_DIR`。
+`run_device_cycle.sh ipad` 会自动识别 `.godot/cache/c00/godot-source`；如果该目录不存在，可以用 `GODOT_TAG=<godot-tag>` 让 runner 在 iPad gate 前自动准备。
 
 导出命令：
 

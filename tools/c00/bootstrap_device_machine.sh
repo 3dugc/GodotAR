@@ -4,6 +4,7 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 REPORT="${REPORT:-$PROJECT_ROOT/releases/phase_0_smoke/evidence/device-readiness-${TIMESTAMP}.md}"
+DEFAULT_GODOT_SOURCE_DIR="$PROJECT_ROOT/.godot/cache/c00/godot-source"
 WRITE_EXPORT_PRESETS=0
 FORCE_EXPORT_PRESETS=0
 PACKAGE_ID="${PACKAGE:-org.godotengine.godotxrfoundation}"
@@ -127,6 +128,14 @@ check_command_row() {
 	fi
 }
 
+is_valid_godot_source() {
+	local dir="$1"
+	[[ -f "$dir/core/version.h" \
+		&& -f "$dir/core/object/class_db.h" \
+		&& -f "$dir/core/config/engine.h" \
+		&& -d "$dir/platform/ios" ]]
+}
+
 run_capture() {
 	local output=""
 	if output="$("$@" 2>&1)"; then
@@ -172,12 +181,15 @@ if command -v xcrun >/dev/null 2>&1; then
 	fi
 fi
 
-if [[ -n "${GODOT_SOURCE_DIR:-${GODOT_SRC_DIR:-}}" ]]; then
-	godot_source="${GODOT_SOURCE_DIR:-${GODOT_SRC_DIR:-}}"
-	if [[ -f "$godot_source/core/version.h" && -d "$godot_source/platform/ios" ]]; then
+godot_source="${GODOT_SOURCE_DIR:-${GODOT_SRC_DIR:-}}"
+if [[ -z "$godot_source" && -d "$DEFAULT_GODOT_SOURCE_DIR" ]]; then
+	godot_source="$DEFAULT_GODOT_SOURCE_DIR"
+fi
+if [[ -n "$godot_source" ]]; then
+	if is_valid_godot_source "$godot_source"; then
 		add_row PASS "Godot source headers" "$godot_source"
 	else
-		add_row MISS "Godot source headers" "$godot_source is missing core/version.h or platform/ios."
+		add_row MISS "Godot source headers" "$godot_source is missing core/version.h, core/object/class_db.h, core/config/engine.h, or platform/ios."
 	fi
 else
 	add_row WARN "Godot source headers" "Run tools/c00/prepare_godot_source.sh --tag <godot-tag>, then set GODOT_SOURCE_DIR before building GodotARKit.xcframework."

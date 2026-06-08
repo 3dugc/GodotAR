@@ -41,7 +41,28 @@ const checks = [
 		file: "tools/c00/bootstrap_device_machine.sh",
 		requirements: [
 			["Godot source readiness row", /Godot source headers/],
+			["default prepared source path", /\.godot\/cache\/c00\/godot-source/],
 			["Godot source helper guidance", /prepare_godot_source\.sh/],
+		],
+	},
+	{
+		file: "tools/c00/preflight.sh",
+		requirements: [
+			["Godot source preflight row", /Godot source headers/],
+			["default prepared source path", /\.godot\/cache\/c00\/godot-source/],
+			["Godot source helper guidance", /prepare_godot_source\.sh/],
+		],
+	},
+	{
+		file: "tools/c00/run_device_cycle.sh",
+		requirements: [
+			["Godot source resolver", /resolve_godot_source_for_arkit/],
+			["default prepared source path", /\.godot\/cache\/c00\/godot-source/],
+			["automatic source preparation env", /AUTO_PREPARE_GODOT_SOURCE/],
+			["dry-run source resolution", /DRY_RUN/],
+			["Godot tag env", /GODOT_TAG/],
+			["uses source helper", /prepare_godot_source\.sh/],
+			["exports Godot source env", /export GODOT_SOURCE_DIR/],
 		],
 	},
 	{

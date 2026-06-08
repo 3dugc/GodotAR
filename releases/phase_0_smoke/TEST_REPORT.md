@@ -47,6 +47,8 @@ Codex implementation status:
 - `tools/c00/install_openxr_vendors.sh` now provides a device-machine installer for the official `godotopenxrvendorsaddon.zip`, including latest release download, tag/URL/local zip modes, and safe extraction of the inner `godotopenxrvendors` directory.
 - `tools/c00/prepare_godot_source.sh` now prepares the matching official Godot source headers for ARKit plugin builds and prints the `GODOT_SOURCE_DIR=... ios/plugins/godot_arkit/build_xcframework.sh` command for device machines.
 - `tools/c00/check_ios_godot_source_surface.js` now guards the iPad Godot source preparation surface, including official source URL, tag inference, required headers, and ARKit build guidance.
+- `tools/c00/run_device_cycle.sh ipad` now reuses `.godot/cache/c00/godot-source` automatically and can prepare it before ARKit plugin builds when `GODOT_TAG`, `GODOT_BRANCH`, or `GODOT_COMMIT` is supplied.
+- `tools/c00/run_device_cycle.sh` now supports `DRY_RUN=1` to print source/build/export/collect/verify orchestration without invoking Godot, Xcode, ADB, or devicectl.
 - `android/plugins/godot_arcore` and `addons/godot_arcore` now provide a first-party C00 GodotARCore Android plugin v2 landing point with ARCore availability, install request, session lifecycle, Gradle build script, and Godot export hook.
 - `tools/c00/check_android_arcore_plugin_surface.js` now guards the GodotARCore Android plugin surface without requiring Gradle, Godot, or a connected Android device.
 - `tools/c00/check_arcore_gate_surface.js` now guards the Android ARCore evidence surface without requiring Godot or a connected Android device.
@@ -138,6 +140,8 @@ Hardware status:
 | `node --check tools/c00/check_ios_godot_source_surface.js` | Pass | iPad Godot source preparation checker parses |
 | `node tools/c00/check_ios_godot_source_surface.js` | Pass | Godot source helper, ARKit build script validation, bootstrap guidance, and C00 docs are present |
 | Synthetic Godot source preparation | Pass | `prepare_godot_source.sh --dir <fake-godot-source> --no-env` accepts a temp tree with required Godot headers and `platform/ios` |
+| Synthetic iPad runner source discovery | Pass | `run_device_cycle.sh ipad` resolves `.godot/cache/c00/godot-source` and exports `GODOT_SOURCE_DIR` before ARKit plugin builds |
+| Synthetic C00 runner dry-run | Pass | `DRY_RUN=1 tools/c00/run_device_cycle.sh ipad` prints ARKit source/build/export/collect actions without invoking real device commands |
 | `node --check tools/c00/check_android_arcore_plugin_surface.js` | Pass | GodotARCore Android plugin surface checker parses |
 | `node tools/c00/check_android_arcore_plugin_surface.js` | Pass | GodotARCore Android plugin v2/export singleton surface is present |
 | `node --check tools/c00/check_arcore_gate_surface.js` | Pass | Android ARCore gate surface checker parses |

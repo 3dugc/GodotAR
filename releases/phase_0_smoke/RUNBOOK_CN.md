@@ -57,6 +57,7 @@ tools/c00/prepare_godot_source.sh --tag <godot-tag>
 ```
 
 例如 Godot 版本为 `4.4.1.stable.official` 时，tag 通常是 `4.4.1-stable`。脚本会输出 `GODOT_SOURCE_DIR=... ios/plugins/godot_arkit/build_xcframework.sh`，后续 iPad gate 使用同一个 `GODOT_SOURCE_DIR`。
+`run_device_cycle.sh` 会自动识别 `.godot/cache/c00/godot-source`；如果该目录还不存在，也可以直接在 iPad gate 上设置 `GODOT_TAG=<godot-tag>` 让 runner 先准备 source headers。
 
 导出 preset 说明：
 
@@ -98,6 +99,14 @@ DEVICE=<ipad-uuid-or-name> \
 tools/c00/run_device_cycle.sh ipad
 ```
 
+或让 runner 自动准备默认 source 目录：
+
+```bash
+GODOT_TAG=<godot-tag> \
+DEVICE=<ipad-uuid-or-name> \
+tools/c00/run_device_cycle.sh ipad
+```
+
 `all` 会按 iPad/ARKit、Rokid/OpenXR、Android/ARCore 顺序执行；如需临时跳过 Android ARCore，设置 `INCLUDE_ANDROID_ARCORE=0`。
 
 ```bash
@@ -110,6 +119,14 @@ tools/c00/run_device_cycle.sh all
 如需在设备 gate 前先跑本地模拟器，设置 `INCLUDE_EDITOR_SIM=1`。
 如需临时只聚合某几台设备，设置 `PHASE_GATES=rokid,ipad`；C00 发布默认要求 `rokid,ipad,android-arcore`。
 单台 collector 即使 smoke validation 失败，也会继续做媒体证据验证并追加 device profile / profile analysis，最后再返回非零状态；失败时优先打开对应 `releases/phase_0_smoke/evidence/<gate>-*.md`。
+
+设备机第一次运行前，可以先 dry-run 整条编排：
+
+```bash
+DRY_RUN=1 GODOT_TAG=<godot-tag> DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh all
+```
+
+dry-run 只解析并打印 source 准备、插件构建、导出、Xcode 构建、采集和聚合验证命令，不会调用 Godot/Xcode/ADB/devicectl。
 
 ## 插件优先边界
 
@@ -320,7 +337,7 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 GODOT_SOURCE_DIR=/path/to/godot DEVICE=<device> tools/c00/run_device_cycle.sh ipad
 ```
 
-如果还没有 `/path/to/godot`，先运行 `tools/c00/prepare_godot_source.sh --tag <godot-tag>`，并使用脚本输出的 `GODOT_SOURCE_DIR`。默认流程会先构建 `GodotARKit.xcframework`，再用 Godot 导出 `builds/ipad/c00.zip`，随后通过 `tools/c00/build_ios_xcode_project.sh` 自动发现导出的 `.xcodeproj` 和 scheme，用 `xcodebuild` 产出 `builds/ipad/GodotXRFoundation.app`。如果已经手工构建了 `.app`，可设置 `APP_PATH=builds/ipad/GodotXRFoundation.app` 跳过自动 Xcode 构建。
+如果还没有 `/path/to/godot`，先运行 `tools/c00/prepare_godot_source.sh --tag <godot-tag>` 并使用脚本输出的 `GODOT_SOURCE_DIR`；或者直接设置 `GODOT_TAG=<godot-tag>` 让 runner 自动准备 `.godot/cache/c00/godot-source`。默认流程会先构建 `GodotARKit.xcframework`，再用 Godot 导出 `builds/ipad/c00.zip`，随后通过 `tools/c00/build_ios_xcode_project.sh` 自动发现导出的 `.xcodeproj` 和 scheme，用 `xcodebuild` 产出 `builds/ipad/GodotXRFoundation.app`。如果已经手工构建了 `.app`，可设置 `APP_PATH=builds/ipad/GodotXRFoundation.app` 跳过自动 Xcode 构建。
 `build_ios_xcode_project.sh` 会在 `xcodebuild` 前自动运行 `node tools/c00/check_ios_export_project.js --input <unpacked-ios-export>`，确认 Xcode project 已引用 `GodotARKit.xcframework`、`ARKit.framework`、`Metal.framework`，并且 plist 包含相机权限和 `arkit`/`metal` required device capabilities。
 
 底层脚本：

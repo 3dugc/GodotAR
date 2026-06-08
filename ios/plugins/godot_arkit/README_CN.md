@@ -105,6 +105,7 @@ GODOT_SOURCE_DIR=".godot/cache/c00/godot-source" ios/plugins/godot_arkit/build_x
 ```
 
 如果本机 `godot --version` 能输出稳定版格式，也可以省略 `--tag` 让脚本从 `GODOT_BIN` 或 PATH 中的 `godot` 推断。
+`tools/c00/run_device_cycle.sh ipad` 会自动识别这个默认目录；也可以直接设置 `GODOT_TAG=<godot-tag>`，让 runner 在构建 `GodotARKit.xcframework` 前自动调用 source helper。
 
 2. 构建插件：
 
