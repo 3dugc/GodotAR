@@ -20,6 +20,9 @@ const gdipPath = path.resolve(args.file || firstExisting([
 ]));
 const requireBinary = Boolean(args["require-binary"]);
 const sourcePath = path.resolve(args.source || path.join(pluginDir, "src/GodotARKitPlugin.mm"));
+const headerPath = path.resolve(args.header || path.join(pluginDir, "src/GodotARKitPlugin.h"));
+const sessionSourcePath = path.resolve(args["session-source"] || path.join(pluginDir, "src/GodotARKitSession.mm"));
+const sessionHeaderPath = path.resolve(args["session-header"] || path.join(pluginDir, "src/GodotARKitSession.h"));
 
 const failures = [];
 const warnings = [];
@@ -75,6 +78,9 @@ if (config.binary && !binaryEvidence.exists) {
 }
 
 const source = readText(sourcePath);
+const header = readText(headerPath);
+const sessionSource = readText(sessionSourcePath);
+const sessionHeader = readText(sessionHeaderPath);
 if (!source) {
 	failures.push(`Missing plugin source for symbol check: ${sourcePath}`);
 } else {
@@ -88,6 +94,57 @@ if (!source) {
 	}
 	if (!source.includes("ClassDB::register_class<GodotARKitPlugin>()")) {
 		failures.push("Source must register GodotARKitPlugin with ClassDB before exposing the singleton.");
+	}
+	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"start_session\")", "Source must bind start_session for NativeXRProvider startup.");
+	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"stop_session\")", "Source must bind stop_session for NativeXRProvider shutdown.");
+	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"is_running\")", "Source must bind is_running for runtime smoke diagnostics.");
+	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"get_tracking_status\")", "Source must bind get_tracking_status for ARFoundation state mapping.");
+	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"get_capabilities\")", "Source must bind get_capabilities for iPad C00 evidence.");
+	requireSourceIncludes(source, "[arkit_session start]", "start_session must call the native ARKit session start path.");
+	requireSourceIncludes(source, "[arkit_session stop]", "stop_session must call the native ARKit session stop path.");
+	requireSourceIncludes(source, "arkit_tracking_state", "get_capabilities must expose arkit_tracking_state.");
+	requireSourceIncludes(source, "arkit_tracking_reason", "get_capabilities must expose arkit_tracking_reason.");
+}
+
+if (!header) {
+	failures.push(`Missing plugin header for runtime bridge check: ${headerPath}`);
+} else {
+	for (const declaration of [
+		"bool start_session();",
+		"bool stop_session();",
+		"bool is_running();",
+		"int get_tracking_status();",
+		"Dictionary get_capabilities();",
+	]) {
+		requireSourceIncludes(header, declaration, `Header must declare ${declaration}`);
+	}
+}
+
+if (!sessionSource) {
+	failures.push(`Missing ARKit session source for runtime bridge check: ${sessionSourcePath}`);
+} else {
+	requireSourceIncludes(sessionSource, "<ARSessionDelegate>", "GodotARKitSession must implement ARSessionDelegate.");
+	requireSourceIncludes(sessionSource, "ARWorldTrackingConfiguration", "GodotARKitSession must use ARWorldTrackingConfiguration.");
+	requireSourceIncludes(sessionSource, "runWithConfiguration", "GodotARKitSession must run ARSession with a configuration.");
+	requireSourceIncludes(sessionSource, "planeDetection", "GodotARKitSession should request horizontal/vertical plane detection for C00 diagnostics.");
+	requireSourceIncludes(sessionSource, "cameraDidChangeTrackingState", "GodotARKitSession must observe ARKit tracking state changes.");
+	requireSourceIncludes(sessionSource, "didUpdateFrame", "GodotARKitSession must observe ARFrame updates.");
+	requireSourceIncludes(sessionSource, "arkit_running", "GodotARKitSession capabilities must expose arkit_running.");
+	requireSourceIncludes(sessionSource, "arkit_tracking_state", "GodotARKitSession capabilities must expose arkit_tracking_state.");
+	requireSourceIncludes(sessionSource, "arkit_tracking_reason", "GodotARKitSession capabilities must expose arkit_tracking_reason.");
+}
+
+if (!sessionHeader) {
+	failures.push(`Missing ARKit session header for runtime bridge check: ${sessionHeaderPath}`);
+} else {
+	for (const declaration of [
+		"- (BOOL)start;",
+		"- (BOOL)stop;",
+		"- (BOOL)isRunning;",
+		"- (NSInteger)trackingStatus;",
+		"- (NSDictionary *)capabilities;",
+	]) {
+		requireSourceIncludes(sessionHeader, declaration, `Session header must declare ${declaration}`);
 	}
 }
 
@@ -103,6 +160,9 @@ const summary = {
 	plistKeys: Object.keys(plist),
 	binary: binaryEvidence,
 	source: sourcePath,
+	header: headerPath,
+	sessionSource: sessionSourcePath,
+	sessionHeader: sessionHeaderPath,
 };
 
 console.log(JSON.stringify(summary, null, 2));
@@ -138,6 +198,9 @@ function usage() {
 		"  --dir <dir>          iOS plugin directory. Default: ios/plugins/godot_arkit",
 		"  --file <file>        gdip or gdip.template to validate.",
 		"  --source <file>      Objective-C++ source used for symbol checks.",
+		"  --header <file>      C++ header used for runtime bridge checks.",
+		"  --session-source <file>  Objective-C++ ARKit session source.",
+		"  --session-header <file>  Objective-C++ ARKit session header.",
 		"  --require-binary     Treat a missing referenced xcframework as failure instead of warning.",
 	].join("\n"));
 }
@@ -232,6 +295,13 @@ function requireArrayIncludes(name, actual, expectedValues) {
 		if (!actual.includes(expected)) {
 			failures.push(`${name} should include ${expected}.`);
 		}
+	}
+}
+
+
+function requireSourceIncludes(text, needle, message) {
+	if (!text.includes(needle)) {
+		failures.push(message);
 	}
 }
 

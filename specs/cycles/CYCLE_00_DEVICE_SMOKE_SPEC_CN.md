@@ -219,6 +219,7 @@ iPad gate 应记录 `capabilities.arkit_tracking_state` 和 `capabilities.arkit_
 - [ ] Godot project/scene 静态完整性通过 `node tools/c00/check_godot_project_static.js`。
 - [ ] C00 一键静态 gate 通过 `node tools/c00/run_static_gates.js --gate all`。
 - [ ] iPad/ARKit plugin 配置通过 `tools/c00/check_ios_plugin_artifacts.js --require-binary`。
+- [ ] iPad/ARKit runtime bridge 静态证据包含 `start_session` / `stop_session` / `get_tracking_status` 绑定、`ARWorldTrackingConfiguration` 启动和 `ARSessionDelegate` tracking state/reason 上报。
 - [ ] ARFoundation 迁移 API surface 通过 `node tools/c00/check_arfoundation_api_surface.js`。
 - [ ] XRI 迁移 API surface 通过 `node tools/c00/check_xri_api_surface.js`。
 - [ ] OpenXR/Rokid provider surface 通过 `node tools/c00/check_openxr_provider_surface.js`。

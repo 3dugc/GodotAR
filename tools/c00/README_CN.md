@@ -84,6 +84,7 @@ node tools/c00/check_ios_plugin_artifacts.js --file ios/plugins/godot_arkit/Godo
 ```
 
 该检查会验证 Godot 官方 `.gdip` 必需字段、`GodotARKit.xcframework` 引用、`init_godot_arkit` / `deinit_godot_arkit` 符号、ARKit/Metal capability、系统 framework、plist camera 权限和 required device capabilities。
+它还会检查 iPad gate 真实运行所需的 runtime bridge：`start_session` / `stop_session` / `is_running` / `get_tracking_status` / `get_capabilities` 是否绑定，`GodotARKitSession` 是否使用 `ARWorldTrackingConfiguration` 调用 `runWithConfiguration`，是否实现 `ARSessionDelegate` 并输出 `arkit_tracking_state` / `arkit_tracking_reason`。
 
 检查 Godot project 和 C00 场景静态完整性：
 
