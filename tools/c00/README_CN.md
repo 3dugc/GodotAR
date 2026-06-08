@@ -166,15 +166,19 @@ node tools/c00/audit_phase1_completion.js --skip-preflight --skip-evidence --rep
 安装 Godot 官方 export templates：
 
 ```bash
-curl -L -o .godot/cache/c00/downloads/Godot_v4.4.1-stable_export_templates.tpz \
-  https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz
+tools/c00/install_godot_export_templates.sh --download --version 4.4.1.stable
+```
 
+如果已经手动下载了 `.tpz`：
+
+```bash
 tools/c00/install_godot_export_templates.sh \
   --tpz .godot/cache/c00/downloads/Godot_v4.4.1-stable_export_templates.tpz \
   --version 4.4.1.stable
 ```
 
 如果 GitHub 下载失败，可以从 Godot 官方 4.4.1 archive 页面下载同名 standard export templates `.tpz` 后，把本地文件路径传给 `--tpz`。iPad 导出至少需要 `ios.zip`；Rokid/OpenXR 和 Android ARCore 的 Gradle 导出至少需要 `android_source.zip`。
+`--download` 使用 `curl -L --fail -C -`，如果网络中断，重复运行同一命令会尝试继续下载未完成文件。
 
 安装项目内 Android Gradle build template：
 
@@ -184,24 +188,34 @@ tools/c00/install_android_build_template.sh
 
 该脚本按 Godot 4.4 的 `Project > Install Android Build Template` 逻辑，把 `android_source.zip` 解到 `android/build`，并写入 `android/.build_version` 与 `android/build/.gdignore`。Rokid/OpenXR 和 Android ARCore 都启用了 Gradle export，因此这个步骤是 APK 导出前置条件。
 
-如果设备机已有 Android command line tools，可以安装 Godot 4.4 默认 Android SDK 依赖：
+安装项目本地 OpenJDK 17。Godot 4.4 Android export 要求 `Java SDK Path` 指向 OpenJDK 17：
 
 ```bash
-tools/c00/install_android_sdk_packages.sh --yes
+tools/c00/install_openjdk17.sh --download
+export GODOT_JAVA_SDK_PATH="$PWD/.godot/cache/c00/jdk/Contents/Home"
+export JAVA_HOME="$GODOT_JAVA_SDK_PATH"
 ```
 
-默认安装 `platform-tools`、`platforms;android-34`、`build-tools;34.0.0`。如果 `sdkmanager` 不在默认 SDK 目录里，传入 `--sdkmanager /path/to/sdkmanager`。
-
-Android/Rokid 导出还需要真实 JDK。macOS 的 `/usr/bin/java` / `/usr/bin/keytool` 可能只是系统 stub；`tools/c00/preflight.sh rokid` 会用 `java -version` 和 `keytool -help` 验证它们真的可运行。安装 JDK 后设置：
+如果已经有 OpenJDK 17 tar.gz，可以用：
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home)
+tools/c00/install_openjdk17.sh --archive <OpenJDK17-macos-aarch64.tar.gz>
 ```
+
+安装 Godot 4.4 默认 Android SDK 依赖：
+
+```bash
+tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes
+```
+
+默认安装 `platform-tools`、`platforms;android-34`、`build-tools;34.0.0`。如果设备机已经有 Android command line tools，可以省略 `--download-cmdline-tools`；如果 `sdkmanager` 不在默认 SDK 目录里，传入 `--sdkmanager /path/to/sdkmanager`。如果已有 command line tools zip，可以传入 `--cmdline-tools-zip <commandlinetools-mac-*_latest.zip>`。
+OpenJDK 和 Android command line tools 下载同样支持断点续传，重复运行安装命令即可。
+
+Android/Rokid 导出还需要真实 JDK。macOS 的 `/usr/bin/java` / `/usr/bin/keytool` 可能只是系统 stub；`tools/c00/preflight.sh rokid` 会用 `java -version` 和 `keytool -help` 验证它们真的可运行。项目本地 `.godot/cache/c00/jdk/Contents/Home` 会被 `preflight`、readiness report 和 Android 配置脚本自动识别。
 
 配置 Android SDK、debug keystore 和 Godot Android EditorSettings：
 
 ```bash
-GODOT_BIN=/path/to/Godot \
 tools/c00/configure_android_export_environment.sh --install-build-template
 ```
 
@@ -214,7 +228,7 @@ tools/c00/configure_android_export_environment.sh --install-build-template
 - 项目本地 `.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot`。
 - `/Applications/Godot.app/Contents/MacOS/Godot`。
 - `ADB_BIN`、PATH 中的 `adb` 或项目本地 `.godot/cache/c00/android-sdk/platform-tools/adb`。
-- `GODOT_JAVA_SDK_PATH` / `JAVA_HOME` 下的 `java` 和 `keytool`。
+- `GODOT_JAVA_SDK_PATH` / `JAVA_HOME` / 项目本地 `.godot/cache/c00/jdk/Contents/Home` 下的 `java` 和 `keytool`。
 
 命令行导出时，`tools/c00/export_with_godot.sh` 默认传入 `--xr-mode off`，避免开发机没有 OpenXR runtime 时阻塞导出流程。这个参数只影响构建机上的 Godot editor 进程，不会移除导出包里的 OpenXR/ARKit/ARCore 启动参数。
 

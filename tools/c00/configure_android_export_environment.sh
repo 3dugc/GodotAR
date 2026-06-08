@@ -114,6 +114,11 @@ resolve_java_sdk() {
 		printf "%s" "$JAVA_SDK"
 		return 0
 	fi
+	local bundled="$PROJECT_ROOT/.godot/cache/c00/jdk/Contents/Home"
+	if [[ -x "$bundled/bin/java" && -x "$bundled/bin/keytool" ]]; then
+		printf "%s" "$bundled"
+		return 0
+	fi
 	if command -v /usr/libexec/java_home >/dev/null 2>&1; then
 		local java_home
 		if java_home="$(/usr/libexec/java_home 2>/dev/null)"; then
@@ -165,10 +170,15 @@ else
 	status=1
 fi
 
-if ! command -v keytool >/dev/null 2>&1; then
+KEYTOOL="$JAVA_SDK/bin/keytool"
+if [[ ! -x "$KEYTOOL" ]] && command -v keytool >/dev/null 2>&1; then
+	KEYTOOL="$(command -v keytool)"
+fi
+
+if [[ -z "${KEYTOOL:-}" || ! -x "$KEYTOOL" ]]; then
 	echo "MISS keytool: required to generate the Android debug keystore." >&2
 	status=1
-elif ! keytool -help >/dev/null 2>&1; then
+elif ! "$KEYTOOL" -help >/dev/null 2>&1; then
 	echo "MISS keytool: command exists but no working JDK is available." >&2
 	status=1
 fi
@@ -177,13 +187,13 @@ if [[ "$DRY_RUN" == "1" ]]; then
 	echo "DRY RUN: would create debug keystore at $DEBUG_KEYSTORE when missing."
 else
 	if [[ ! -f "$DEBUG_KEYSTORE" ]]; then
-		if ! command -v keytool >/dev/null 2>&1 || ! keytool -help >/dev/null 2>&1; then
+		if [[ -z "${KEYTOOL:-}" || ! -x "$KEYTOOL" ]] || ! "$KEYTOOL" -help >/dev/null 2>&1; then
 			echo "ERROR: keytool is required to create $DEBUG_KEYSTORE" >&2
 			exit 2
 		fi
 		mkdir -p "$(dirname "$DEBUG_KEYSTORE")"
 		echo "Creating Android debug keystore: $DEBUG_KEYSTORE"
-		keytool -genkeypair \
+		"$KEYTOOL" -genkeypair \
 			-keystore "$DEBUG_KEYSTORE" \
 			-storepass "$DEBUG_KEYSTORE_PASS" \
 			-keypass "$DEBUG_KEYSTORE_PASS" \

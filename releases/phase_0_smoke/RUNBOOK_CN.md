@@ -50,6 +50,19 @@ node tools/c00/check_godot_project_static.js
 GODOT_BIN=/Applications/Godot.app/Contents/MacOS/Godot tools/c00/preflight.sh
 ```
 
+如果设备机网络可用，可以直接补齐 C00 导出依赖：
+
+```bash
+tools/c00/install_godot_export_templates.sh --download --version 4.4.1.stable
+tools/c00/install_openjdk17.sh --download
+export GODOT_JAVA_SDK_PATH="$PWD/.godot/cache/c00/jdk/Contents/Home"
+export JAVA_HOME="$GODOT_JAVA_SDK_PATH"
+tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes
+tools/c00/configure_android_export_environment.sh --install-build-template
+```
+
+如果网络不稳定，把 `Godot_v4.4.1-stable_export_templates.tpz`、Android command line tools zip、OpenJDK 17 tar.gz、Android SDK 或 JDK 放进离线依赖包，再用 `tools/c00/import_device_dependency_bundle.sh --bundle <dir>` 导入。
+
 iPad/ARKit 真机构建需要与 iOS export template 版本匹配的 Godot source headers。设备机没有现成 source tree 时，先用 helper 准备：
 
 ```bash

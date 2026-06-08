@@ -252,6 +252,11 @@ resolve_java_binary() {
 		printf "%s" "$JAVA_HOME/bin/java"
 		return 0
 	fi
+	local bundled="$PROJECT_ROOT/.godot/cache/c00/jdk/Contents/Home/bin/java"
+	if [ -x "$bundled" ]; then
+		printf "%s" "$bundled"
+		return 0
+	fi
 	if command -v java >/dev/null 2>&1; then
 		command -v java
 		return 0
@@ -266,6 +271,11 @@ resolve_keytool_binary() {
 	fi
 	if [ -n "${JAVA_HOME:-}" ] && [ -x "$JAVA_HOME/bin/keytool" ]; then
 		printf "%s" "$JAVA_HOME/bin/keytool"
+		return 0
+	fi
+	local bundled="$PROJECT_ROOT/.godot/cache/c00/jdk/Contents/Home/bin/keytool"
+	if [ -x "$bundled" ]; then
+		printf "%s" "$bundled"
 		return 0
 	fi
 	if command -v keytool >/dev/null 2>&1; then
@@ -358,10 +368,10 @@ if needs_export_preset; then
 	printf "\nGodot export templates\n"
 	template_dir="$(resolve_export_templates_dir)"
 	if needs_ios_tools; then
-		check_file "$template_dir/ios.zip" "required for iPad/iOS Simulator export; install Godot 4.4.1 export templates, or run tools/c00/install_godot_export_templates.sh --tpz <Godot_v4.4.1-stable_export_templates.tpz>"
+		check_file "$template_dir/ios.zip" "required for iPad/iOS Simulator export; run tools/c00/install_godot_export_templates.sh --download or pass --tpz <Godot_v4.4.1-stable_export_templates.tpz>"
 	fi
 	if needs_android_tools; then
-		check_file "$template_dir/android_source.zip" "required for Android Gradle exports used by Rokid/OpenXR and ARCore; install Godot 4.4.1 export templates"
+		check_file "$template_dir/android_source.zip" "required for Android Gradle exports used by Rokid/OpenXR and ARCore; run tools/c00/install_godot_export_templates.sh --download"
 	fi
 fi
 
@@ -380,8 +390,8 @@ if needs_android_tools; then
 	fi
 	java_bin="$(resolve_java_binary || true)"
 	keytool_bin="$(resolve_keytool_binary || true)"
-	check_working_executable java "$java_bin" "-version" "required by Android Gradle export; install a real JDK and set JAVA_HOME/PATH so Godot can find it"
-	check_working_executable keytool "$keytool_bin" "-help" "required to create or validate the Android debug keystore; install a real JDK"
+		check_working_executable java "$java_bin" "-version" "required by Android Gradle export; install OpenJDK 17 or run tools/c00/install_openjdk17.sh --download"
+		check_working_executable keytool "$keytool_bin" "-help" "required to create or validate the Android debug keystore; install OpenJDK 17 or run tools/c00/install_openjdk17.sh --download"
 	check_file "$debug_keystore" "required for debug APK signing; run tools/c00/configure_android_export_environment.sh --install-build-template"
 	check_file "$PROJECT_ROOT/android/build/build.gradle" "required for Android Gradle exports; run tools/c00/install_android_build_template.sh after installing Godot export templates"
 fi

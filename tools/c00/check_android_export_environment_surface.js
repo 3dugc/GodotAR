@@ -11,6 +11,7 @@ const files = {
 	configureGd: "tools/c00/configure_android_editor_settings.gd",
 	templateInstaller: "tools/c00/install_android_build_template.sh",
 	sdkInstaller: "tools/c00/install_android_sdk_packages.sh",
+	jdkInstaller: "tools/c00/install_openjdk17.sh",
 	preflight: "tools/c00/preflight.sh",
 	exportWrapper: "tools/c00/export_with_godot.sh",
 	androidCollector: "tools/c00/collect_android_smoke.sh",
@@ -28,7 +29,9 @@ if (failures.length === 0) {
 		"GODOT_ANDROID_SDK_PATH",
 		"GODOT_JAVA_SDK_PATH",
 		"GODOT_ANDROID_KEYSTORE_DEBUG_PATH",
-		"keytool -genkeypair",
+		".godot/cache/c00/jdk/Contents/Home",
+		"KEYTOOL",
+		"-genkeypair",
 		"configure_android_editor_settings.gd",
 		"install_android_build_template.sh",
 	]);
@@ -52,11 +55,25 @@ if (failures.length === 0) {
 	]);
 
 	requireContains(files.sdkInstaller, [
+		"commandlinetools-mac-13114758_latest.zip",
+		"--download-cmdline-tools",
+		"--cmdline-tools-zip",
+		"Resuming incomplete Android command line tools download",
+		".godot/cache/c00/jdk/Contents/Home",
 		"platform-tools",
 		"platforms;android-34",
 		"build-tools;34.0.0",
 		"sdkmanager",
 		"--licenses",
+	]);
+
+	requireContains(files.jdkInstaller, [
+		"api.adoptium.net/v3/binary/latest/17/ga/mac",
+		"jdk/hotspot/normal/eclipse",
+		"Resuming incomplete OpenJDK 17 download",
+		".godot/cache/c00/jdk/Contents/Home",
+		"GODOT_JAVA_SDK_PATH",
+		"keytool",
 	]);
 
 	requireContains(files.preflight, [
@@ -65,6 +82,7 @@ if (failures.length === 0) {
 		"resolve_java_binary",
 		"resolve_keytool_binary",
 		".godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot",
+		".godot/cache/c00/jdk/Contents/Home",
 		"platform-tools/adb",
 		"resolve_android_debug_keystore",
 		"android/build/build.gradle",
@@ -89,7 +107,8 @@ if (failures.length === 0) {
 	]);
 
 	requireContains(files.readme, [
-		"install_android_sdk_packages.sh --yes",
+		"install_openjdk17.sh --download",
+		"install_android_sdk_packages.sh --download-cmdline-tools --yes",
 		"configure_android_export_environment.sh --install-build-template",
 		"GODOT_CONFIGURE_ANDROID_EXPORT=0",
 	]);

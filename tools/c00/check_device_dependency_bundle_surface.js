@@ -8,6 +8,9 @@ const failures = [];
 
 const files = {
 	importer: "tools/c00/import_device_dependency_bundle.sh",
+	templateInstaller: "tools/c00/install_godot_export_templates.sh",
+	jdkInstaller: "tools/c00/install_openjdk17.sh",
+	sdkInstaller: "tools/c00/install_android_sdk_packages.sh",
 	readme: "tools/c00/README_CN.md",
 	bootstrap: "tools/c00/bootstrap_device_machine.sh",
 	spec: "specs/cycles/CYCLE_00_DEVICE_SMOKE_SPEC_CN.md",
@@ -34,19 +37,45 @@ if (failures.length === 0) {
 		"tools/c00/preflight.sh ipad",
 	]);
 
+	requireContains(files.templateInstaller, [
+		"--download",
+		"GODOT_EXPORT_TEMPLATES_URL",
+		"Godot_v%s_export_templates.tpz",
+		"Resuming incomplete Godot export templates download",
+	]);
+
+	requireContains(files.jdkInstaller, [
+		"--download",
+		"api.adoptium.net/v3/binary/latest/17/ga/mac",
+		"Resuming incomplete OpenJDK 17 download",
+		".godot/cache/c00/jdk/Contents/Home",
+	]);
+
+	requireContains(files.sdkInstaller, [
+		"--download-cmdline-tools",
+		"commandlinetools-mac-13114758_latest.zip",
+		"Resuming incomplete Android command line tools download",
+		"cmdline-tools/latest/bin/sdkmanager",
+	]);
+
 	requireContains(files.readme, [
 		"import_device_dependency_bundle.sh --bundle",
 		"source .godot/cache/c00/device-env.sh",
+		"install_openjdk17.sh --download",
+		"install_godot_export_templates.sh --download",
 		"离线依赖包",
 	]);
 
 	requireContains(files.bootstrap, [
 		"import_device_dependency_bundle.sh --bundle",
+		"install_openjdk17.sh --download",
 		"device-env.sh",
 	]);
 
 	requireContains(files.spec, [
 		"import_device_dependency_bundle.sh",
+		"install_openjdk17.sh --download",
+		"install_godot_export_templates.sh --download",
 		"离线依赖包",
 	]);
 }

@@ -141,6 +141,23 @@ find_adb_binary() {
 	return 1
 }
 
+find_java_sdk() {
+	if [[ -n "${GODOT_JAVA_SDK_PATH:-}" && -x "$GODOT_JAVA_SDK_PATH/bin/java" && -x "$GODOT_JAVA_SDK_PATH/bin/keytool" ]]; then
+		printf "%s" "$GODOT_JAVA_SDK_PATH"
+		return 0
+	fi
+	if [[ -n "${JAVA_HOME:-}" && -x "$JAVA_HOME/bin/java" && -x "$JAVA_HOME/bin/keytool" ]]; then
+		printf "%s" "$JAVA_HOME"
+		return 0
+	fi
+	local bundled_path="$PROJECT_ROOT/.godot/cache/c00/jdk/Contents/Home"
+	if [[ -x "$bundled_path/bin/java" && -x "$bundled_path/bin/keytool" ]]; then
+		printf "%s" "$bundled_path"
+		return 0
+	fi
+	return 1
+}
+
 check_command_row() {
 	local command_name="$1"
 	local purpose="$2"
@@ -148,6 +165,18 @@ check_command_row() {
 		add_row PASS "$command_name" "$(command -v "$command_name")"
 	else
 		add_row MISS "$command_name" "$purpose"
+	fi
+}
+
+check_working_executable_row() {
+	local label="$1"
+	local executable="$2"
+	local probe="$3"
+	local purpose="$4"
+	if [[ -n "$executable" && -x "$executable" ]] && "$executable" $probe >/dev/null 2>&1; then
+		add_row PASS "$label" "$executable"
+	else
+		add_row MISS "$label" "$purpose"
 	fi
 }
 
@@ -240,8 +269,14 @@ else
 fi
 check_command_row xcrun "required for iPad install/launch and iOS SDK checks"
 check_command_row xcodebuild "required for building the Godot iOS export into an installable .app"
-check_working_command_row java "-version" "required by Android Gradle export; install a real JDK and set JAVA_HOME."
-check_working_command_row keytool "-help" "required to create or validate the Android debug keystore; install a real JDK."
+if java_sdk="$(find_java_sdk)"; then
+	add_row PASS "Java SDK" "$java_sdk"
+	check_working_executable_row java "$java_sdk/bin/java" "-version" "required by Android Gradle export; install OpenJDK 17."
+	check_working_executable_row keytool "$java_sdk/bin/keytool" "-help" "required to create or validate the Android debug keystore; install OpenJDK 17."
+else
+	check_working_command_row java "-version" "required by Android Gradle export; install OpenJDK 17 or run tools/c00/install_openjdk17.sh --download."
+	check_working_command_row keytool "-help" "required to create or validate the Android debug keystore; install OpenJDK 17 or run tools/c00/install_openjdk17.sh --download."
+fi
 
 if command -v xcrun >/dev/null 2>&1; then
 	if sdk_path="$(run_capture xcrun --sdk iphoneos --show-sdk-path)"; then
@@ -420,28 +455,35 @@ fi
 	printf "   \`\`\`\n\n"
 	printf "4. Install Godot 4.4.1 export templates and project Android build template if they were not imported from a bundle:\n\n"
 	printf "   \`\`\`bash\n"
-	printf "   tools/c00/install_godot_export_templates.sh --tpz <Godot_v4.4.1-stable_export_templates.tpz> --version 4.4.1.stable\n"
+	printf "   tools/c00/install_godot_export_templates.sh --download --version 4.4.1.stable\n"
 	printf "   tools/c00/install_android_build_template.sh\n"
 	printf "   \`\`\`\n\n"
-	printf "5. Configure Android SDK, debug keystore, and Godot Android EditorSettings:\n\n"
+	printf "5. Install OpenJDK 17 and Android SDK build tools when they were not imported from a bundle:\n\n"
 	printf "   \`\`\`bash\n"
-	printf "   GODOT_BIN=/path/to/Godot tools/c00/configure_android_export_environment.sh --install-build-template\n"
+	printf "   tools/c00/install_openjdk17.sh --download\n"
+	printf "   export GODOT_JAVA_SDK_PATH=\"%s/.godot/cache/c00/jdk/Contents/Home\"\n" "$PROJECT_ROOT"
+	printf "   export JAVA_HOME=\"\$GODOT_JAVA_SDK_PATH\"\n"
+	printf "   tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes\n"
 	printf "   \`\`\`\n\n"
-	printf "6. Review signing, OpenXR loader/vendor, and iOS plugin options in Godot editor, then save \`export_presets.cfg\`.\n\n"
-	printf "7. Prepare Godot source headers for the ARKit plugin if missing:\n\n"
+	printf "6. Configure Android SDK, debug keystore, and Godot Android EditorSettings:\n\n"
+	printf "   \`\`\`bash\n"
+	printf "   tools/c00/configure_android_export_environment.sh --install-build-template\n"
+	printf "   \`\`\`\n\n"
+	printf "7. Review signing, OpenXR loader/vendor, and iOS plugin options in Godot editor, then save \`export_presets.cfg\`.\n\n"
+	printf "8. Prepare Godot source headers for the ARKit plugin if missing:\n\n"
 	printf "   \`\`\`bash\n"
 	printf "   tools/c00/prepare_godot_source.sh --tag <godot-tag>\n"
 	printf "   \`\`\`\n\n"
-	printf "8. Build the ARKit iOS plugin on the device machine:\n\n"
+	printf "9. Build the ARKit iOS plugin on the device machine:\n\n"
 	printf "   \`\`\`bash\n"
 	printf "   GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh\n"
 	printf "   \`\`\`\n\n"
-	printf "9. Run the first phase gates:\n\n"
+	printf "10. Run the first phase gates:\n\n"
 	printf "   \`\`\`bash\n"
 	printf "   GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh all\n"
 	printf "   \`\`\`\n\n"
 	printf "   The iPad gate will build the exported Xcode project into \`builds/ipad/GodotXRFoundation.app\` when \`APP_PATH\` is empty.\n\n"
-	printf "10. Publish only when \`releases/phase_0_smoke/C00_PHASE_REPORT.md\` reports PASS for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.\n"
+	printf "11. Publish only when \`releases/phase_0_smoke/C00_PHASE_REPORT.md\` reports PASS for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.\n"
 } >> "$REPORT"
 
 cat "$REPORT"
