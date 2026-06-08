@@ -121,6 +121,10 @@ C00 不修改 Godot 主干。
 C00 Android ARCore 使用 `android/plugins/godot_arcore` + `addons/godot_arcore`。它是 Android plugin v2 / AAR export hook / `GodotARCore` singleton 落点，不需要修改 Godot 主干。
 Rokid/OpenXR 使用 Godot OpenXR interface 加 OpenXR Vendors plugin；设备机必须安装到 `addons/godotopenxrvendors`，再在 Android export preset 里启用目标 vendor。
 
+```bash
+tools/c00/install_openxr_vendors.sh
+```
+
 ## EditorSim / 模拟器
 
 模拟器用于没有设备时验证上层接口和 Unity 迁移代码：

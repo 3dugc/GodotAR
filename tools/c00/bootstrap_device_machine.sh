@@ -192,7 +192,7 @@ fi
 if [[ -d "$PROJECT_ROOT/addons/godotopenxrvendors" ]]; then
 	add_row PASS "OpenXR Vendors plugin" "addons/godotopenxrvendors"
 else
-	add_row MISS "OpenXR Vendors plugin" "Install the Godot OpenXR Vendors plugin into addons/godotopenxrvendors before Rokid/OpenXR export."
+	add_row MISS "OpenXR Vendors plugin" "Run tools/c00/install_openxr_vendors.sh, or install the Godot OpenXR Vendors plugin into addons/godotopenxrvendors before Rokid/OpenXR export."
 fi
 
 if plugin_output="$(run_capture node "$PROJECT_ROOT/tools/c00/check_ios_plugin_artifacts.js")"; then
@@ -276,17 +276,21 @@ fi
 	printf "   \`\`\`bash\n"
 	printf "   tools/c00/bootstrap_device_machine.sh --write-export-presets --package %s --bundle %s --team-id %s\n" "$PACKAGE_ID" "$BUNDLE_ID" "$TEAM_ID"
 	printf "   \`\`\`\n\n"
-	printf "2. Review signing, OpenXR loader, and iOS plugin options in Godot editor, then save \`export_presets.cfg\`.\n\n"
-	printf "3. Build the ARKit iOS plugin on the device machine:\n\n"
+	printf "2. Install the OpenXR Vendors plugin for Rokid/OpenXR if missing:\n\n"
+	printf "   \`\`\`bash\n"
+	printf "   tools/c00/install_openxr_vendors.sh\n"
+	printf "   \`\`\`\n\n"
+	printf "3. Review signing, OpenXR loader/vendor, and iOS plugin options in Godot editor, then save \`export_presets.cfg\`.\n\n"
+	printf "4. Build the ARKit iOS plugin on the device machine:\n\n"
 	printf "   \`\`\`bash\n"
 	printf "   GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh\n"
 	printf "   \`\`\`\n\n"
-	printf "4. Run the first phase gates:\n\n"
+	printf "5. Run the first phase gates:\n\n"
 	printf "   \`\`\`bash\n"
 	printf "   GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh all\n"
 	printf "   \`\`\`\n\n"
 	printf "   The iPad gate will build the exported Xcode project into \`builds/ipad/GodotXRFoundation.app\` when \`APP_PATH\` is empty.\n\n"
-	printf "5. Publish only when \`releases/phase_0_smoke/C00_PHASE_REPORT.md\` reports PASS for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.\n"
+	printf "6. Publish only when \`releases/phase_0_smoke/C00_PHASE_REPORT.md\` reports PASS for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.\n"
 } >> "$REPORT"
 
 cat "$REPORT"

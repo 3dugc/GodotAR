@@ -326,6 +326,18 @@ Rokid/OpenXR 设备机还必须安装 Godot OpenXR Vendors plugin 到：
 addons/godotopenxrvendors
 ```
 
+可用脚本安装最新 release：
+
+```bash
+tools/c00/install_openxr_vendors.sh
+```
+
+也可以从已下载的 `godotopenxrvendorsaddon.zip` 安装：
+
+```bash
+tools/c00/install_openxr_vendors.sh --zip /path/to/godotopenxrvendorsaddon.zip
+```
+
 安装后在 Godot editor 的 Android export preset 里启用目标 vendor，只启用本次目标设备需要的 vendor 配置，然后保存 `export_presets.cfg`。
 
 iPad preset 必须启用 `GodotARKit` iOS plugin。`collect_ios_smoke.sh` 默认通过 devicectl 向应用传入 `--xr-platform=ipad`，可用 `IOS_XR_PLATFORM=iphone` 覆盖。

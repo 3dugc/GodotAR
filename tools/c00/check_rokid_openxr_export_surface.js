@@ -38,10 +38,22 @@ const checks = [
 		],
 	},
 	{
+		file: "tools/c00/install_openxr_vendors.sh",
+		requirements: [
+			["GitHub latest release API", /repos\/GodotVR\/godot_openxr_vendors\/releases\/latest/],
+			["release asset name", /godotopenxrvendorsaddon\.zip/],
+			["canonical plugin directory", /addons\/godotopenxrvendors/],
+			["locates inner addon directory", /find "\$EXTRACT_DIR" -type d -name godotopenxrvendors/],
+			["force replacement switch", /--force/],
+			["local zip install switch", /--zip <file>/],
+		],
+	},
+	{
 		file: "tools/c00/bootstrap_device_machine.sh",
 		requirements: [
 			["OpenXR Vendors readiness check", /OpenXR Vendors plugin/],
 			["OpenXR Vendors canonical addon path", /addons\/godotopenxrvendors/],
+			["OpenXR Vendors install command guidance", /install_openxr_vendors\.sh/],
 		],
 	},
 	{

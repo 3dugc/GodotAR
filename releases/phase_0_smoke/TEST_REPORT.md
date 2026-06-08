@@ -44,6 +44,7 @@ Codex implementation status:
 - `tools/c00/check_godot_project_static.js` now validates C00 project settings, scene resource references, load steps, required smoke nodes, and critical NodePaths without requiring a Godot binary.
 - `tools/c00/run_static_gates.js` now runs the C00 static gate set in one command and can write a Markdown report for CI/device-machine readiness.
 - `tools/c00/check_rokid_openxr_export_surface.js` now guards Rokid/OpenXR export prerequisites: Gradle build, OpenXR XR mode, arm64, `--xr-platform=rokid`, and device-machine OpenXR Vendors plugin checks.
+- `tools/c00/install_openxr_vendors.sh` now provides a device-machine installer for the official `godotopenxrvendorsaddon.zip`, including latest release download, tag/URL/local zip modes, and safe extraction of the inner `godotopenxrvendors` directory.
 - `android/plugins/godot_arcore` and `addons/godot_arcore` now provide a first-party C00 GodotARCore Android plugin v2 landing point with ARCore availability, install request, session lifecycle, Gradle build script, and Godot export hook.
 - `tools/c00/check_android_arcore_plugin_surface.js` now guards the GodotARCore Android plugin surface without requiring Gradle, Godot, or a connected Android device.
 - `tools/c00/check_arcore_gate_surface.js` now guards the Android ARCore evidence surface without requiring Godot or a connected Android device.
@@ -131,6 +132,7 @@ Hardware status:
 | `node tools/c00/check_openxr_provider_surface.js` | Pass | OpenXR/Rokid AR evidence surface is present |
 | `node --check tools/c00/check_rokid_openxr_export_surface.js` | Pass | Rokid/OpenXR export surface checker parses |
 | `node tools/c00/check_rokid_openxr_export_surface.js` | Pass | Rokid/OpenXR export preset and OpenXR Vendors preflight surface is present |
+| Synthetic OpenXR Vendors local zip install | Pass | `install_openxr_vendors.sh --zip` installs the inner `asset/addons/godotopenxrvendors` directory into a temp project |
 | `node --check tools/c00/check_android_arcore_plugin_surface.js` | Pass | GodotARCore Android plugin surface checker parses |
 | `node tools/c00/check_android_arcore_plugin_surface.js` | Pass | GodotARCore Android plugin v2/export singleton surface is present |
 | `node --check tools/c00/check_arcore_gate_surface.js` | Pass | Android ARCore gate surface checker parses |

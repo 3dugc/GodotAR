@@ -52,6 +52,12 @@ node tools/c00/write_export_presets_template.js \
 
 导出命令：
 
+如果还没有 OpenXR Vendors 插件：
+
+```bash
+tools/c00/install_openxr_vendors.sh
+```
+
 ```bash
 tools/c00/export_with_godot.sh "C00 Rokid OpenXR" builds/rokid/c00.apk
 ```
