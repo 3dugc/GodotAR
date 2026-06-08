@@ -449,6 +449,10 @@ function evaluateSmokeEvents(events, gate) {
 		} else if (arTier === "D") {
 			failures.push("Rokid gate reports OpenXR AR tier D.");
 		}
+		const arEvidence = getCapability(evidence, "openxr_ar_evidence");
+		if (!Array.isArray(arEvidence) || arEvidence.length === 0) {
+			failures.push("Rokid gate requires capabilities.openxr_ar_evidence.");
+		}
 	}
 
 	if ((gate === "ipad" || gate === "android-arcore") && !getCapability(evidence, "native_plugin")) {

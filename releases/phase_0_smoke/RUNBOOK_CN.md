@@ -146,6 +146,7 @@ tools/c00/collect_ios_simulator_smoke.sh booted org.godotengine.godotxrfoundatio
 - 日志包含 `ar_session_state` 和 `not_tracking_reason`，用于对照 Unity ARFoundation 状态。
 - 日志 `runtime.cmdline_xr_args` 包含 `--xr-platform=rokid`，并能看到 Godot 版本、rendering method、OpenXR/XR shader 设置。
 - `capabilities.ar_product_path` 为 `true` 时，才算 AR 产品路径通过。
+- `capabilities.openxr_ar_evidence` 必须说明 AR 路径来自 environment blend mode 或 OpenXR Vendors/Rokid passthrough singleton 方法。
 
 建议设置：
 
@@ -192,6 +193,7 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - `Backend: EditorSim`：Godot 应用启动了，但 OpenXR gate 未通过。
 - `ar_product_path=false` 且 blend 只有 `opaque`：OpenXR 渲染启动了，但还不是 AR 结果。
 - `openxr_ar_tier=D`：OpenXR runtime 是 VR-only，本周期不能作为 AR 成果发布。
+- `openxr_ar_evidence` 缺失：使用的构建太旧，或 provider 没有读到 blend/vendor passthrough 能力；重新导出并检查 OpenXR Vendors/Rokid 插件。
 - OpenXR interface unavailable：检查 Godot OpenXR 设置、Android export XR mode、Rokid runtime、OpenXR Vendors 插件。
 
 ## iPad / ARKit

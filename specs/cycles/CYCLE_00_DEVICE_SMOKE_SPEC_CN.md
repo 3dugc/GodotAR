@@ -129,6 +129,7 @@ demo/00_device_smoke_test.tscn
 - `tools/c00/check_export_presets.js`
 - `tools/c00/analyze_android_device_profile.js`
 - `tools/c00/check_arfoundation_api_surface.js`
+- `tools/c00/check_openxr_provider_surface.js`
 - `tools/c00/check_ios_plugin_artifacts.js`
 - `tools/c00/write_export_presets_template.js`
 - `tools/c00/build_ios_xcode_project.sh`
@@ -147,12 +148,14 @@ demo/00_device_smoke_test.tscn
 统一日志格式：
 
 ```text
-GXF_SMOKE|{"cycle":"C00","event":"session_started","runtime":{"godot":...,"cmdline_xr_args":["--xr-platform=rokid"],...},"backend":"OpenXR","session_state":"Running","ar_session_state":"SessionTracking","not_tracking_reason":"None",...}
+GXF_SMOKE|{"cycle":"C00","event":"session_started","runtime":{"godot":...,"cmdline_xr_args":["--xr-platform=rokid"],...},"backend":"OpenXR","session_state":"Running","ar_session_state":"SessionTracking","not_tracking_reason":"None","capabilities":{"openxr_ar_evidence":["environment_blend:alpha_blend"]},...}
 ```
 
 Rokid gate 必须看到 `backend:"OpenXR"`。
 
 Rokid gate 应记录 `capabilities.openxr_ar_tier` 和 `capabilities.openxr_fallback`；`D` 代表 VR-only，不能作为 AR 产品路径通过。
+
+Rokid gate 必须记录 `capabilities.openxr_ar_evidence`，用于说明 AR 产品路径来自 `alpha_blend` / `additive` blend mode，还是来自 OpenXR Vendors/Rokid passthrough singleton 的能力方法。
 
 iPad gate 必须看到 `backend:"ARKit"`。
 
@@ -201,5 +204,6 @@ iPad gate 应记录 `capabilities.arkit_tracking_state` 和 `capabilities.arkit_
 - [ ] iPad 设备报告通过 `validate_evidence_bundle.js`，至少存在截图或录屏。
 - [ ] iPad/ARKit plugin 配置通过 `tools/c00/check_ios_plugin_artifacts.js --require-binary`。
 - [ ] ARFoundation 迁移 API surface 通过 `node tools/c00/check_arfoundation_api_surface.js`。
+- [ ] OpenXR/Rokid provider surface 通过 `node tools/c00/check_openxr_provider_surface.js`。
 - [ ] `tools/c00/verify_phase_evidence.js` 聚合验证通过，Rokid/OpenXR 和 iPad/ARKit 双 gate 都是 `PASS`，并且两个 gate 都包含 device profile Markdown 与 JSON。
 - [ ] 失败平台有明确错误和下一步。

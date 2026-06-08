@@ -168,6 +168,10 @@ function evaluateGate(events, gate, options) {
 		} else if (arTier === "D") {
 			failures.push("Rokid gate reports OpenXR AR tier D, which is VR-only and not an AR product path.");
 		}
+		const arEvidence = getCapability(evidence, "openxr_ar_evidence");
+		if (!Array.isArray(arEvidence) || arEvidence.length === 0) {
+			failures.push("Rokid gate requires capabilities.openxr_ar_evidence so AR product proof is tied to blend mode or vendor passthrough evidence.");
+		}
 	}
 
 	if (gate === "ipad" || gate === "android-arcore") {

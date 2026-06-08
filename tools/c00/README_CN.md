@@ -83,6 +83,14 @@ node tools/c00/check_arfoundation_api_surface.js
 
 该检查不需要 Godot binary。它确认 Unity 风格的 `ARSession.state/notTrackingReason/requestedTrackingMode/matchFrameRate`、`ARRaycastManager` screen/list raycast、`ARPlaneManager`/`ARAnchorManager` trackables 与 changed events 仍存在，用于防止后续周期破坏 Unity 项目迁移入口。
 
+检查 OpenXR/Rokid provider 诊断面：
+
+```bash
+node tools/c00/check_openxr_provider_surface.js
+```
+
+该检查确认 `OpenXRProvider` 会记录 environment blend、OpenXR Vendors passthrough singleton 方法结果和 `openxr_ar_evidence`，并确认 Rokid smoke gate 不会只凭一个模糊布尔值通过。
+
 ## 一键执行 Gate
 
 设备机上优先使用：
@@ -278,6 +286,7 @@ Rokid 默认严格要求：
 - `session_state:"Running"`
 - `ar_session_state` 和 `not_tracking_reason` 必须存在，用于对照 Unity ARFoundation 状态判断。
 - `capabilities.ar_product_path:true`
+- `capabilities.openxr_ar_evidence` 必须存在且非空，用于说明 AR 路径证据来源。
 - 新日志应包含 `capabilities.openxr_ar_tier`。`A/B/C` 可作为 AR 路径证据，`D` 是 VR-only，不能算 AR 通过。
 
 如果只想记录 OpenXR 先点亮、但不标记为 AR 通过：

@@ -4,12 +4,33 @@ class_name OpenXRProvider
 const DEFAULT_INTERFACE_NAME := &"OpenXR"
 const DEFAULT_VENDOR_SINGLETONS := [
 	&"OpenXRVendors",
+	&"OpenXRFbPassthroughExtension",
 	&"OpenXRMeta",
 	&"OpenXRFbPassthrough",
 	&"OpenXRAndroidXR",
 	&"OpenXRPico",
 	&"OpenXRHTC",
 	&"RokidOpenXR",
+]
+
+const PASSTHROUGH_BOOL_METHODS := [
+	"is_passthrough_supported",
+	"has_passthrough_capability",
+	"has_color_passthrough_capability",
+	"has_layer_depth_passthrough_capability",
+	"is_passthrough_preferred",
+	"is_passthrough_started",
+	"supports_passthrough",
+	"is_camera_passthrough_supported",
+	"is_ar_supported",
+]
+
+const PASSTHROUGH_EVIDENCE_METHODS := [
+	"is_passthrough_supported",
+	"has_passthrough_capability",
+	"supports_passthrough",
+	"is_camera_passthrough_supported",
+	"is_ar_supported",
 ]
 
 
@@ -43,11 +64,14 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	var has_additive_blend := "additive" in blend_modes
 	var has_ar_blend := has_alpha_blend or has_additive_blend
 	var vendor_singletons := _available_vendor_singletons(options)
-	var has_vendor_passthrough := _interface_has_bool_method(xr_iface, "is_passthrough_supported") or _has_vendor_passthrough_singleton(vendor_singletons)
+	var vendor_feature_report := _vendor_feature_report(vendor_singletons)
+	var interface_passthrough_supported := _interface_has_bool_method(xr_iface, "is_passthrough_supported")
+	var has_vendor_passthrough := interface_passthrough_supported or _vendor_report_has_true(vendor_feature_report, PASSTHROUGH_EVIDENCE_METHODS) or _has_vendor_passthrough_singleton(vendor_singletons, vendor_feature_report)
 	var has_planes := _has_openxr_plane_trackers()
 	var has_tracking := xr_iface != null
 	var has_input_ray := xr_iface != null
 	var ar_tier := _classify_ar_tier(has_alpha_blend, has_additive_blend, has_vendor_passthrough, has_planes, has_tracking, has_input_ray)
+	var ar_evidence := _ar_evidence(has_alpha_blend, has_additive_blend, interface_passthrough_supported, has_vendor_passthrough, vendor_feature_report)
 
 	capabilities["session"] = xr_iface != null
 	capabilities["tracking"] = has_tracking
@@ -64,7 +88,11 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	capabilities["openxr_runtime"] = _interface_runtime_name(xr_iface)
 	capabilities["openxr_selected_blend_mode"] = _current_environment_blend_mode_name(xr_iface)
 	capabilities["openxr_vendor_singletons"] = vendor_singletons
+	capabilities["openxr_vendor_feature_report"] = vendor_feature_report
+	capabilities["openxr_interface_passthrough_supported"] = interface_passthrough_supported
+	capabilities["openxr_vendor_passthrough"] = has_vendor_passthrough
 	capabilities["openxr_ar_tier"] = ar_tier
+	capabilities["openxr_ar_evidence"] = ar_evidence
 	capabilities["openxr_fallback"] = _fallback_for_tier(ar_tier, has_planes)
 	capabilities["device_profile"] = _device_profile_from_hint(options)
 	capabilities["runtime"] = "OpenXR"
@@ -143,12 +171,62 @@ func _available_vendor_singletons(options: Dictionary = {}) -> Array[String]:
 	return found
 
 
-func _has_vendor_passthrough_singleton(vendor_singletons: Array[String]) -> bool:
+func _vendor_feature_report(vendor_singletons: Array[String]) -> Dictionary:
+	var report := {}
+	for singleton_name in vendor_singletons:
+		var singleton := Engine.get_singleton(StringName(singleton_name))
+		if singleton == null:
+			continue
+		var feature_report := {}
+		for method_name in PASSTHROUGH_BOOL_METHODS:
+			if singleton.has_method(method_name):
+				var value: Variant = singleton.call(method_name)
+				if typeof(value) == TYPE_BOOL:
+					feature_report[method_name] = bool(value)
+		if not feature_report.is_empty():
+			report[singleton_name] = feature_report
+	return report
+
+
+func _vendor_report_has_true(vendor_feature_report: Dictionary, method_names: Array) -> bool:
+	for singleton_name in vendor_feature_report.keys():
+		var feature_report: Variant = vendor_feature_report[singleton_name]
+		if not (feature_report is Dictionary):
+			continue
+		for method_name in method_names:
+			if bool(feature_report.get(String(method_name), false)):
+				return true
+	return false
+
+
+func _has_vendor_passthrough_singleton(vendor_singletons: Array[String], vendor_feature_report: Dictionary = {}) -> bool:
+	if _vendor_report_has_true(vendor_feature_report, PASSTHROUGH_EVIDENCE_METHODS):
+		return true
 	for singleton_name in vendor_singletons:
 		var lower_name := singleton_name.to_lower()
-		if lower_name.contains("passthrough") or lower_name.contains("meta"):
+		if lower_name.contains("passthrough"):
 			return true
 	return false
+
+
+func _ar_evidence(has_alpha_blend: bool, has_additive_blend: bool, interface_passthrough_supported: bool, has_vendor_passthrough: bool, vendor_feature_report: Dictionary) -> PackedStringArray:
+	var evidence := PackedStringArray()
+	if has_alpha_blend:
+		evidence.append("environment_blend:alpha_blend")
+	if has_additive_blend:
+		evidence.append("environment_blend:additive")
+	if interface_passthrough_supported:
+		evidence.append("xr_interface:is_passthrough_supported")
+	for singleton_name in vendor_feature_report.keys():
+		var feature_report: Variant = vendor_feature_report[singleton_name]
+		if not (feature_report is Dictionary):
+			continue
+		for method_name in PASSTHROUGH_EVIDENCE_METHODS:
+			if bool(feature_report.get(String(method_name), false)):
+				evidence.append("%s:%s" % [String(singleton_name), String(method_name)])
+	if has_vendor_passthrough and evidence.is_empty():
+		evidence.append("vendor_singleton:passthrough_name")
+	return evidence
 
 
 func _classify_ar_tier(has_alpha_blend: bool, has_additive_blend: bool, has_vendor_passthrough: bool, has_planes: bool, has_tracking: bool, has_input_ray: bool) -> String:
@@ -187,6 +265,8 @@ func _feature_flags(capabilities: Dictionary) -> PackedStringArray:
 		flags.append("AR_BLEND_ADDITIVE")
 	if bool(capabilities.get("passthrough", false)):
 		flags.append("PASSTHROUGH")
+	if bool(capabilities.get("openxr_vendor_passthrough", false)):
+		flags.append("VENDOR_PASSTHROUGH")
 	if bool(capabilities.get("plane_detection", false)):
 		flags.append("TRACKABLE_PLANES")
 	if bool(capabilities.get("raycast", false)):

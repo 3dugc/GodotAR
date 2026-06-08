@@ -66,6 +66,8 @@ Codex implementation status:
 - Native singleton providers can now report tracking status without an `XRInterface`; `GodotARKit` exposes `is_running()` and `get_tracking_status()` for the C00 panel and logs.
 - `GodotARKit.get_tracking_status()` now maps real ARKit state to Godot tracking status: normal tracking, limited/unknown tracking, or not tracking.
 - `OpenXRProvider` now reports Unity OpenXR Feature-style runtime diagnostics: selected blend mode, vendor singletons, feature flags, AR tier, and fallback path.
+- `OpenXRProvider` now records method-level OpenXR Vendors/Rokid passthrough evidence in `openxr_vendor_feature_report` and `openxr_ar_evidence`.
+- `tools/c00/validate_smoke_log.js` and `tools/c00/verify_phase_evidence.js` now require Rokid/OpenXR logs to include non-empty `capabilities.openxr_ar_evidence`.
 
 Hardware status:
 
@@ -87,6 +89,8 @@ Hardware status:
 | `node --check tools/c00/check_ios_plugin_artifacts.js` | Pass | iOS plugin artifact checker parses |
 | `node --check tools/c00/check_arfoundation_api_surface.js` | Pass | ARFoundation migration API checker parses |
 | `node tools/c00/check_arfoundation_api_surface.js` | Pass | Unity-style ARSession/raycast/trackables surface is present |
+| `node --check tools/c00/check_openxr_provider_surface.js` | Pass | OpenXR provider surface checker parses |
+| `node tools/c00/check_openxr_provider_surface.js` | Pass | OpenXR/Rokid AR evidence surface is present |
 | `node --check tools/c00/write_export_presets_template.js` | Pass | Preset starter writer parses |
 | `bash -n tools/c00/*.sh ios/plugins/godot_arkit/build_xcframework.sh` | Pass | Shell scripts parse |
 | `tools/c00/build_ios_xcode_project.sh --help` | Pass | Documents exported Xcode project build path into `builds/ipad/GodotXRFoundation.app` |
@@ -104,6 +108,7 @@ Hardware status:
 | Synthetic iPad ARKit tracking gate | Pass | Validator rejects missing `arkit_tracking_state` / `arkit_tracking_reason` and accepts complete ARKit tracking evidence |
 | Synthetic Rokid AR gate | Pass | `backend:"OpenXR"`, `ar_product_path:true` |
 | Synthetic Rokid OpenXR tier gate | Pass | Validator rejects `openxr_ar_tier:"D"` and warns when tier data is missing |
+| Synthetic Rokid OpenXR AR evidence gate | Pass | Validator rejects missing `openxr_ar_evidence` and accepts explicit blend/vendor evidence |
 | Synthetic runtime metadata report | Pass | Report includes Godot version and `--xr-platform=rokid` metadata |
 | Synthetic Unity-style ARSession log fields | Pass | `validate_smoke_log.js` rejects missing `ar_session_state` / `not_tracking_reason` and accepts complete evidence |
 | Synthetic Unity-style ARSession aggregate fields | Pass | `verify_phase_evidence.js --gate rokid` rejects missing Unity-style fields and accepts complete evidence when media/profile are downgraded to warnings |
@@ -240,6 +245,7 @@ Notes:
 - Rokid passes only when `backend:"OpenXR"` and `session_state:"Running"` are present in `GXF_SMOKE`.
 - Rokid reports must include Unity-style `ar_session_state` and `not_tracking_reason`.
 - Rokid reports should preserve `capabilities.openxr_ar_tier` and `capabilities.openxr_fallback`; tier `D` is VR-only and cannot pass as AR.
+- Rokid reports must include non-empty `capabilities.openxr_ar_evidence`.
 - iPad passes only when `backend:"ARKit"` and `session_state:"Running"` are present in `GXF_SMOKE`.
 - iPad reports must include Unity-style `ar_session_state` and `not_tracking_reason`.
 - iPad reports should preserve `capabilities.arkit_tracking_state` and `capabilities.arkit_tracking_reason`; `normal` is stable tracking, while `limited` or `not_available` must include the reason in notes.
