@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://demo/00_device_smoke_test.gd" id="1_smoke"]
 [ext_resource type="PackedScene" path="res://addons/godot_xr_foundation/scenes/xr_foundation_rig.tscn" id="2_rig"]
@@ -6,6 +6,9 @@
 [ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_raycast_manager.gd" id="4_raycast"]
 [ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_plane_manager.gd" id="5_planes"]
 [ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_anchor_manager.gd" id="6_anchors"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/xri/xr_interaction_manager.gd" id="7_xri_manager"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/xri/xr_ray_interactor.gd" id="8_xri_ray"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/xri/xr_grab_interactable.gd" id="9_xri_grab"]
 
 [sub_resource type="Environment" id="Environment_smoke"]
 background_mode = 1
@@ -42,6 +45,9 @@ albedo_color = Color(0.02, 0.026, 0.032, 0.78)
 radius = 0.055
 height = 0.11
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_xri_target"]
+size = Vector3(0.18, 0.18, 0.18)
+
 [node name="DeviceSmokeTest" type="Node3D"]
 script = ExtResource("1_smoke")
 
@@ -68,6 +74,13 @@ outline_modulate = Color(0, 0, 0, 0.78)
 horizontal_alignment = 0
 vertical_alignment = 0
 
+[node name="XRRayInteractor" type="RayCast3D" parent="XRFoundationRig/XRCamera3D"]
+enabled = true
+target_position = Vector3(0.42, -0.58, -1.45)
+script = ExtResource("8_xri_ray")
+interaction_manager_path = NodePath("../../../XRInteractionManager")
+max_raycast_distance = 1.75
+
 [node name="ARRaycastManager" type="Node" parent="."]
 script = ExtResource("4_raycast")
 
@@ -78,6 +91,9 @@ xr_origin_path = NodePath("../XRFoundationRig")
 [node name="ARAnchorManager" type="Node" parent="."]
 script = ExtResource("6_anchors")
 anchors_parent_path = NodePath("../XRFoundationRig")
+
+[node name="XRInteractionManager" type="Node" parent="."]
+script = ExtResource("7_xri_manager")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_smoke")
@@ -101,3 +117,14 @@ surface_material_override/0 = SubResource("StandardMaterial3D_cube")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.42, 1.12, -1.45)
 mesh = SubResource("SphereMesh_target")
 surface_material_override/0 = SubResource("StandardMaterial3D_cube")
+
+[node name="XRGrabInteractable" type="Node3D" parent="World"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.42, 1.12, -1.45)
+script = ExtResource("9_xri_grab")
+interaction_manager_path = NodePath("../../XRInteractionManager")
+reparent_on_grab = false
+
+[node name="Body" type="StaticBody3D" parent="World/XRGrabInteractable"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="World/XRGrabInteractable/Body"]
+shape = SubResource("BoxShape3D_xri_target")

@@ -12,11 +12,18 @@ const VERSION := "v0.0.1-c00-device-smoke"
 @onready var rotating_cube: MeshInstance3D = $World/RotatingCube
 @onready var plane_manager: ARPlaneManager = $ARPlaneManager
 @onready var anchor_manager: ARAnchorManager = $ARAnchorManager
+@onready var xri_interaction_manager: XRInteractionManager = $XRInteractionManager
+@onready var xri_ray_interactor: XRRayInteractor = $XRFoundationRig/XRCamera3D/XRRayInteractor
+@onready var xri_grab_interactable: XRGrabInteractable = $World/XRGrabInteractable
 
 var _availability_report: Dictionary = {}
 var _last_log_msec := 0
 var _last_status_msec := 0
 var _session_started := false
+var xri_hover_count := 0
+var xri_select_count := 0
+var xri_active_hover := ""
+var xri_active_selection := ""
 
 
 func _ready() -> void:
@@ -27,6 +34,11 @@ func _ready() -> void:
 	XRFoundation.session_started.connect(_on_session_started)
 	XRFoundation.session_failed.connect(_on_session_failed)
 	XRFoundation.tracking_state_changed.connect(_on_tracking_state_changed)
+	xri_interaction_manager.hover_entered.connect(_on_xri_hover_entered)
+	xri_interaction_manager.hover_exited.connect(_on_xri_hover_exited)
+	xri_interaction_manager.select_entered.connect(_on_xri_select_entered)
+	xri_interaction_manager.select_exited.connect(_on_xri_select_exited)
+	_ensure_xri_input_actions()
 
 	_availability_report = ar_session.check_availability()
 	_emit_smoke_log("availability", {"report": _availability_report})
@@ -89,6 +101,10 @@ func _update_status_panel() -> void:
 		"Reason: %s" % String(XRFoundation.get_not_tracking_reason_name()),
 		"FPS: %d" % fps,
 		"Planes: %d  Anchors: %d" % [planes, anchors],
+		"XRI: hover %s  select %s" % [
+			"yes" if xri_active_hover != "" else "no",
+			"yes" if xri_active_selection != "" else "no",
+		],
 		"AR path: %s  Passthrough: %s" % [
 			_yes_no(bool(capabilities.get("ar_product_path", false))),
 			_yes_no(bool(capabilities.get("passthrough", false))),
@@ -139,6 +155,7 @@ func _emit_smoke_log(event_name: String, extra: Dictionary) -> void:
 		"tracking": String(XRFoundation.get_tracking_state_name()),
 		"not_tracking_reason": String(XRFoundation.get_not_tracking_reason_name()),
 		"capabilities": XRFoundation.get_capabilities(),
+		"xri": _xri_metadata(),
 		"fps": int(Engine.get_frames_per_second()),
 		"last_error": XRFoundation.get_last_error(),
 	}
@@ -159,6 +176,62 @@ func _runtime_metadata() -> Dictionary:
 		"viewport_use_xr": viewport.use_xr if viewport else false,
 		"viewport_transparent_bg": viewport.transparent_bg if viewport else false,
 	}
+
+
+func _xri_metadata() -> Dictionary:
+	var raycast := xri_ray_interactor.TryGetCurrent3DRaycastHit() if xri_ray_interactor else {"success": false}
+	return {
+		"interaction_manager": xri_interaction_manager != null,
+		"ray_interactor": xri_ray_interactor != null,
+		"grab_interactable": xri_grab_interactable != null,
+		"registered_interactors": xri_interaction_manager.interactors.size() if xri_interaction_manager else 0,
+		"registered_interactables": xri_interaction_manager.interactables.size() if xri_interaction_manager else 0,
+		"hover_count": xri_hover_count,
+		"select_count": xri_select_count,
+		"active_hover": xri_active_hover,
+		"active_selection": xri_active_selection,
+		"ray_hit": bool(raycast.get("success", false)),
+	}
+
+
+func _on_xri_hover_entered(_interactor: Node, interactable: Node) -> void:
+	xri_hover_count += 1
+	xri_active_hover = interactable.name if interactable else ""
+	_emit_smoke_log("xri_hover_entered", {"interactable": xri_active_hover})
+
+
+func _on_xri_hover_exited(_interactor: Node, interactable: Node) -> void:
+	if xri_active_hover == (interactable.name if interactable else ""):
+		xri_active_hover = ""
+	_emit_smoke_log("xri_hover_exited", {"interactable": interactable.name if interactable else ""})
+
+
+func _on_xri_select_entered(_interactor: Node, interactable: Node) -> void:
+	xri_select_count += 1
+	xri_active_selection = interactable.name if interactable else ""
+	_emit_smoke_log("xri_select_entered", {"interactable": xri_active_selection})
+
+
+func _on_xri_select_exited(_interactor: Node, interactable: Node) -> void:
+	if xri_active_selection == (interactable.name if interactable else ""):
+		xri_active_selection = ""
+	_emit_smoke_log("xri_select_exited", {"interactable": interactable.name if interactable else ""})
+
+
+func _ensure_xri_input_actions() -> void:
+	if not InputMap.has_action(&"xr_select"):
+		InputMap.add_action(&"xr_select")
+		var select_key := InputEventKey.new()
+		select_key.keycode = KEY_SPACE
+		InputMap.action_add_event(&"xr_select", select_key)
+		var select_mouse := InputEventMouseButton.new()
+		select_mouse.button_index = MOUSE_BUTTON_LEFT
+		InputMap.action_add_event(&"xr_select", select_mouse)
+	if not InputMap.has_action(&"xr_activate"):
+		InputMap.add_action(&"xr_activate")
+		var activate_key := InputEventKey.new()
+		activate_key.keycode = KEY_ENTER
+		InputMap.action_add_event(&"xr_activate", activate_key)
 
 
 func _safe_cmdline_args() -> Array[String]:

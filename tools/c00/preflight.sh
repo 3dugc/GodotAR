@@ -174,6 +174,33 @@ if needs_arkit_static_check; then
 	fi
 fi
 
+printf "\nAPI surface checks\n"
+if node "$PROJECT_ROOT/tools/c00/check_arfoundation_api_surface.js" >/dev/null 2>&1; then
+	printf "OK   ARFoundation migration API surface\n"
+else
+	printf "MISS ARFoundation migration API surface\n"
+	printf "     Run node tools/c00/check_arfoundation_api_surface.js for details.\n"
+	status=1
+fi
+
+if node "$PROJECT_ROOT/tools/c00/check_xri_api_surface.js" >/dev/null 2>&1; then
+	printf "OK   XRI interaction API surface\n"
+else
+	printf "MISS XRI interaction API surface\n"
+	printf "     Run node tools/c00/check_xri_api_surface.js for details.\n"
+	status=1
+fi
+
+if needs_openxr; then
+	if node "$PROJECT_ROOT/tools/c00/check_openxr_provider_surface.js" >/dev/null 2>&1; then
+		printf "OK   OpenXR/Rokid AR evidence surface\n"
+	else
+		printf "MISS OpenXR/Rokid AR evidence surface\n"
+		printf "     Run node tools/c00/check_openxr_provider_surface.js for details.\n"
+		status=1
+	fi
+fi
+
 printf "\nGodot project checks\n"
 if [ -f "$PROJECT_ROOT/project.godot" ]; then
 	printf "OK   project.godot\n"

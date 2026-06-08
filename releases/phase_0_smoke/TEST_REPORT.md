@@ -68,11 +68,12 @@ Codex implementation status:
 - `OpenXRProvider` now reports Unity OpenXR Feature-style runtime diagnostics: selected blend mode, vendor singletons, feature flags, AR tier, and fallback path.
 - `OpenXRProvider` now records method-level OpenXR Vendors/Rokid passthrough evidence in `openxr_vendor_feature_report` and `openxr_ar_evidence`.
 - `tools/c00/validate_smoke_log.js` and `tools/c00/verify_phase_evidence.js` now require Rokid/OpenXR logs to include non-empty `capabilities.openxr_ar_evidence`.
+- C00 now includes an XRI-style smoke surface: `XRInteractionManager`, `XRRayInteractor`, `XRGrabInteractable`, hover/select/activate events, and `GXF_SMOKE.xri` runtime evidence from the demo scene.
 
 Hardware status:
 
 - Not executed in this Codex environment because Godot executable, Rokid hardware, and iPad hardware are not available here.
-- Local preflight currently reports missing `godot`, `adb`, `export_presets.cfg`, `GodotARKit.gdip`, and `GodotARKit.xcframework`; `node`, `xcrun`, `xcodebuild`, and the ARKit Objective-C++ syntax smoke check are available.
+- Local preflight currently reports missing `godot`, `adb`, `export_presets.cfg`, `GodotARKit.gdip`, and `GodotARKit.xcframework`; `node`, `xcrun`, `xcodebuild`, ARFoundation/XRI/OpenXR surface checks, and the ARKit Objective-C++ syntax smoke check are available.
 - Do not mark this report as passed until the device evidence below is filled.
 
 ## Local Verification On 2026-06-08
@@ -89,6 +90,8 @@ Hardware status:
 | `node --check tools/c00/check_ios_plugin_artifacts.js` | Pass | iOS plugin artifact checker parses |
 | `node --check tools/c00/check_arfoundation_api_surface.js` | Pass | ARFoundation migration API checker parses |
 | `node tools/c00/check_arfoundation_api_surface.js` | Pass | Unity-style ARSession/raycast/trackables surface is present |
+| `node --check tools/c00/check_xri_api_surface.js` | Pass | XRI migration API checker parses |
+| `node tools/c00/check_xri_api_surface.js` | Pass | XRI manager/ray/interactable smoke surface is present |
 | `node --check tools/c00/check_openxr_provider_surface.js` | Pass | OpenXR provider surface checker parses |
 | `node tools/c00/check_openxr_provider_surface.js` | Pass | OpenXR/Rokid AR evidence surface is present |
 | `node --check tools/c00/write_export_presets_template.js` | Pass | Preset starter writer parses |

@@ -25,6 +25,7 @@ XRCamera3D
 ARRaycastManager
 ARPlaneManager
 ARAnchorManager
+XRInteractionManager
 XRRayInteractor
 XRGrabInteractable
 ```
@@ -56,6 +57,7 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 | `ARAnchorManager.trackables` | `ARAnchorManager.GetTrackables()` or `GetAllAnchors()` |
 | `ARAnchorManager.anchorsChanged` | `ARAnchorManager.anchors_changed(added, updated, removed)` |
 | `XROrigin.Camera` | `XRDeviceRig.get_camera()` |
+| `XRInteractionManager` | `XRInteractionManager` |
 | `XRRayInteractor` | `XRRayInteractor` |
 | `XRGrabInteractable` | `XRGrabInteractable` |
 
@@ -78,6 +80,23 @@ node tools/c00/check_arfoundation_api_surface.js
 ```
 
 This check is meant to run in CI or on a device machine before the real iPad/Rokid gate. It does not prove native AR tracking; it only keeps the migration-facing facade stable.
+
+## C00 XRI API Surface
+
+C00 includes a thin XRI-style interaction smoke layer so Unity services that assume XRI concepts have a stable landing point before full interaction features are implemented.
+
+- `XRInteractionManager` centrally registers interactors/interactables and dispatches hover/select/activate transitions.
+- `XRRayInteractor` exposes `GetValidTargets(...)`, `TryGetCurrent3DRaycastHit()`, `select()`, `release()`, `activate()`, and `deactivate()`.
+- `XRGrabInteractable` exposes XRI-style hover/select/activate events plus `IsHovered()` and `IsSelected()`.
+- The C00 smoke scene includes a camera ray and a small interactable target, and writes XRI state into the `GXF_SMOKE.xri` payload.
+
+Static XRI surface gate:
+
+```bash
+node tools/c00/check_xri_api_surface.js
+```
+
+This check does not prove controller input or final UI interaction quality; it keeps the XRI mental model present while the native iPad/Rokid runtime gates are being brought up.
 
 ## Porting Order
 

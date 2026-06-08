@@ -44,6 +44,7 @@ tools/c00/preflight.sh android-arcore
 - `android/plugins`、`ios/plugins` 是否存在。
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` 和 `.gdip` 是否存在。
 - `export_presets.cfg` 是否包含目标 C00 preset。
+- ARFoundation / XRI / OpenXR provider 静态 surface 是否稳定。
 - C00 smoke scene 是否是 Godot 主场景。
 - `project.godot` 是否开启 OpenXR。
 
@@ -82,6 +83,14 @@ node tools/c00/check_arfoundation_api_surface.js
 ```
 
 该检查不需要 Godot binary。它确认 Unity 风格的 `ARSession.state/notTrackingReason/requestedTrackingMode/matchFrameRate`、`ARRaycastManager` screen/list raycast、`ARPlaneManager`/`ARAnchorManager` trackables 与 changed events 仍存在，用于防止后续周期破坏 Unity 项目迁移入口。
+
+检查 XRI 迁移 API surface：
+
+```bash
+node tools/c00/check_xri_api_surface.js
+```
+
+该检查不需要 Godot binary。它确认 XRI 风格的 `XRInteractionManager`、`XRRayInteractor`、`XRGrabInteractable`、hover/select/activate 事件和 C00 demo 交互 smoke 节点仍存在，用于防止后续周期破坏 Unity XRI 服务迁移入口。
 
 检查 OpenXR/Rokid provider 诊断面：
 
@@ -158,6 +167,7 @@ tools/c00/collect_editor_smoke.sh 15
 ```
 
 它会用 `--xr-platform=simulator` 启动 Godot，并要求日志通过 `backend:"EditorSim"` gate。模拟器 gate 只能证明上层 ARFoundation-style API、raycast、anchor、plane 和日志链路可用，不能替代 Rokid/OpenXR 或 iPad/ARKit 真机 gate。
+C00 demo 还包含一个 XRI-style `XRInteractionManager`、camera `XRRayInteractor` 和 `XRGrabInteractable`，日志中的 `xri` 字段会记录 manager/ray/interactable 是否存在以及 hover/select 计数。
 
 iOS Simulator 和 Android Emulator 可以作为补充：用于验证导出链路、app 启动、日志格式、以及 iOS `.xcframework` simulator slice 是否存在。它们不具备真实 ARKit/OpenXR AR tracking 证据，不能作为 C00 发表通过标准。
 

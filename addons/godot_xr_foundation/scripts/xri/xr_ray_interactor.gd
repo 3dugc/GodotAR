@@ -1,16 +1,43 @@
 extends RayCast3D
 class_name XRRayInteractor
 
+signal hover_entering(target: XRGrabInteractable)
 signal hover_entered(target: XRGrabInteractable)
+signal hover_exiting(target: XRGrabInteractable)
 signal hover_exited(target: XRGrabInteractable)
+signal select_entering(target: XRGrabInteractable)
 signal select_entered(target: XRGrabInteractable)
+signal select_exiting(target: XRGrabInteractable)
 signal select_exited(target: XRGrabInteractable)
+signal activated(target: XRGrabInteractable)
+signal deactivated(target: XRGrabInteractable)
 
 @export var select_action: StringName = &"xr_select"
+@export var activate_action: StringName = &"xr_activate"
+@export var interaction_manager_path: NodePath
+@export var max_raycast_distance := 10.0
+@export var keep_selected_target_valid := true
+@export var enable_interaction_with_ui_gameobjects := false
 @export var auto_force_update := true
 
+var interaction_manager: XRInteractionManager = null
 var hover_target: XRGrabInteractable = null
 var selected_target: XRGrabInteractable = null
+
+
+func _ready() -> void:
+	var ray_direction := target_position.normalized()
+	if ray_direction == Vector3.ZERO:
+		ray_direction = Vector3.FORWARD
+	target_position = ray_direction * max_raycast_distance
+	interaction_manager = _resolve_interaction_manager()
+	if interaction_manager:
+		interaction_manager.register_interactor(self)
+
+
+func _exit_tree() -> void:
+	if interaction_manager:
+		interaction_manager.unregister_interactor(self)
 
 
 func _physics_process(_delta: float) -> void:
@@ -18,35 +45,94 @@ func _physics_process(_delta: float) -> void:
 		force_raycast_update()
 
 	var next_target := _find_interactable(get_collider() if is_colliding() else null)
-	if next_target != hover_target:
-		if hover_target:
-			hover_exited.emit(hover_target)
-		hover_target = next_target
-		if hover_target:
-			hover_entered.emit(hover_target)
+	if selected_target and not keep_selected_target_valid and next_target != selected_target:
+		release()
+
+	if interaction_manager:
+		interaction_manager.set_hover_target(self, next_target)
+	else:
+		_set_hover_target_direct(next_target)
 
 	if InputMap.has_action(select_action):
 		if Input.is_action_just_pressed(select_action):
 			select()
 		elif Input.is_action_just_released(select_action):
 			release()
+	if InputMap.has_action(activate_action):
+		if Input.is_action_just_pressed(activate_action):
+			activate()
+		elif Input.is_action_just_released(activate_action):
+			deactivate()
 
 
-func select() -> void:
+func select() -> bool:
+	if interaction_manager:
+		return interaction_manager.select(self)
 	if selected_target or hover_target == null:
-		return
+		return false
+	if hover_target.IsSelected():
+		return false
+	select_entering.emit(hover_target)
 	selected_target = hover_target
 	selected_target.on_select_enter(self)
 	select_entered.emit(selected_target)
+	return true
 
 
-func release() -> void:
+func release() -> bool:
+	if interaction_manager:
+		return interaction_manager.release(self)
 	if selected_target == null:
-		return
+		return false
 	var released := selected_target
+	select_exiting.emit(released)
 	selected_target.on_select_exit(self)
 	selected_target = null
 	select_exited.emit(released)
+	return true
+
+
+func activate() -> bool:
+	if interaction_manager:
+		return interaction_manager.activate(self)
+	var target := selected_target if selected_target else hover_target
+	if target == null:
+		return false
+	if target.has_method("on_activate"):
+		target.on_activate(self)
+	activated.emit(target)
+	return true
+
+
+func deactivate() -> bool:
+	if interaction_manager:
+		return interaction_manager.deactivate(self)
+	var target := selected_target if selected_target else hover_target
+	if target == null:
+		return false
+	if target.has_method("on_deactivate"):
+		target.on_deactivate(self)
+	deactivated.emit(target)
+	return true
+
+
+func TryGetCurrent3DRaycastHit() -> Dictionary:
+	if not is_colliding():
+		return {"success": false}
+	return {
+		"success": true,
+		"collider": get_collider(),
+		"position": get_collision_point(),
+		"normal": get_collision_normal(),
+		"interactable": _find_interactable(get_collider()),
+	}
+
+
+func GetValidTargets(results: Array = []) -> Array:
+	var target := _find_interactable(get_collider() if is_colliding() else null)
+	if target and not results.has(target):
+		results.append(target)
+	return results
 
 
 func _find_interactable(candidate: Object) -> XRGrabInteractable:
@@ -60,3 +146,67 @@ func _find_interactable(candidate: Object) -> XRGrabInteractable:
 		node = node.get_parent()
 	return null
 
+
+func _resolve_interaction_manager() -> XRInteractionManager:
+	if interaction_manager_path != NodePath():
+		var manager := get_node_or_null(interaction_manager_path)
+		if manager is XRInteractionManager:
+			return manager
+	var root := get_tree().current_scene if get_tree() else null
+	if root:
+		var found := _find_manager_in_tree(root)
+		if found:
+			return found
+	return null
+
+
+func _find_manager_in_tree(node: Node) -> XRInteractionManager:
+	if node is XRInteractionManager:
+		return node
+	for child in node.get_children():
+		var found := _find_manager_in_tree(child)
+		if found:
+			return found
+	return null
+
+
+func _set_hover_target_direct(next_target: XRGrabInteractable) -> void:
+	if next_target == hover_target:
+		return
+	if hover_target:
+		hover_exiting.emit(hover_target)
+		hover_target.on_hover_exit(self)
+		hover_exited.emit(hover_target)
+	hover_target = next_target
+	if hover_target:
+		hover_entering.emit(hover_target)
+		hover_target.on_hover_enter(self)
+		hover_entered.emit(hover_target)
+
+
+func _emit_hover_entered(target: XRGrabInteractable) -> void:
+	hover_entering.emit(target)
+	hover_entered.emit(target)
+
+
+func _emit_hover_exited(target: XRGrabInteractable) -> void:
+	hover_exiting.emit(target)
+	hover_exited.emit(target)
+
+
+func _emit_select_entered(target: XRGrabInteractable) -> void:
+	select_entering.emit(target)
+	select_entered.emit(target)
+
+
+func _emit_select_exited(target: XRGrabInteractable) -> void:
+	select_exiting.emit(target)
+	select_exited.emit(target)
+
+
+func _emit_activated(target: XRGrabInteractable) -> void:
+	activated.emit(target)
+
+
+func _emit_deactivated(target: XRGrabInteractable) -> void:
+	deactivated.emit(target)
