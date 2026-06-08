@@ -81,6 +81,7 @@ Codex implementation status:
 - `OpenXRProvider` now attempts passthrough lifecycle startup through `XRInterface.start_passthrough()` or vendor singleton passthrough methods and reports `openxr_passthrough_started` / `openxr_passthrough_start_report`.
 - `tools/c00/validate_smoke_log.js` and `tools/c00/verify_phase_evidence.js` now require Rokid/OpenXR logs to include non-empty `capabilities.openxr_ar_evidence`.
 - `XRFoundation.resolve_platform_hint()` now reads both Godot command-line args and user args, and smoke/aggregate gates require launch platform evidence for Rokid, iPad, and Android ARCore device gates.
+- `tools/c00/collect_android_smoke.sh` now checks APK `assets/_cl_` for the required Godot Android `command_line/extra_args` (`--xr-platform=rokid` or `--xr-platform=arcore`) before install, and force-stops the package before launch so logs come from a fresh process with the intended XR platform.
 - C00 now includes an XRI-style smoke surface: `XRInteractionManager`, `XRRayInteractor`, `XRGrabInteractable`, hover/select/activate events, and `GXF_SMOKE.xri` runtime evidence from the demo scene.
 
 Hardware status:
@@ -293,6 +294,7 @@ Notes:
 - Android ARCore passes only when `backend:"ARCore"`, `session_state:"Running"`, `capabilities.native_plugin:true`, and explicit `capabilities.runtime:"ARCore"` or `capabilities.arcore_supported:true` are present in `GXF_SMOKE`.
 - Android ARCore reports must include Unity-style `ar_session_state` and `not_tracking_reason`, plus device profile JSON evidence of an ARCore package such as `com.google.ar.core`.
 - C00 device reports should include runtime metadata so startup arguments, Godot version, rendering method, and XR project settings are visible in the gate report.
+- Android/Rokid reports should be collected from APKs whose `assets/_cl_` contains the required `--xr-platform` value, and the app should be force-stopped before launch to avoid stale process evidence.
 - `EditorSim` is useful evidence that the app starts, but never satisfies a device AR gate.
 - EditorSim/simulator gate validates migrated service code and smoke logging only; C00 publish still requires Rokid/OpenXR, iPad/ARKit, and Android/ARCore evidence.
 - OpenXR with only `opaque` blend mode is an OpenXR rendering pass, not an AR product pass.

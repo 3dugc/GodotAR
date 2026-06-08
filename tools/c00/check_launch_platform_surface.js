@@ -53,6 +53,15 @@ const checks = [
 			["aggregate trackables evidence requirement", /Trackables metadata is missing from GXF_SMOKE evidence/],
 		],
 	},
+	{
+		file: "tools/c00/collect_android_smoke.sh",
+		requirements: [
+			["APK _cl_ launch args inspection", /unzip\s+-p\s+"\$apk"\s+assets\/_cl_/],
+			["Rokid APK launch arg requirement", /--xr-platform=rokid/],
+			["Android ARCore APK launch arg requirement", /--xr-platform=arcore/],
+			["force-stop before launch", /adb\s+shell\s+am\s+force-stop\s+"\$PACKAGE"/],
+		],
+	},
 ];
 
 const failures = [];

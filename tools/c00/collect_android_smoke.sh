@@ -10,6 +10,7 @@ EXTRA_VALIDATE_ARGS="${EXTRA_VALIDATE_ARGS:-}"
 CAPTURE_MEDIA="${CAPTURE_MEDIA:-1}"
 ALLOW_MISSING_MEDIA="${ALLOW_MISSING_MEDIA:-0}"
 VIDEO_SECONDS="${VIDEO_SECONDS:-15}"
+ANDROID_FORCE_STOP="${ANDROID_FORCE_STOP:-1}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="$PROJECT_ROOT/releases/phase_0_smoke/evidence"
 LOG_PATH="$OUT_DIR/${GATE}-${STAMP}.log"
@@ -23,10 +24,54 @@ REMOTE_VIDEO="/sdcard/gxf-${GATE}-${STAMP}.mp4"
 
 mkdir -p "$OUT_DIR"
 
+expected_xr_platform_arg() {
+	case "$GATE" in
+		rokid) printf "%s\n" "--xr-platform=rokid" ;;
+		android-arcore) printf "%s\n" "--xr-platform=arcore" ;;
+		*) printf "%s\n" "" ;;
+	esac
+}
+
+check_apk_launch_args() {
+	local apk="$1"
+	local expected_arg
+	expected_arg="$(expected_xr_platform_arg)"
+	if [ -z "$expected_arg" ]; then
+		return 0
+	fi
+	if [ -z "$apk" ]; then
+		echo "APK_PATH is empty; runtime GXF_SMOKE must prove launch platform via cmdline/project metadata."
+		return 0
+	fi
+	if [ ! -f "$apk" ]; then
+		echo "APK not found: $apk" >&2
+		return 2
+	fi
+	if ! command -v unzip >/dev/null 2>&1; then
+		echo "unzip not found; cannot inspect APK assets/_cl_ for $expected_arg." >&2
+		return 2
+	fi
+
+	local command_line
+	command_line="$(unzip -p "$apk" assets/_cl_ 2>/dev/null || true)"
+	if [ -z "$command_line" ]; then
+		echo "APK does not contain assets/_cl_. Export preset must set command_line/extra_args to include $expected_arg." >&2
+		return 2
+	fi
+	if ! printf "%s\n" "$command_line" | grep -q -- "$expected_arg"; then
+		echo "APK assets/_cl_ does not include $expected_arg." >&2
+		echo "Observed assets/_cl_: $command_line" >&2
+		return 2
+	fi
+	echo "APK launch args include $expected_arg"
+}
+
 if ! command -v adb >/dev/null 2>&1; then
 	echo "adb not found. Install Android platform tools and connect Rokid/Android device." >&2
 	exit 2
 fi
+
+check_apk_launch_args "$APK_PATH"
 
 if [ -n "$APK_PATH" ]; then
 	echo "Installing APK: $APK_PATH"
@@ -56,6 +101,11 @@ fi
 
 echo "Clearing logcat..."
 adb logcat -c || true
+
+if [ "$ANDROID_FORCE_STOP" != "0" ]; then
+	echo "Force stopping package before launch: $PACKAGE"
+	adb shell am force-stop "$PACKAGE" >/dev/null 2>&1 || true
+fi
 
 echo "Launching package: $PACKAGE"
 adb shell monkey -p "$PACKAGE" 1 >/dev/null || true

@@ -191,6 +191,7 @@ command_line/extra_args="--xr-platform=rokid"
 ```
 
 这样无论通过 launcher、`monkey` 还是设备桌面启动，Godot 都会优先选择 OpenXR 路径，而不是在 Android 上先尝试 ARCore。
+Godot Android 会从导出 APK 的 `assets/_cl_` 读取这些参数；外部传给 exported Activity 的 `command_line_params` 会被 Godot Activity 清理，不能作为 C00 gate 的可靠启动参数来源。因此采集脚本会在安装前检查 APK `assets/_cl_`，并在启动前 force-stop app，确保本次日志来自带正确启动参数的新进程。
 
 自动采集和验证：
 
@@ -237,6 +238,14 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 ```bash
 tools/c00/run_device_cycle.sh android-arcore
 ```
+
+Android ARCore export preset 应设置：
+
+```text
+command_line/extra_args="--xr-platform=arcore"
+```
+
+当 `APK_PATH` 指向本次导出的 APK 时，采集脚本会检查 APK `assets/_cl_` 是否包含该参数；如果没有，脚本会在安装前失败，避免把手机/平板误跑到 OpenXR 或 EditorSim 路径。
 
 底层脚本：
 

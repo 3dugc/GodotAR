@@ -54,6 +54,7 @@ Common environment:
 Evidence:
   CAPTURE_MEDIA=1                  Capture screenshot/recording where supported.
   VIDEO_SECONDS=15                 Android/Rokid screen recording length.
+  ANDROID_FORCE_STOP=1             Force-stop Android/Rokid app before launch so APK _cl_ args are re-read.
   MANUAL_MEDIA_PATH=/path/file     iPad fallback screenshot or recording when automatic capture is unavailable.
   ALLOW_MISSING_MEDIA=1            Keep collecting/reporting even when media evidence is missing.
 

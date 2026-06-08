@@ -186,6 +186,7 @@ tools/c00/run_device_cycle.sh all
 - `SCHEME=<xcode-scheme>` / `TARGET_NAME=<xcode-target>`：导出的 Xcode project 无法自动识别 scheme 时显式指定。
 - `CAPTURE_MEDIA=0`：跳过截图/录屏采集。
 - `VIDEO_SECONDS=15`：Android/Rokid 录屏时长。
+- `ANDROID_FORCE_STOP=0`：Android/Rokid 采集前不执行 `adb shell am force-stop`；默认会 force-stop，确保重新读取 APK `assets/_cl_` 启动参数。
 - `MANUAL_MEDIA_PATH=/path/to/file`：iPad 自动截图不可用时，提供手动截图或录屏。
 - `ALLOW_MISSING_MEDIA=1`：继续生成报告，但把缺失媒体证据降级为 warning。
 - `INCLUDE_ANDROID_ARCORE=0`：`all` 模式临时跳过 Android ARCore gate。
@@ -316,6 +317,7 @@ releases/phase_0_smoke/evidence/rokid-<timestamp>-device-analysis.md
 ```
 
 设备画像会记录 `getprop` 设备型号和系统版本、`wm size/density`、target package 的安装和权限状态、XR/OpenXR/ARCore/Rokid 相关包，以及 camera/Vulkan/XR/VR 相关 feature。分析报告会把 ADB、目标包安装、runtime 包、camera/Vulkan/XR feature、Rokid 硬件匹配等风险分成 failure/warning。多设备连接时可设置 `ADB_SERIAL=<serial>`。
+当 `APK_PATH` 指向 APK 时，脚本会在安装前读取 APK 内的 `assets/_cl_` 并确认 Rokid 包含 `--xr-platform=rokid`。这是 Godot Android export `command_line/extra_args` 的可靠启动参数入口；通过 `adb monkey` 或 exported Activity intent extra 临时补参数不能作为 C00 gate 证据。脚本默认还会在启动前执行 `adb shell am force-stop <package>`，避免复用旧进程。
 
 也可以单独采集：
 
@@ -372,6 +374,7 @@ Android ARCore gate 要求：
 - `capabilities.runtime:"ARCore"` 或 `capabilities.arcore_supported:true`
 - device profile JSON 能检测到 ARCore package，例如 `com.google.ar.core`。
 - 截图和录屏都存在。
+- 当 `APK_PATH` 指向 APK 时，脚本会检查 `assets/_cl_` 包含 `--xr-platform=arcore`，避免 Android 手机/平板误跑到 OpenXR 路径。
 
 ## iPad 日志采集
 
