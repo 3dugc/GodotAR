@@ -1,0 +1,22 @@
+[config]
+name="GodotARKit"
+binary="GodotARKit.xcframework"
+initialization="init_godot_arkit"
+deinitialization="deinit_godot_arkit"
+
+[dependencies]
+linked=[]
+embedded=[]
+system=["Foundation.framework", "UIKit.framework", "ARKit.framework", "CoreMotion.framework", "Metal.framework"]
+capabilities=["arkit", "metal"]
+files=[]
+linker_flags=["-ObjC"]
+
+[plist]
+NSCameraUsageDescription:string_input="Camera access is required for ARKit tracking."
+UIRequiredDeviceCapabilities:raw="
+<array>
+	<string>arkit</string>
+	<string>metal</string>
+</array>
+"

@@ -66,6 +66,14 @@ Native plugin files should live under:
 res://ios/plugins
 ```
 
+The repository includes a first-party skeleton at:
+
+```text
+res://ios/plugins/godot_arkit
+```
+
+It defines the expected `GodotARKit` singleton API and `.gdip` template. Build `GodotARKit.xcframework`, copy `GodotARKit.gdip.template` to `GodotARKit.gdip`, then enable the plugin in the iOS export preset.
+
 The provider searches for:
 
 ```gdscript

@@ -33,10 +33,13 @@ func get_provider_source() -> StringName:
 
 func check_availability(options: Dictionary = {}) -> Dictionary:
 	var report := super.check_availability(options)
+	var singleton := _find_singleton()
 	report["interface_names"] = _string_names_to_strings(interface_names)
 	report["singleton_names"] = _string_names_to_strings(singleton_names)
 	report["interface_registered"] = _find_interface() != null
-	report["singleton_registered"] = _find_singleton() != null
+	report["singleton_registered"] = singleton != null
+	if singleton:
+		report.merge(_singleton_availability(singleton), true)
 	return report
 
 
@@ -68,6 +71,10 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	capabilities["environment_blend_modes"] = _environment_blend_mode_names(xr_iface)
 	capabilities["native_plugin"] = plugin_available
 	capabilities["device_profile"] = String(options.get("platform_hint", String(display_name).to_lower()))
+	if singleton and singleton.has_method("get_capabilities"):
+		var raw: Variant = singleton.call("get_capabilities")
+		if raw is Dictionary:
+			capabilities.merge(raw, true)
 	return capabilities
 
 
@@ -87,8 +94,16 @@ func start(options: Dictionary = {}) -> bool:
 
 	plugin_singleton = _find_singleton()
 	if plugin_singleton:
+		if plugin_singleton.has_method("initialize"):
+			var init_result: Variant = plugin_singleton.call("initialize")
+			if typeof(init_result) == TYPE_BOOL and not bool(init_result):
+				last_error = "%s initialize() returned false." % String(display_name)
+				return false
+		if not _call_first_bool(plugin_singleton, ["start_session", "start", "resume"]):
+			last_error = "%s start method returned false." % String(display_name)
+			return false
 		last_error = ""
-		return _call_first_bool(plugin_singleton, ["initialize", "start", "start_session", "resume"])
+		return true
 
 	last_error = "%s plugin was not found. Install or build the native plugin and expose either an XRInterface or a singleton bridge." % String(display_name)
 	return false
@@ -96,9 +111,17 @@ func start(options: Dictionary = {}) -> bool:
 
 func stop() -> void:
 	if plugin_singleton:
-		_call_first_bool(plugin_singleton, ["pause", "stop", "stop_session"])
+		_call_first_bool(plugin_singleton, ["pause", "stop", "stop_session", "deinitialize"])
 	plugin_singleton = null
 	super.stop()
+
+
+func get_planes() -> Array[ARPlane]:
+	if plugin_singleton:
+		for method in ["get_planes", "get_detected_planes"]:
+			if plugin_singleton.has_method(method):
+				return _convert_planes(plugin_singleton.call(method))
+	return super.get_planes()
 
 
 func try_raycast(origin: Vector3, direction: Vector3, max_distance: float = 20.0, mask: int = 0xffffffff) -> Array[XRHit]:
@@ -147,6 +170,21 @@ func _call_first_bool(target: Object, methods: Array) -> bool:
 	return true
 
 
+func _singleton_availability(singleton: Object) -> Dictionary:
+	var report := {}
+	for method in ["check_availability", "is_supported", "is_session_supported", "is_available"]:
+		if singleton.has_method(method):
+			var result: Variant = singleton.call(method)
+			if result is Dictionary:
+				report.merge(result, true)
+			elif typeof(result) == TYPE_BOOL:
+				report["supported"] = bool(result)
+				report["availability"] = "Supported" if bool(result) else "Unsupported"
+			report["availability_method"] = method
+			return report
+	return report
+
+
 func _convert_hits(raw: Variant) -> Array[XRHit]:
 	var hits: Array[XRHit] = []
 	if raw is Array:
@@ -158,6 +196,32 @@ func _convert_hits(raw: Variant) -> Array[XRHit]:
 	elif raw is Dictionary:
 		hits.append(XRHit.from_dictionary(raw))
 	return hits
+
+
+func _convert_planes(raw: Variant) -> Array[ARPlane]:
+	var planes: Array[ARPlane] = []
+	if raw is Array:
+		for item in raw:
+			if item is ARPlane:
+				planes.append(item)
+			elif item is Dictionary:
+				planes.append(_plane_from_dictionary(item))
+	elif raw is Dictionary:
+		planes.append(_plane_from_dictionary(raw))
+	return planes
+
+
+func _plane_from_dictionary(data: Dictionary) -> ARPlane:
+	var plane := ARPlane.new(
+		StringName(data.get("trackable_id", data.get("id", ""))),
+		data.get("transform", Transform3D.IDENTITY),
+		data.get("size", Vector2.ONE),
+		StringName(data.get("alignment", "unknown")),
+		data.get("raw_tracker", data)
+	)
+	plane.label = StringName(data.get("label", ""))
+	plane.tracking_state = int(data.get("tracking_state", XRFoundationTypes.TrackingState.TRACKING))
+	return plane
 
 
 func _to_string_name_array(value: Variant) -> Array[StringName]:

@@ -2,6 +2,10 @@
 
 Put ARKit iOS plugin files here when they are built or downloaded.
 
+Current first-party skeleton:
+
+- `godot_arkit/`
+
 Expected plugin-first path:
 
 - `.gdip` plugin configuration.

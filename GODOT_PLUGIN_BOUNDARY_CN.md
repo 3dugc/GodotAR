@@ -35,6 +35,7 @@ C00 不需要修改 Godot 主干。
 - `OpenXRProvider` 通过 `XRServer.find_interface("OpenXR")`
 - `NativeXRProvider` 通过 XRInterface 或 `Engine.get_singleton()` 连接 ARCore/ARKit 插件
 - `android/plugins` 和 `ios/plugins` 作为 native plugin 固定落点
+- `ios/plugins/godot_arkit` 提供 `GodotARKit` singleton 插件骨架
 - C00 smoke scene 输出统一 `GXF_SMOKE` 日志
 
 ## 平台插件边界
