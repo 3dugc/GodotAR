@@ -54,6 +54,10 @@ const checks = [
 		required: true,
 	}] : []),
 	...(needsARCore(gate) ? [{
+		name: "GodotARCore Android plugin surface",
+		command: ["node", "tools/c00/check_android_arcore_plugin_surface.js"],
+		required: true,
+	}, {
 		name: "Android ARCore gate surface",
 		command: ["node", "tools/c00/check_arcore_gate_surface.js"],
 		required: true,
@@ -154,6 +158,7 @@ function shellSyntaxChecks() {
 	const files = [
 		...listFiles("tools/c00", (file) => file.endsWith(".sh")),
 		"ios/plugins/godot_arkit/build_xcframework.sh",
+		"android/plugins/godot_arcore/build_plugin.sh",
 	];
 	return files.map((file) => ({
 		name: `bash -n ${file}`,

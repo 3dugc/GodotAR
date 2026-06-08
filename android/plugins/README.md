@@ -1,11 +1,17 @@
 # Android Plugins
 
-Put Android ARCore or OpenXR vendor plugin files here when they are built or downloaded.
+Android platform support lives here first. Gameplay code must not call Android Java or Kotlin APIs directly; expose platform functions through a Godot singleton or XRInterface, then adapt them in `NativeXRProvider`.
 
-Expected plugin-first path:
+Current plugin-first paths:
 
-- `.gdap` / `.gdplugin` / export hook files required by the Godot Android plugin version in use.
-- `.aar` plugin binaries and Gradle dependencies.
+- `godot_arcore/`: C00 Android ARCore plugin source. It builds a `GodotARCore` Android plugin v2 AAR and exposes an ARCore availability/session singleton.
+- OpenXR/Rokid vendor plugin files: place downloaded vendor AAR/export hooks here when the chosen vendor package requires local plugin files.
 - Optional GDExtension binaries compiled for Android ABIs.
 
-The gameplay layer must not call Android Java/Kotlin APIs directly. Expose platform functions through a Godot singleton or XRInterface, then adapt them in `NativeXRProvider`.
+Build the ARCore plugin on a device/build machine:
+
+```bash
+android/plugins/godot_arcore/build_plugin.sh
+```
+
+The script copies AARs into `addons/godot_arcore/bin`, where the Godot export plugin can include them in the Android ARCore preset.

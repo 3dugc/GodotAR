@@ -118,6 +118,8 @@ C00 不修改 Godot 主干。
 
 如果出现 `engine patch`，本周期必须附带最小侵入说明，否则不能标记为通过。
 
+C00 Android ARCore 使用 `android/plugins/godot_arcore` + `addons/godot_arcore`。它是 Android plugin v2 / AAR export hook / `GodotARCore` singleton 落点，不需要修改 Godot 主干。
+
 ## EditorSim / 模拟器
 
 模拟器用于没有设备时验证上层接口和 Unity 迁移代码：
@@ -240,11 +242,20 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 tools/c00/run_device_cycle.sh android-arcore
 ```
 
+第一次在设备机构建前先生成 AAR：
+
+```bash
+android/plugins/godot_arcore/build_plugin.sh
+```
+
 Android ARCore export preset 应设置：
 
 ```text
 command_line/extra_args="--xr-platform=arcore"
+plugins/GodotARCore=true
 ```
+
+`tools/c00/preflight.sh android-arcore` 会检查 `addons/godot_arcore/bin/release/GodotARCore-release.aar`，缺失时先运行 `android/plugins/godot_arcore/build_plugin.sh`。
 
 当 `APK_PATH` 指向本次导出的 APK 时，采集脚本会检查 APK `assets/_cl_` 是否包含该参数；如果没有，脚本会在安装前失败，避免把手机/平板误跑到 OpenXR 或 EditorSim 路径。
 
@@ -257,6 +268,7 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 失败判定：
 
 - `Backend: EditorSim`：Android app 启动了，但 ARCore native path 没有被识别。
+- `Engine.has_singleton("GodotARCore")` 不存在：确认 `addons/godot_arcore` addon 已启用、AAR 已构建、Android export preset 启用了 `plugins/GodotARCore=true`。
 - `native_plugin=true` 但缺少 `capabilities.runtime="ARCore"` / `capabilities.arcore_supported=true`：日志证据太弱，不能证明是 ARCore runtime。
 - device profile 里没有 `com.google.ar.core` 或 ARCore 包：设备缺 ARCore 服务或采集权限不足。
 - `Backend: OpenXR`：这台 Android 设备跑到了 OpenXR 路径，不能替代手机/平板 ARCore gate。

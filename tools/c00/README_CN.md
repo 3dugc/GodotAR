@@ -42,6 +42,8 @@ tools/c00/preflight.sh android-arcore
 - `xcrun`：iPad 安装和启动。
 - `xcodebuild`：把 Godot iOS 导出的 Xcode project 构建成可安装 `.app`。
 - `android/plugins`、`ios/plugins` 是否存在。
+- `addons/godot_arcore` 和 `android/plugins/godot_arcore` 是否保留 Android plugin v2 / AAR export hook / `GodotARCore` singleton surface。
+- Android ARCore gate 前 `addons/godot_arcore/bin/release/GodotARCore-release.aar` 是否已由 `android/plugins/godot_arcore/build_plugin.sh` 生成。
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` 和 `.gdip` 是否存在。
 - `export_presets.cfg` 是否包含目标 C00 preset。
 - `project.godot`、C00 主场景、rig 场景、脚本资源和关键 NodePath 是否完整。
@@ -55,7 +57,7 @@ tools/c00/preflight.sh android-arcore
 node tools/c00/run_static_gates.js --gate all --report releases/phase_0_smoke/evidence/static-gates.md
 ```
 
-该命令不导出、不安装、不连接设备。它汇总 Node 工具语法、shell 脚本语法、Godot project/scene 静态完整性、ARFoundation API surface、XRI API surface、OpenXR/Rokid provider surface、iOS plugin 配置和 ARKit Objective-C++ syntax smoke。缺少 `export_presets.cfg` 会作为 warning 记录，因为真正导出前仍需在设备机 Godot editor 里复核保存。
+该命令不导出、不安装、不连接设备。它汇总 Node 工具语法、shell 脚本语法、Godot project/scene 静态完整性、ARFoundation API surface、XRI API surface、OpenXR/Rokid provider surface、GodotARCore Android plugin surface、iOS plugin 配置和 ARKit Objective-C++ syntax smoke。缺少 `export_presets.cfg` 会作为 warning 记录，因为真正导出前仍需在设备机 Godot editor 里复核保存。
 
 iPad/ARKit gate 前先构建插件：
 
@@ -158,6 +160,14 @@ node tools/c00/check_arcore_gate_surface.js
 ```
 
 该检查确认 native provider 会输出 `capabilities.runtime:"ARCore"` / `capabilities.arcore_supported:true`，并确认 Android ARCore smoke/aggregate gate 不会只凭 `native_plugin:true` 通过。
+
+检查 GodotARCore Android 插件落点：
+
+```bash
+node tools/c00/check_android_arcore_plugin_surface.js
+```
+
+该检查确认 `addons/godot_arcore` 导出插件、Android plugin v2 manifest、Java `GodotARCore` singleton、ARCore Maven dependency、C00 build script、以及 Android ARCore export preset 的 `plugins/GodotARCore=true` 入口都还在。它不运行 Gradle，也不替代真机 ARCore gate。
 
 ## 一键执行 Gate
 
@@ -300,6 +310,12 @@ command_line/extra_args="--xr-platform=rokid"
 
 iPad preset 必须启用 `GodotARKit` iOS plugin。`collect_ios_smoke.sh` 默认通过 devicectl 向应用传入 `--xr-platform=ipad`，可用 `IOS_XR_PLATFORM=iphone` 覆盖。
 
+Android ARCore preset 必须启用 `GodotARCore` Android plugin：
+
+```text
+plugins/GodotARCore=true
+```
+
 ## Rokid / Android 日志采集
 
 导出 preset 请先按：
@@ -372,6 +388,12 @@ EXTRA_VALIDATE_ARGS=--allow-openxr-without-ar-blend tools/c00/collect_android_sm
 
 Android 手机/平板使用单独的 ARCore gate：
 
+先构建 Android plugin AAR：
+
+```bash
+android/plugins/godot_arcore/build_plugin.sh
+```
+
 ```bash
 tools/c00/export_with_godot.sh "C00 Android ARCore" builds/android_arcore/c00.apk
 ```
@@ -389,6 +411,7 @@ Android ARCore gate 要求：
 - `capabilities.native_plugin:true`
 - `capabilities.runtime:"ARCore"` 或 `capabilities.arcore_supported:true`
 - device profile JSON 能检测到 ARCore package，例如 `com.google.ar.core`。
+- Android export preset 启用了 `plugins/GodotARCore=true`，APK 才能暴露 `Engine.get_singleton("GodotARCore")`。
 - 截图和录屏都存在。
 - 当 `APK_PATH` 指向 APK 时，脚本会检查 `assets/_cl_` 包含 `--xr-platform=arcore`，避免 Android 手机/平板误跑到 OpenXR 路径。
 

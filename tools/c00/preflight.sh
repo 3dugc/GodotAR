@@ -51,6 +51,10 @@ needs_openxr() {
 	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ]
 }
 
+needs_arcore() {
+	[ "$GATE" = "all" ] || [ "$GATE" = "android-arcore" ]
+}
+
 needs_export_preset() {
 	if using_existing_ios_app; then
 		return 1
@@ -172,6 +176,18 @@ if needs_arkit_static_check; then
 		printf "     Run tools/c00/check_arkit_plugin_static.sh for details.\n"
 		status=1
 	fi
+fi
+
+if needs_arcore; then
+	printf "\nAndroid ARCore plugin source checks\n"
+	if node "$PROJECT_ROOT/tools/c00/check_android_arcore_plugin_surface.js" >/dev/null 2>&1; then
+		printf "OK   GodotARCore Android plugin surface\n"
+	else
+		printf "MISS GodotARCore Android plugin surface\n"
+		printf "     Run node tools/c00/check_android_arcore_plugin_surface.js for details.\n"
+		status=1
+	fi
+	check_file "$PROJECT_ROOT/addons/godot_arcore/bin/release/GodotARCore-release.aar" "required for Android ARCore export; run android/plugins/godot_arcore/build_plugin.sh"
 fi
 
 printf "\nAPI surface checks\n"

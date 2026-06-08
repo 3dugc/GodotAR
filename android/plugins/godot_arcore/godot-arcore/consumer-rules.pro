@@ -1,0 +1,1 @@
+-keep class org.godotengine.plugin.android.godotarcore.GodotARCorePlugin { *; }

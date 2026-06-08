@@ -96,7 +96,8 @@ function checkProjectSettings() {
 
 	requireText(text, 'run/main_scene="res://demo/00_device_smoke_test.tscn"', `${file}: main_scene must be ${MAIN_SCENE}.`, localEvidence);
 	requireText(text, 'XRFoundation="*res://addons/godot_xr_foundation/scripts/xr_foundation.gd"', `${file}: XRFoundation autoload is missing.`, localEvidence);
-	requireText(text, 'enabled=PackedStringArray("res://addons/godot_xr_foundation/plugin.cfg")', `${file}: addon plugin should be enabled.`, localEvidence);
+	requireText(text, "res://addons/godot_xr_foundation/plugin.cfg", `${file}: XR Foundation addon plugin should be enabled.`, localEvidence);
+	requireText(text, "res://addons/godot_arcore/plugin.cfg", `${file}: GodotARCore export addon plugin should be enabled.`, localEvidence);
 	requireText(text, "openxr/enabled=true", `${file}: OpenXR should be enabled for Rokid/OpenXR C00.`, localEvidence);
 	requireText(text, "shaders/enabled=true", `${file}: XR shaders should be enabled.`, localEvidence);
 
@@ -104,6 +105,7 @@ function checkProjectSettings() {
 		"res://demo/00_device_smoke_test.tscn",
 		"res://addons/godot_xr_foundation/scripts/xr_foundation.gd",
 		"res://addons/godot_xr_foundation/plugin.cfg",
+		"res://addons/godot_arcore/plugin.cfg",
 	]) {
 		checkResPathExists(resPath, localEvidence);
 	}

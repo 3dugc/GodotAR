@@ -25,13 +25,14 @@ Implemented:
 - AR passthrough setup through `XRInterface.environment_blend_mode` when supported.
 - Editor simulated floor raycasts and plane data.
 - Generic native bridge points for ARCore and ARKit plugin singletons or XR interfaces.
+- GodotARCore Android plugin v2 landing point with ARCore availability/install/session lifecycle singleton.
 - Android XR/OpenXR trackable plane discovery through `XRServer` tracker signals without hard-linking vendor classes.
+- GodotARKit iOS plugin bridge with native tracking reason, raycast, and plane evidence.
 - Demo scene where mouse clicks place anchored cubes on the simulated floor.
 
 Planned next:
 
-- A concrete ARCore native bridge once the chosen Godot ARCore plugin API is locked.
-- A concrete ARKit native bridge once the iOS plugin API is locked.
+- ARCore camera background, frame update, plane/raycast, and anchor bridge.
 - OpenXR Android/Rokid raycast bridge using the vendor plugin's Android XR extension classes in an optional script that is only enabled when the vendor plugin is installed.
 - Input action map presets for hand tracking, controller select/grab, and gaze.
 
@@ -73,6 +74,10 @@ For C00, a real Rokid pass must show `backend=OpenXR`, a real iPad pass must sho
 
 - `addons/godot_xr_foundation/scripts/providers/native_xr_provider.gd`  
   Generic ARCore/ARKit native plugin bridge.
+
+- `addons/godot_arcore/` and `android/plugins/godot_arcore/`: Android ARCore export plugin and native singleton source.
+
+- `ios/plugins/godot_arkit/`: iOS ARKit native singleton source and build helper.
 
 - `addons/godot_xr_foundation/scripts/arfoundation/`  
   Unity ARFoundation-style managers.

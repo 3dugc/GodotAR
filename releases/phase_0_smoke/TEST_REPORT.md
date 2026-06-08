@@ -43,6 +43,8 @@ Codex implementation status:
 - C00 preflight, export helper, Android/Rokid log collector, iPad log collector, and gate validator created under `tools/c00`.
 - `tools/c00/check_godot_project_static.js` now validates C00 project settings, scene resource references, load steps, required smoke nodes, and critical NodePaths without requiring a Godot binary.
 - `tools/c00/run_static_gates.js` now runs the C00 static gate set in one command and can write a Markdown report for CI/device-machine readiness.
+- `android/plugins/godot_arcore` and `addons/godot_arcore` now provide a first-party C00 GodotARCore Android plugin v2 landing point with ARCore availability, install request, session lifecycle, Gradle build script, and Godot export hook.
+- `tools/c00/check_android_arcore_plugin_surface.js` now guards the GodotARCore Android plugin surface without requiring Gradle, Godot, or a connected Android device.
 - `tools/c00/check_arcore_gate_surface.js` now guards the Android ARCore evidence surface without requiring Godot or a connected Android device.
 - `tools/c00/import_device_evidence.sh` now imports manually captured device logs/media into the standard C00 evidence directory and runs the same smoke/media validators.
 - `NativeXRProvider` now detects native provider singletons through `Engine.has_singleton(...)` and merges their availability/capability reports.
@@ -62,7 +64,7 @@ Codex implementation status:
 - `tools/c00/run_device_cycle.sh` now orchestrates preflight, optional ARKit plugin build, Godot export, device log collection, and gate validation for iPad/ARKit, Rokid/OpenXR, and Android/ARCore.
 - `tools/c00/build_ios_xcode_project.sh` now builds the Godot iOS export zip into `builds/ipad/GodotXRFoundation.app`, and the iPad runner can use it automatically when `APP_PATH` is not set.
 - `tools/c00/run_device_cycle.sh all` now continues across iPad/Rokid/Android ARCore gate failures and runs the aggregate C00 phase verifier at the end.
-- `tools/c00/check_export_presets.js` now validates that `export_presets.cfg` contains the required C00 preset names before export, requires Rokid exports to include `--xr-platform=rokid`, and requires the iPad preset to enable `GodotARKit`.
+- `tools/c00/check_export_presets.js` now validates that `export_presets.cfg` contains the required C00 preset names before export, requires Rokid exports to include `--xr-platform=rokid`, requires the Android ARCore preset to enable `GodotARCore`, and requires the iPad preset to enable `GodotARKit`.
 - `tools/c00/write_export_presets_template.js` now generates a local C00 export preset starter for device machines before Godot editor review.
 - `tools/c00/validate_smoke_log.js` now requires explicit ARKit evidence for the iPad gate and explicit ARCore evidence for the Android gate, not only `native_plugin=true`.
 - `tools/c00/validate_smoke_log.js` and `tools/c00/verify_phase_evidence.js` now require Unity-style `ar_session_state` / `not_tracking_reason` and iPad ARKit `arkit_tracking_state` / `arkit_tracking_reason`.
@@ -126,6 +128,8 @@ Hardware status:
 | `node tools/c00/check_xri_api_surface.js` | Pass | XRI manager/ray/interactable smoke surface is present |
 | `node --check tools/c00/check_openxr_provider_surface.js` | Pass | OpenXR provider surface checker parses |
 | `node tools/c00/check_openxr_provider_surface.js` | Pass | OpenXR/Rokid AR evidence surface is present |
+| `node --check tools/c00/check_android_arcore_plugin_surface.js` | Pass | GodotARCore Android plugin surface checker parses |
+| `node tools/c00/check_android_arcore_plugin_surface.js` | Pass | GodotARCore Android plugin v2/export singleton surface is present |
 | `node --check tools/c00/check_arcore_gate_surface.js` | Pass | Android ARCore gate surface checker parses |
 | `node tools/c00/check_arcore_gate_surface.js` | Pass | Android ARCore runtime/capability evidence gate is present |
 | `node --check tools/c00/write_export_presets_template.js` | Pass | Preset starter writer parses |

@@ -72,8 +72,11 @@ for (const item of gates) {
 
 	if (item === "android-arcore") {
 		const extraArgs = getPresetOption(preset, "command_line/extra_args");
-		if (extraArgs && !extraArgs.includes("--xr-platform=arcore")) {
-			warnings.push(`Preset "${requirement.name}" command_line/extra_args is "${extraArgs}". Expected --xr-platform=arcore for explicit ARCore startup.`);
+		if (!extraArgs.includes("--xr-platform=arcore")) {
+			failures.push(`Preset "${requirement.name}" must set command_line/extra_args to include --xr-platform=arcore so Android startup selects ARCore explicitly.`);
+		}
+		if (!preset.raw.includes("GodotARCore")) {
+			failures.push(`Preset "${requirement.name}" must enable the GodotARCore Android plugin so the ARCore singleton is exported.`);
 		}
 	}
 

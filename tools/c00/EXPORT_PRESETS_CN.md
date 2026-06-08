@@ -70,9 +70,9 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 关键设置：
 
 - Runnable: enabled
-- Use Gradle Build: enabled if the ARCore plugin needs Gradle/AAR integration
-- Native ARCore plugin enabled in Android plugins
-- Extra Args / `command_line/extra_args`: 建议 `--xr-platform=arcore`
+- Use Gradle Build: enabled
+- Native ARCore plugin enabled: `plugins/GodotARCore=true`
+- Extra Args / `command_line/extra_args`: 必须包含 `--xr-platform=arcore`
 - Main scene: `res://demo/00_device_smoke_test.tscn`
 - Package name: 建议 `org.godotengine.godotxrfoundation`
 - Export path: `builds/android_arcore/c00.apk`

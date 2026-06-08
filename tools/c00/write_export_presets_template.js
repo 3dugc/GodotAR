@@ -161,6 +161,7 @@ xr_features/xr_mode=0
 screen/immersive_mode=true
 command_line/extra_args="--xr-platform=arcore"
 permissions/camera=true
+plugins/GodotARCore=true
 
 [preset.2]
 

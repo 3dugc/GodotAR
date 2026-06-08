@@ -16,7 +16,7 @@ XRFoundation="*res://addons/godot_xr_foundation/scripts/xr_foundation.gd"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/godot_xr_foundation/plugin.cfg")
+enabled=PackedStringArray("res://addons/godot_xr_foundation/plugin.cfg", "res://addons/godot_arcore/plugin.cfg")
 
 [rendering]
 
