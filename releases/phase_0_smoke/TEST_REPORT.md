@@ -27,6 +27,7 @@ Codex implementation status:
 - C00 preflight, export helper, Android/Rokid log collector, iPad log collector, and gate validator created under `tools/c00`.
 - `NativeXRProvider` now detects native provider singletons through `Engine.has_singleton(...)` and merges their availability/capability reports.
 - `ios/plugins/godot_arkit` now contains a first-party ARKit iOS plugin skeleton that registers `GodotARKit` as a Godot `Engine` singleton.
+- `GodotARKit` now exports `.gdip` init/deinit functions as C symbols and registers its Object class with `ClassDB` before exposing the singleton.
 - `ios/plugins/godot_arkit/build_xcframework.sh` now builds the ARKit iOS plugin artifacts when `GODOT_SOURCE_DIR` points to matching Godot source headers.
 - `tools/c00/run_device_cycle.sh` now orchestrates preflight, optional ARKit plugin build, Godot export, device log collection, and gate validation for iPad/ARKit and Rokid/OpenXR.
 - `tools/c00/check_export_presets.js` now validates that `export_presets.cfg` contains the required C00 preset names before export, requires Rokid exports to include `--xr-platform=rokid`, and requires the iPad preset to enable `GodotARKit`.
@@ -58,6 +59,7 @@ Hardware status:
 | `ios/plugins/godot_arkit/build_xcframework.sh --help` | Pass | Documents required Godot source header path and outputs |
 | `tools/c00/run_device_cycle.sh --help` | Pass | Documents iPad/Rokid full gate execution |
 | `node --check tools/c00/check_export_presets.js` | Pass | Preset checker parses |
+| ARKit plugin symbol/static check | Pass | `.gdip` init symbols are `extern "C"` and `GodotARKitPlugin` registers with `ClassDB` |
 | `tools/c00/preflight.sh` | Blocked by host prerequisites | Missing `godot`, `adb`, `export_presets.cfg`, `GodotARKit.gdip`, and `GodotARKit.xcframework`; `node` and `xcrun` available |
 
 ## Device Evidence

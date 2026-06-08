@@ -13,6 +13,8 @@ C00 只要求 iPad 能证明 ARKit provider 可用：
 
 真实平面检测、raycast、anchor 可以在 C04 补完。
 
+`.gdip` 中的 `initialization` / `deinitialization` 函数以 `extern "C"` 导出，避免 C++ name mangling 导致 Godot 找不到符号。`GodotARKitPlugin` 会在初始化时通过 `ClassDB::register_class` 注册，确保 GDScript 可以调用 singleton 方法。
+
 ## 文件说明
 
 - `GodotARKit.gdip.template`：Godot iOS plugin 配置模板。构建出 `GodotARKit.xcframework` 后复制为 `GodotARKit.gdip`。
