@@ -98,6 +98,7 @@ if needs_android_tools; then
 fi
 if needs_ios_tools; then
 	check_command xcrun "required for iPad install/launch through Xcode tools"
+	check_command xcodebuild "required for building the Godot iOS export into an installable .app"
 fi
 
 printf "\nPlugin landing zones\n"

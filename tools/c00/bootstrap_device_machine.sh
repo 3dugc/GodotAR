@@ -156,6 +156,7 @@ fi
 
 check_command_row adb "required for Rokid/Android install, logcat, screenshot, and recording"
 check_command_row xcrun "required for iPad install/launch and iOS SDK checks"
+check_command_row xcodebuild "required for building the Godot iOS export into an installable .app"
 
 if command -v xcrun >/dev/null 2>&1; then
 	if sdk_path="$(run_capture xcrun --sdk iphoneos --show-sdk-path)"; then
@@ -263,8 +264,9 @@ fi
 	printf "   \`\`\`\n\n"
 	printf "4. Run the first phase gates:\n\n"
 	printf "   \`\`\`bash\n"
-	printf "   GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/run_device_cycle.sh all\n"
+	printf "   GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh all\n"
 	printf "   \`\`\`\n\n"
+	printf "   The iPad gate will build the exported Xcode project into \`builds/ipad/GodotXRFoundation.app\` when \`APP_PATH\` is empty.\n\n"
 	printf "5. Publish only when \`releases/phase_0_smoke/C00_PHASE_REPORT.md\` reports PASS for both Rokid/OpenXR and iPad/ARKit.\n"
 } >> "$REPORT"
 

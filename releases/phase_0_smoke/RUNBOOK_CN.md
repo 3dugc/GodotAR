@@ -71,7 +71,6 @@ tools/c00/run_device_cycle.sh rokid
 ```bash
 GODOT_SOURCE_DIR=/path/to/godot \
 DEVICE=<ipad-uuid-or-name> \
-APP_PATH=builds/ipad/GodotXRFoundation.app \
 tools/c00/run_device_cycle.sh ipad
 ```
 
@@ -80,7 +79,6 @@ tools/c00/run_device_cycle.sh ipad
 ```bash
 GODOT_SOURCE_DIR=/path/to/godot \
 DEVICE=<ipad-uuid-or-name> \
-APP_PATH=builds/ipad/GodotXRFoundation.app \
 tools/c00/run_device_cycle.sh all
 ```
 
@@ -198,8 +196,10 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 自动采集和验证：
 
 ```bash
-GODOT_SOURCE_DIR=/path/to/godot APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/run_device_cycle.sh ipad <device>
+GODOT_SOURCE_DIR=/path/to/godot DEVICE=<device> tools/c00/run_device_cycle.sh ipad
 ```
+
+默认流程会先构建 `GodotARKit.xcframework`，再用 Godot 导出 `builds/ipad/c00.zip`，随后通过 `tools/c00/build_ios_xcode_project.sh` 自动发现导出的 `.xcodeproj` 和 scheme，用 `xcodebuild` 产出 `builds/ipad/GodotXRFoundation.app`。如果已经手工构建了 `.app`，可设置 `APP_PATH=builds/ipad/GodotXRFoundation.app` 跳过自动 Xcode 构建。
 
 底层脚本：
 

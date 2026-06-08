@@ -11,6 +11,7 @@ RUN_PREFLIGHT="${RUN_PREFLIGHT:-1}"
 RUN_EXPORT="${RUN_EXPORT:-1}"
 RUN_COLLECT="${RUN_COLLECT:-1}"
 BUILD_ARKIT_PLUGIN="${BUILD_ARKIT_PLUGIN:-auto}"
+BUILD_IPAD_APP="${BUILD_IPAD_APP:-auto}"
 INCLUDE_EDITOR_SIM="${INCLUDE_EDITOR_SIM:-0}"
 INCLUDE_ANDROID_ARCORE="${INCLUDE_ANDROID_ARCORE:-0}"
 CONTINUE_ON_FAILURE="${CONTINUE_ON_FAILURE:-auto}"
@@ -23,6 +24,7 @@ ANDROID_ARCORE_PRESET="${ANDROID_ARCORE_PRESET:-C00 Android ARCore}"
 ANDROID_ARCORE_APK_PATH="${ANDROID_ARCORE_APK_PATH:-builds/android_arcore/c00.apk}"
 IPAD_PRESET="${IPAD_PRESET:-C00 iPad ARKit}"
 IPAD_EXPORT_PATH="${IPAD_EXPORT_PATH:-builds/ipad/c00.zip}"
+IPAD_APP_PATH="${IPAD_APP_PATH:-builds/ipad/GodotXRFoundation.app}"
 
 usage() {
 	cat <<EOF
@@ -32,8 +34,8 @@ Usage:
 Examples:
   tools/c00/run_device_cycle.sh editor
   tools/c00/run_device_cycle.sh rokid
-  DEVICE=<ipad-uuid-or-name> APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/run_device_cycle.sh ipad
-  GODOT_SOURCE_DIR=/path/to/godot tools/c00/run_device_cycle.sh ipad <ipad-device>
+  GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh ipad
+  APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/run_device_cycle.sh ipad <ipad-device>
 
 Common environment:
   GODOT_BIN=/path/to/Godot
@@ -52,6 +54,10 @@ Evidence:
 iPad / ARKit:
   GODOT_SOURCE_DIR=/path/to/godot     Build GodotARKit.xcframework before export.
   BUILD_ARKIT_PLUGIN=auto|1|0        Default auto: build only when GODOT_SOURCE_DIR is set.
+  BUILD_IPAD_APP=auto|1|0            Build exported Xcode project into .app when APP_PATH is empty.
+  IPAD_APP_PATH="$IPAD_APP_PATH"
+  SCHEME=<xcode-scheme>              Optional Xcode scheme for the exported project.
+  TARGET_NAME=<xcode-target>         Optional target fallback when no scheme exists.
   APP_PATH=builds/ipad/App.app       Optional installed app bundle for devicectl.
 
 Rokid / Android:
@@ -103,6 +109,38 @@ build_arkit_plugin_if_requested() {
 	"$PROJECT_ROOT/ios/plugins/godot_arkit/build_xcframework.sh"
 }
 
+build_ipad_app_if_requested() {
+	if [[ "$BUILD_IPAD_APP" == "0" ]]; then
+		return
+	fi
+	if [[ -n "${APP_PATH:-}" ]]; then
+		echo "APP_PATH is already set; skipping iPad Xcode build: $APP_PATH"
+		return
+	fi
+
+	local export_zip
+	export_zip="$(project_path "$IPAD_EXPORT_PATH")"
+	if [[ ! -f "$export_zip" ]]; then
+		if [[ "$BUILD_IPAD_APP" == "1" ]]; then
+			echo "iPad export zip is missing: $export_zip" >&2
+			return 2
+		fi
+		echo "iPad export zip is missing; assuming $PACKAGE is already installed on the device."
+		return
+	fi
+	if [[ "$BUILD_IPAD_APP" == "auto" ]] && ! command -v xcodebuild >/dev/null 2>&1; then
+		echo "xcodebuild not found; assuming $PACKAGE is already installed on the device."
+		return
+	fi
+
+	local app_output
+	app_output="$(project_path "$IPAD_APP_PATH")"
+	echo "Building iPad Xcode export into app bundle..."
+	APP_OUTPUT_PATH="$app_output" "$PROJECT_ROOT/tools/c00/build_ios_xcode_project.sh" "$export_zip" "$DEVICE"
+	APP_PATH="$app_output"
+	export APP_PATH
+}
+
 run_preflight() {
 	local gate="$1"
 	if [[ "$RUN_PREFLIGHT" == "0" ]]; then
@@ -126,7 +164,6 @@ run_export() {
 			;;
 		ipad)
 			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$IPAD_PRESET" "$IPAD_EXPORT_PATH"
-			echo "iPad export is usually an Xcode project zip. Build it in Xcode, then rerun with APP_PATH=<built .app> if collection needs installation."
 			;;
 		editor)
 			echo "EditorSim gate does not require export."
@@ -174,6 +211,9 @@ run_gate() {
 	fi
 	run_preflight "$gate" || return $?
 	run_export "$gate" || return $?
+	if [[ "$gate" == "ipad" ]]; then
+		build_ipad_app_if_requested || return $?
+	fi
 	run_collect "$gate" || return $?
 }
 

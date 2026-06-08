@@ -119,7 +119,19 @@ GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh
 tools/c00/export_with_godot.sh "C00 iPad ARKit" builds/ipad/c00.zip
 ```
 
-Godot iOS 导出通常生成 Xcode project zip。解压并用 Xcode 签名、部署，或生成 `.app` 后用：
+Godot iOS 导出通常生成 Xcode project zip。设备机可继续用脚本构建 `.app`：
+
+```bash
+tools/c00/build_ios_xcode_project.sh builds/ipad/c00.zip <device-uuid-or-name>
+```
+
+默认输出：
+
+```text
+builds/ipad/GodotXRFoundation.app
+```
+
+然后安装和采集：
 
 ```bash
 APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <device> org.godotengine.godotxrfoundation 30

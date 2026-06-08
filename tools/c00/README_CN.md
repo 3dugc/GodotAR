@@ -40,6 +40,7 @@ tools/c00/preflight.sh android-arcore
 - `godot`：命令行导出/导入校验。
 - `adb`：Rokid/Android 日志采集。
 - `xcrun`：iPad 安装和启动。
+- `xcodebuild`：把 Godot iOS 导出的 Xcode project 构建成可安装 `.app`。
 - `android/plugins`、`ios/plugins` 是否存在。
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` 和 `.gdip` 是否存在。
 - `export_presets.cfg` 是否包含目标 C00 preset。
@@ -75,7 +76,6 @@ tools/c00/run_device_cycle.sh rokid
 ```bash
 GODOT_SOURCE_DIR=/path/to/godot \
 DEVICE=<ipad-uuid-or-name> \
-APP_PATH=builds/ipad/GodotXRFoundation.app \
 tools/c00/run_device_cycle.sh ipad
 ```
 
@@ -84,7 +84,6 @@ tools/c00/run_device_cycle.sh ipad
 ```bash
 GODOT_SOURCE_DIR=/path/to/godot \
 DEVICE=<ipad-uuid-or-name> \
-APP_PATH=builds/ipad/GodotXRFoundation.app \
 tools/c00/run_device_cycle.sh all
 ```
 
@@ -95,6 +94,9 @@ tools/c00/run_device_cycle.sh all
 - `RUN_EXPORT=0`：跳过 Godot 导出，直接采集已安装应用。
 - `RUN_COLLECT=0`：只做预检和导出。
 - `BUILD_ARKIT_PLUGIN=0`：跳过 ARKit 插件构建。
+- `BUILD_IPAD_APP=0`：跳过 iOS Xcode project 自动构建；如果已手工构建，可直接设置 `APP_PATH`。
+- `IPAD_APP_PATH=builds/ipad/GodotXRFoundation.app`：iPad 自动构建后的稳定 `.app` 输出路径。
+- `SCHEME=<xcode-scheme>` / `TARGET_NAME=<xcode-target>`：导出的 Xcode project 无法自动识别 scheme 时显式指定。
 - `CAPTURE_MEDIA=0`：跳过截图/录屏采集。
 - `VIDEO_SECONDS=15`：Android/Rokid 录屏时长。
 - `MANUAL_MEDIA_PATH=/path/to/file`：iPad 自动截图不可用时，提供手动截图或录屏。
@@ -204,6 +206,18 @@ iPad 导出 preset 请先按 `tools/c00/EXPORT_PRESETS_CN.md` 创建。
 
 ```bash
 tools/c00/export_with_godot.sh "C00 iPad ARKit" builds/ipad/c00.zip
+```
+
+将导出的 Xcode project zip 构建成可安装 `.app`：
+
+```bash
+tools/c00/build_ios_xcode_project.sh builds/ipad/c00.zip <device-uuid-or-name>
+```
+
+构建成功后默认输出：
+
+```text
+builds/ipad/GodotXRFoundation.app
 ```
 
 先列出设备：
