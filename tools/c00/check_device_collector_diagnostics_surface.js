@@ -12,6 +12,21 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 
 const checks = [
 	{
+		file: "tools/c00/collect_android_device_profile.js",
+		requirements: [
+			["parsed adb devices", /function parseAdbDevices/],
+			["connected device evidence", /has_connected_device/],
+			["no connected device warning", /No connected Android device is in adb state 'device'/],
+		],
+	},
+	{
+		file: "tools/c00/analyze_android_device_profile.js",
+		requirements: [
+			["no connected device failure", /No connected Android device was available in adb state 'device'/],
+			["connected devices evidence", /connected_devices/],
+		],
+	},
+	{
 		file: "tools/c00/collect_android_smoke.sh",
 		requirements: [
 			["collector status accumulator", /COLLECT_STATUS=0/],
@@ -19,6 +34,7 @@ const checks = [
 			["evidence status capture", /EVIDENCE_STATUS="\$\?"/],
 			["continues after smoke failure", /continuing to evidence\/profile report assembly/],
 			["continues after media failure", /appending device diagnostics before exit/],
+			["continues after no Android device", /Skipping APK install, launch, logcat, and media capture because no Android device is connected/],
 			["profile appended after validators", /cat "\$PROFILE_PATH" >> "\$REPORT_PATH"/],
 			["analysis appended after validators", /cat "\$PROFILE_ANALYSIS_PATH" >> "\$REPORT_PATH"/],
 			["final collector exit", /exit "\$COLLECT_STATUS"/],
@@ -30,6 +46,7 @@ const checks = [
 			["collector status accumulator", /COLLECT_STATUS=0/],
 			["smoke status capture", /SMOKE_STATUS="\$\?"/],
 			["evidence status capture", /EVIDENCE_STATUS="\$\?"/],
+			["continues after iPad install failure", /iPad app install failed with exit \$INSTALL_STATUS; continuing to device profile and smoke diagnostics/],
 			["continues after smoke failure", /continuing to evidence\/profile report assembly/],
 			["continues after media failure", /appending device diagnostics before exit/],
 			["profile appended after validators", /cat "\$PROFILE_PATH" >> "\$REPORT_PATH"/],

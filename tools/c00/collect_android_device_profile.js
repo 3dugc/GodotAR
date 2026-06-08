@@ -42,7 +42,7 @@ if (appendReportPath) {
 }
 
 console.log(JSON.stringify(profile, null, 2));
-process.exit(profile.adb.available ? 0 : 2);
+process.exit(profile.adb.available && profile.adb.has_connected_device ? 0 : 2);
 
 
 function parseArgs(argv) {
@@ -80,6 +80,7 @@ function usage() {
 function collectProfile() {
 	const generatedAt = new Date().toISOString();
 	const devices = runAdb(["devices", "-l"]);
+	const connectedDevices = parseAdbDevices(devices.stdout);
 	const properties = collectProperties();
 	const display = {
 		size: runAdbShell(["wm", "size"]).stdout.trim(),
@@ -97,7 +98,7 @@ function collectProfile() {
 		.filter((line) => /camera|vulkan|vr|xr|ar/i.test(line))
 		.sort();
 	const targetPackage = parseTargetPackage(targetPackageText);
-	const warnings = collectWarnings({ devices, properties, display, notableFeatures, xrPackages, targetPackage });
+	const warnings = collectWarnings({ devices, connectedDevices, properties, display, notableFeatures, xrPackages, targetPackage });
 
 	return {
 		gate,
@@ -107,6 +108,8 @@ function collectProfile() {
 			binary: adbBin,
 			serial: adbSerial || null,
 			available: devices.ok,
+			has_connected_device: connectedDevices.some((item) => item.state === "device"),
+			connected_devices: connectedDevices,
 			devices: devices.stdout.trim(),
 			error: devices.ok ? "" : devices.stderr.trim(),
 		},
@@ -186,6 +189,9 @@ function collectWarnings(profile) {
 	if (!profile.devices.ok) {
 		warnings.push(`adb devices failed: ${profile.devices.stderr.trim() || "unknown error"}`);
 	}
+	if (!profile.connectedDevices.some((item) => item.state === "device")) {
+		warnings.push("No connected Android device is in adb state 'device'. Connect and authorize the Rokid/Android device before running the gate.");
+	}
 	if (!profile.properties["ro.product.model"]) {
 		warnings.push("Device model is missing from getprop.");
 	}
@@ -205,6 +211,27 @@ function collectWarnings(profile) {
 		warnings.push("No Vulkan feature was detected in pm list features.");
 	}
 	return warnings;
+}
+
+
+function parseAdbDevices(text) {
+	const devices = [];
+	for (const line of String(text || "").split(/\r?\n/)) {
+		const trimmed = line.trim();
+		if (!trimmed || /^List of devices/i.test(trimmed)) {
+			continue;
+		}
+		const columns = trimmed.split(/\s+/);
+		if (columns.length < 2) {
+			continue;
+		}
+		devices.push({
+			serial: columns[0],
+			state: columns[1],
+			details: columns.slice(2),
+		});
+	}
+	return devices;
 }
 
 
@@ -251,9 +278,16 @@ function renderMarkdown(profile) {
 	lines.push(`- Binary: \`${profile.adb.binary}\``);
 	lines.push(`- Serial: ${profile.adb.serial ? `\`${profile.adb.serial}\`` : "default"}`);
 	lines.push(`- Available: ${profile.adb.available ? "yes" : "no"}`);
+	lines.push(`- Connected device: ${profile.adb.has_connected_device ? "yes" : "no"}`);
 	lines.push("");
 	lines.push("```text");
 	lines.push(profile.adb.devices || profile.adb.error || "");
+	lines.push("```");
+	lines.push("");
+	lines.push("### Parsed Devices");
+	lines.push("");
+	lines.push("```json");
+	lines.push(JSON.stringify(profile.adb.connected_devices || [], null, 2));
 	lines.push("```");
 	lines.push("");
 	lines.push("## Device");

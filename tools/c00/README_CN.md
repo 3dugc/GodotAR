@@ -757,7 +757,7 @@ releases/phase_0_smoke/evidence/ipad-<timestamp>-device.md
 releases/phase_0_smoke/evidence/ipad-<timestamp>-device.json
 ```
 
-设备画像会调用 `devicectl --json-output`，记录 device details、display、lock state、目标 bundle 安装状态和原始 JSON。也可以单独采集：
+设备画像会调用 `devicectl --json-output`，记录 device details、display、lock state、目标 bundle 安装状态和原始 JSON，并额外记录 `xcrun xctrace list devices` 作为 devicectl 状态不稳定时的离线/在线旁路证据。也可以单独采集：
 
 ```bash
 node tools/c00/collect_ios_device_profile.js --device <device-uuid-or-name> --bundle org.godotengine.godotxrfoundation --report releases/phase_0_smoke/evidence/ipad-device.md
@@ -778,7 +778,7 @@ iPad gate 要求：
 - `capabilities.runtime:"ARKit"` 或 `capabilities.arkit_supported:true`
 - `capabilities.arkit_tracking_state` / `capabilities.arkit_tracking_reason` 必须存在，用于区分正常跟踪、初始化、重定位、运动过快或特征不足。
 - `runtime` metadata 能看到 Godot 版本、`--xr-platform=ipad`、rendering/OpenXR 设置和 viewport XR 状态。
-- device profile analysis 能确认已选中目标 iPad、目标 bundle 已安装，且设备没有锁屏。
+- device profile analysis 能确认已选中目标 iPad、目标 bundle 已安装、设备没有锁屏，且没有处于 `offline` / `unavailable` 状态。
 
 ## 手动日志验证
 
@@ -907,7 +907,7 @@ releases/phase_0_smoke/evidence/<gate>-<timestamp>-device.md
 releases/phase_0_smoke/evidence/<gate>-<timestamp>-device.json
 ```
 
-Android/Rokid 会自动尝试录屏、截图和 device profile。iOS 会自动采集 devicectl device profile，并在安装 `idevicescreenshot` 时自动截图，否则脚本会提示手动补截图或 15 秒录屏。
+Android/Rokid 会自动尝试录屏、截图和 device profile；如果 `adb devices -l` 没有任何 `device` 状态的已授权真机，脚本会跳过安装/运行但保留 no-device profile 诊断。iOS 会自动采集 devicectl device profile，并在安装 `idevicescreenshot` 时自动截图，否则脚本会提示手动补截图或 15 秒录屏。
 
-采集脚本会把媒体证据验证结果追加到同一个 `.md` 报告的 `Evidence Bundle` 章节；Android/Rokid、Android ARCore 和 iPad 都会把 device profile 追加到同一个 gate 报告末尾。iPad 还会追加 `ipad-*-device-analysis.md`，用于快速看到目标 bundle 和锁屏状态风险。
+采集脚本会把媒体证据验证结果追加到同一个 `.md` 报告的 `Evidence Bundle` 章节；Android/Rokid、Android ARCore 和 iPad 都会把 device profile 追加到同一个 gate 报告末尾。iPad 还会追加 `ipad-*-device-analysis.md`，用于快速看到目标 bundle、锁屏状态以及 `offline` / `unavailable` 风险。
 即使 `validate_smoke_log.js` 失败，collector 也会继续追加媒体证据和设备画像诊断，然后以非零状态退出；不要只看命令退出码，失败时也要打开对应 `.md` 报告。

@@ -92,13 +92,8 @@ echo "Using adb: $ADB"
 
 check_apk_launch_args "$APK_PATH"
 
-if [ -n "$APK_PATH" ]; then
-	echo "Installing APK: $APK_PATH"
-	"$ADB" install -r "$APK_PATH"
-fi
-
 echo "Connected devices:"
-"$ADB" devices
+"$ADB" devices -l
 
 echo "Collecting Android device profile -> $PROFILE_PATH"
 if ! node "$PROJECT_ROOT/tools/c00/collect_android_device_profile.js" \
@@ -119,40 +114,59 @@ if [ -f "$PROFILE_JSON_PATH" ]; then
 	fi
 fi
 
-echo "Clearing logcat..."
-"$ADB" logcat -c || true
-
-if [ "$ANDROID_FORCE_STOP" != "0" ]; then
-	echo "Force stopping package before launch: $PACKAGE"
-	"$ADB" shell am force-stop "$PACKAGE" >/dev/null 2>&1 || true
+DEVICE_READY=1
+if ! "$ADB" get-state >/dev/null 2>&1; then
+	DEVICE_READY=0
+	COLLECT_STATUS=2
+	{
+		echo "No connected Android device is available in adb state 'device'."
+		echo "Connect and authorize the Rokid/Android device, then rerun this collector."
+	} > "$LOG_PATH"
 fi
 
-echo "Launching package: $PACKAGE"
-"$ADB" shell monkey -p "$PACKAGE" 1 >/dev/null || true
+if [ "$DEVICE_READY" = "1" ]; then
+	if [ -n "$APK_PATH" ]; then
+		echo "Installing APK: $APK_PATH"
+		"$ADB" install -r "$APK_PATH"
+	fi
 
-if [ "$CAPTURE_MEDIA" != "0" ]; then
-	echo "Recording ${VIDEO_SECONDS}s screen capture -> $VIDEO_PATH"
-	"$ADB" shell rm -f "$REMOTE_VIDEO" >/dev/null 2>&1 || true
-	"$ADB" shell screenrecord --time-limit "$VIDEO_SECONDS" "$REMOTE_VIDEO" &
-	SCREENRECORD_PID="$!"
+	echo "Clearing logcat..."
+	"$ADB" logcat -c || true
+
+	if [ "$ANDROID_FORCE_STOP" != "0" ]; then
+		echo "Force stopping package before launch: $PACKAGE"
+		"$ADB" shell am force-stop "$PACKAGE" >/dev/null 2>&1 || true
+	fi
+
+	echo "Launching package: $PACKAGE"
+	"$ADB" shell monkey -p "$PACKAGE" 1 >/dev/null || true
+
+	if [ "$CAPTURE_MEDIA" != "0" ]; then
+		echo "Recording ${VIDEO_SECONDS}s screen capture -> $VIDEO_PATH"
+		"$ADB" shell rm -f "$REMOTE_VIDEO" >/dev/null 2>&1 || true
+		"$ADB" shell screenrecord --time-limit "$VIDEO_SECONDS" "$REMOTE_VIDEO" &
+		SCREENRECORD_PID="$!"
+	else
+		SCREENRECORD_PID=""
+	fi
+
+	echo "Collecting logcat for ${DURATION}s -> $LOG_PATH"
+	"$ADB" logcat -v brief > "$LOG_PATH" &
+	LOGCAT_PID="$!"
+	sleep "$DURATION"
+	kill "$LOGCAT_PID" >/dev/null 2>&1 || true
+	wait "$LOGCAT_PID" >/dev/null 2>&1 || true
+
+	if [ "$CAPTURE_MEDIA" != "0" ]; then
+		wait "$SCREENRECORD_PID" >/dev/null 2>&1 || true
+		"$ADB" pull "$REMOTE_VIDEO" "$VIDEO_PATH" >/dev/null 2>&1 || echo "Screen recording pull failed; keep manual recording if available."
+		"$ADB" shell rm -f "$REMOTE_VIDEO" >/dev/null 2>&1 || true
+
+		echo "Capturing screenshot -> $SCREENSHOT_PATH"
+		"$ADB" exec-out screencap -p > "$SCREENSHOT_PATH" || echo "Screenshot capture failed; capture manually."
+	fi
 else
-	SCREENRECORD_PID=""
-fi
-
-echo "Collecting logcat for ${DURATION}s -> $LOG_PATH"
-"$ADB" logcat -v brief > "$LOG_PATH" &
-LOGCAT_PID="$!"
-sleep "$DURATION"
-kill "$LOGCAT_PID" >/dev/null 2>&1 || true
-wait "$LOGCAT_PID" >/dev/null 2>&1 || true
-
-if [ "$CAPTURE_MEDIA" != "0" ]; then
-	wait "$SCREENRECORD_PID" >/dev/null 2>&1 || true
-	"$ADB" pull "$REMOTE_VIDEO" "$VIDEO_PATH" >/dev/null 2>&1 || echo "Screen recording pull failed; keep manual recording if available."
-	"$ADB" shell rm -f "$REMOTE_VIDEO" >/dev/null 2>&1 || true
-
-	echo "Capturing screenshot -> $SCREENSHOT_PATH"
-	"$ADB" exec-out screencap -p > "$SCREENSHOT_PATH" || echo "Screenshot capture failed; capture manually."
+	echo "Skipping APK install, launch, logcat, and media capture because no Android device is connected."
 fi
 
 echo "Validating gate: $GATE"

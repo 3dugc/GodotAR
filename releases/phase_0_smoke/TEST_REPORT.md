@@ -128,6 +128,8 @@ Codex implementation status:
 - `addons/godot_arcore/export_plugin.gd` now gates ARCore AAR/dependency/manifest injection on the Android ARCore preset or `--xr-platform=arcore`, so Rokid/OpenXR exports do not accidentally carry ARCore runtime libraries.
 - `tools/c00/check_android_apk_surface.js` now inspects exported APKs for launch arguments and packaged native libraries, with separate gates for Rokid/OpenXR and Android/ARCore.
 - ARKit plugin init/deinit linkage is now verified against Godot's generated iOS plugin call path; the rebuilt `GodotARKit.xcframework` passes symbol checks and a no-sign Xcode device build.
+- Android/Rokid collection now treats lack of an ADB `device` state as an explicit diagnostic failure while still writing device profile and analysis evidence.
+- iPad collection now preserves diagnostics after app install failure, records `xcrun xctrace list devices`, and treats `offline` / `unavailable` iPad state as an explicit profile-analysis failure.
 
 Hardware status:
 
@@ -167,6 +169,8 @@ Hardware status:
 | `node tools/c00/check_ios_plugin_artifacts.js --file ios/plugins/godot_arkit/GodotARKit.gdip --require-binary` | Pass | `GodotARKit.xcframework` is present and symbol linkage matches Godot's iOS plugin call path |
 | `node tools/c00/check_ios_export_project.js --input builds/ipad/c00.zip` | Pass | Exported Xcode project references GodotARKit, ARKit/Metal frameworks, camera plist, and required capabilities |
 | `tools/c00/build_ios_xcode_project.sh builds/ipad/c00.zip` with `IOS_BUILD_PLATFORM=ios CODE_SIGNING_ALLOWED=NO` | Pass | Generic iOS device build produces `builds/ipad/GodotXRFoundation-nosign.app` |
+| `CAPTURE_MEDIA=0 DURATION=1 APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid ...` | Fail as expected / diagnostic produced | Current host has no ADB `device` state; collector writes `has_connected_device:false`, skips install/launch, appends device profile and analysis |
+| `DEVICECTL_TIMEOUT=5 CAPTURE_MEDIA=0 APP_PATH=builds/ipad/GodotXRFoundation-nosign.app tools/c00/collect_ios_smoke.sh "iPad M4" ...` | Fail as expected / diagnostic produced | Current iPad is `unavailable` in devicectl and `Devices Offline` in xctrace; collector preserves install failure, device profile, and profile analysis |
 
 ## Local Verification On 2026-06-08
 

@@ -103,6 +103,9 @@ function analyzeProfile(profile, gateName) {
 	if (!profile.adb || profile.adb.available !== true) {
 		failures.push("adb was not available during device profile collection.");
 	}
+	if (!profile.adb || profile.adb.has_connected_device !== true) {
+		failures.push("No connected Android device was available in adb state 'device'. Connect and authorize the Rokid/Android device before running the gate.");
+	}
 	if (!targetPackage.installed) {
 		recordMissingTarget(`Target package was not installed when profile was collected: ${profile.package || "unknown package"}`);
 	}
@@ -153,6 +156,7 @@ function analyzeProfile(profile, gateName) {
 		warnings,
 		evidence: {
 			device: deviceText || "unknown",
+			connected_devices: (profile.adb && Array.isArray(profile.adb.connected_devices)) ? profile.adb.connected_devices : [],
 			target_package_installed: Boolean(targetPackage.installed),
 			target_package_version: targetPackage.version_name || targetPackage.version_code || "",
 			xr_related_packages: xrPackages,

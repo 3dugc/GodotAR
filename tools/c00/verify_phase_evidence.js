@@ -265,6 +265,9 @@ function analyzeDeviceProfileJson(parsed, gate) {
 	if (!parsed.adb || parsed.adb.available !== true) {
 		failures.push("Device profile analysis: adb was not available during collection.");
 	}
+	if (!parsed.adb || parsed.adb.has_connected_device !== true) {
+		failures.push("Device profile analysis: no connected Android device was available in adb state 'device'.");
+	}
 	if (!targetPackage.installed) {
 		failures.push(`Device profile analysis: target package was not installed: ${parsed.package || "unknown package"}.`);
 	}
@@ -302,6 +305,7 @@ function analyzeDeviceProfileJson(parsed, gate) {
 		warnings,
 		evidence: {
 			device: device || "unknown",
+			connected_devices: (parsed.adb && Array.isArray(parsed.adb.connected_devices)) ? parsed.adb.connected_devices : [],
 			target_package_installed: Boolean(targetPackage.installed),
 			target_package_version: targetPackage.version_name || targetPackage.version_code || "",
 			xr_related_packages: xrPackages,
@@ -320,9 +324,13 @@ function analyzeIosDeviceProfileJson(parsed) {
 	const displays = Array.isArray(parsed.display_summary) ? parsed.display_summary : [];
 	const commands = parsed.commands || {};
 	const lockState = detectIosLockState(commands.lock_state);
+	const availability = detectIosDeviceAvailability(parsed);
 
 	if (!selectedDevice) {
 		failures.push(`Device profile analysis: no selected iPad device was found in devicectl output for ${parsed.device || "unknown device"}.`);
+	}
+	if (availability === "offline" || availability === "unavailable") {
+		failures.push(`Device profile analysis: iPad appears ${availability}; connect, unlock, and trust the device before running the ARKit gate.`);
 	}
 	if (!targetApp) {
 		failures.push(`Device profile analysis: target bundle was not installed: ${parsed.bundle_id || "unknown bundle"}.`);
@@ -342,12 +350,59 @@ function analyzeIosDeviceProfileJson(parsed) {
 		warnings,
 		evidence: {
 			device: summarizeIosDevice(selectedDevice),
+			device_availability: availability || "unknown",
 			target_bundle_installed: Boolean(targetApp),
 			target_bundle: parsed.bundle_id || "",
 			lock_state: lockState || "unknown",
 			displays,
 		},
 	};
+}
+
+
+function detectIosDeviceAvailability(profile) {
+	const selectedDevice = profile.selected_device || {};
+	const text = [
+		JSON.stringify(selectedDevice),
+		matchingIosDeviceLines(profile).join("\n"),
+	].join("\n").toLowerCase();
+	if (/\bunavailable\b/.test(text)) {
+		return "unavailable";
+	}
+	if (/\boffline\b/.test(text)) {
+		return "offline";
+	}
+	if (/\b(available|online|connected|paired)\b/.test(text)) {
+		return "available";
+	}
+	return "";
+}
+
+
+function matchingIosDeviceLines(profile) {
+	const commands = profile.commands || {};
+	const tokens = [
+		profile.device,
+		profile.selected_device && profile.selected_device.name,
+		profile.selected_device && profile.selected_device.identifier,
+		profile.selected_device && profile.selected_device.udid,
+		profile.selected_device && profile.selected_device.serialNumber,
+		profile.selected_device && profile.selected_device.serial_number,
+	].map(normalizeToken).filter(Boolean);
+	const texts = [
+		commands.list_devices ? `${commands.list_devices.stdout || ""}\n${commands.list_devices.stderr || ""}\n${commands.list_devices.log || ""}` : "",
+		commands.xctrace_devices ? `${commands.xctrace_devices.stdout || ""}\n${commands.xctrace_devices.stderr || ""}` : "",
+	];
+	if (tokens.length === 0) {
+		return [];
+	}
+	return texts.flatMap((text) => String(text || "").split(/\r?\n/))
+		.filter((line) => tokens.some((token) => normalizeToken(line).includes(token)));
+}
+
+
+function normalizeToken(value) {
+	return String(value || "").trim().toLowerCase();
 }
 
 

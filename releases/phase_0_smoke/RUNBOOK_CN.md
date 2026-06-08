@@ -371,6 +371,7 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 
 失败判定：
 
+- `adb devices -l` 没有任何 `device` 状态的设备：采集脚本会跳过安装/运行，但仍生成 `*-device.md/json` 和 `*-device-analysis.md`，结果不能通过；连接 Rokid/Android 设备并授权 USB 调试后重跑。
 - `Backend: EditorSim`：Android app 启动了，但 ARCore native path 没有被识别。
 - `Engine.has_singleton("GodotARCore")` 不存在：确认 `addons/godot_arcore` addon 已启用、AAR 已构建、Android export preset 启用了 `plugins/GodotARCore=true`。
 - `native_plugin=true` 但缺少 `capabilities.runtime="ARCore"` / `capabilities.arcore_supported=true`：日志证据太弱，不能证明是 ARCore runtime。
@@ -396,6 +397,7 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 
 失败判定：
 
+- `devicectl list devices` 显示 iPad 为 `unavailable`，或 `xcrun xctrace list devices` 显示在 `Devices Offline`：不能安装或启动 ARKit gate；连接、解锁、信任设备，并确认 Developer Mode 可用后重跑。采集脚本会继续生成 device profile 和 analysis 报告。
 - `Backend: EditorSim`：iOS app 启动了，但 ARKit native plugin 没有被 Godot 识别。
 - `singleton_registered=false` 且 `interface_registered=false`：检查 `.gdip`、`.xcframework`、Xcode linking、iOS plugin singleton 名称。
 - `native_plugin=true` 但 `session_state` 不能进入 `Running`：先跑 `node tools/c00/check_ios_plugin_artifacts.js`，确认 `GodotARKit` singleton 绑定了 `start_session` / `stop_session` / `get_tracking_status`，并确认 `GodotARKitSession` 真实调用 ARKit `runWithConfiguration`。
@@ -474,7 +476,7 @@ releases/phase_0_smoke/evidence/
 - smoke log gate：验证 `GXF_SMOKE`、backend、Unity-style session state、native plugin、ARKit/OpenXR 证据。
 - evidence bundle gate：验证截图和录屏是否存在并非空文件。
 - Android/Rokid device profile：记录设备属性、target package、XR 相关包和关键 feature。
-- iPad device profile：记录 devicectl details、display、lock state、目标 bundle 安装状态和原始 JSON；profile analysis 会检查目标 bundle 是否安装、设备是否锁屏。
+- iPad device profile：记录 devicectl details、display、lock state、目标 bundle 安装状态、xctrace 设备列表和原始 JSON；profile analysis 会检查目标 bundle 是否安装、设备是否锁屏，以及设备是否 `offline` / `unavailable`。
 
 smoke log gate 还会展示 `Runtime Metadata`，用于确认 Godot 版本、启动参数和 XR/rendering project setting 是否符合设备 gate。
 
@@ -493,7 +495,7 @@ releases/phase_0_smoke/C00_PHASE_REPORT.md
 ```
 
 只有这个总报告显示 `PASS`，C00 才能作为可发表结果。单台设备 gate 通过但其他必需设备缺证据时，C00 仍然不能标记完成。
-总报告默认还要求 Rokid、iPad 和 Android ARCore 都有 `*-device.md` 与 `*-device.json` device profile；Rokid/Android JSON 会被分析 ADB、target package、XR/OpenXR/ARCore runtime 包、camera/Vulkan/XR feature 和设备匹配风险，iPad JSON 会被分析选中设备、目标 bundle 安装状态、display 和 lock state。临时调试可用 `--allow-missing-device-profile` 降级为 warning，但不能作为 C00 可发表结果。
+总报告默认还要求 Rokid、iPad 和 Android ARCore 都有 `*-device.md` 与 `*-device.json` device profile；Rokid/Android JSON 会被分析 ADB、是否存在 `device` 状态的已授权真机、target package、XR/OpenXR/ARCore runtime 包、camera/Vulkan/XR feature 和设备匹配风险，iPad JSON 会被分析选中设备、目标 bundle 安装状态、display、lock state 和 `offline` / `unavailable` 状态。临时调试可用 `--allow-missing-device-profile` 降级为 warning，但不能作为 C00 可发表结果。
 
 ## 参考原则
 

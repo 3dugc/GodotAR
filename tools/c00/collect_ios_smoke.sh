@@ -35,7 +35,14 @@ fi
 
 if [ -n "$APP_PATH" ]; then
 	echo "Installing app bundle: $APP_PATH"
+	set +e
 	xcrun devicectl device install app --device "$DEVICE" "$APP_PATH"
+	INSTALL_STATUS="$?"
+	set -e
+	if [ "$INSTALL_STATUS" -ne 0 ]; then
+		COLLECT_STATUS="$INSTALL_STATUS"
+		echo "iPad app install failed with exit $INSTALL_STATUS; continuing to device profile and smoke diagnostics." >&2
+	fi
 fi
 
 echo "Collecting iPad device profile -> $PROFILE_PATH"

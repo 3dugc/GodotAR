@@ -15,15 +15,24 @@ const checks = [
 		file: "tools/c00/analyze_ios_device_profile.js",
 		requirements: [
 			["selected iPad device failure", /No selected iPad device was found/],
+			["offline iPad failure", /iPad appears \$\{availability\}/],
 			["target bundle install failure", /Target bundle was not installed/],
 			["lock state failure", /iPad appears to be locked/],
 			["allow missing target option", /allow-missing-target/],
 		],
 	},
 	{
+		file: "tools/c00/collect_ios_device_profile.js",
+		requirements: [
+			["xctrace fallback device list", /xctrace_devices:\s*runXcrun\(\["xctrace",\s*"list",\s*"devices"\]\)/],
+		],
+	},
+	{
 		file: "tools/c00/collect_ios_smoke.sh",
 		requirements: [
 			["profile analysis path", /PROFILE_ANALYSIS_PATH=/],
+			["install status capture", /INSTALL_STATUS="\$\?"/],
+			["continue after install failure", /continuing to device profile and smoke diagnostics/],
 			["iPad profile analyzer invocation", /analyze_ios_device_profile\.js/],
 			["append iPad profile analysis", /Device profile analysis:/],
 		],
@@ -36,6 +45,8 @@ const checks = [
 		requirements: [
 			["aggregate iPad profile analysis", /\["rokid",\s*"android-arcore",\s*"ipad"\]\.includes\(gate\)/],
 			["aggregate iPad analyzer helper", /function\s+analyzeIosDeviceProfileJson\s*\(/],
+			["aggregate iPad availability helper", /function\s+detectIosDeviceAvailability\s*\(/],
+			["aggregate offline iPad failure", /iPad appears \$\{availability\}/],
 			["aggregate target bundle failure", /target bundle was not installed/],
 			["aggregate lock state failure", /iPad appears to be locked/],
 		],

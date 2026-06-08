@@ -87,6 +87,7 @@ function collectProfile() {
 		displays: runDevicectl(["device", "info", "displays", "--device", device]),
 		apps: runDevicectl(["device", "info", "apps", "--device", device, "--bundle-id", bundleId]),
 		lock_state: runDevicectl(["device", "info", "lockState", "--device", device]),
+		xctrace_devices: runXcrun(["xctrace", "list", "devices"]),
 	};
 
 	const selectedDevice = selectDevice(commands.list_devices.json, device) ||
@@ -138,6 +139,22 @@ function runDevicectl(commandArgs) {
 		json,
 		json_path: jsonOutput,
 		log_path: logOutput,
+	};
+}
+
+
+function runXcrun(commandArgs) {
+	const result = spawnSync("xcrun", commandArgs, { encoding: "utf8" });
+	return {
+		command: ["xcrun", ...commandArgs].join(" "),
+		ok: result.status === 0,
+		status: result.status,
+		stdout: result.stdout || "",
+		stderr: result.stderr || "",
+		log: "",
+		json: null,
+		json_path: "",
+		log_path: "",
 	};
 }
 

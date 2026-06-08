@@ -81,12 +81,16 @@ function analyzeProfile(profile) {
 	const displays = Array.isArray(profile.display_summary) ? profile.display_summary : [];
 	const commands = profile.commands || {};
 	const lockState = detectLockState(commands.lock_state);
+	const availability = detectDeviceAvailability(profile);
 
 	if (profile.gate && String(profile.gate).toLowerCase() !== "ipad") {
 		warnings.push(`Profile was collected for gate "${profile.gate}", but analyzed as "ipad".`);
 	}
 	if (!selectedDevice) {
 		failures.push(`No selected iPad device was found in devicectl output for ${profile.device || "unknown device"}.`);
+	}
+	if (availability === "offline" || availability === "unavailable") {
+		failures.push(`iPad appears ${availability}; connect, unlock, and trust the device before running the ARKit gate.`);
 	}
 	if (!targetApp) {
 		recordMissingTarget(`Target bundle was not installed when profile was collected: ${profile.bundle_id || "unknown bundle"}.`);
@@ -113,6 +117,7 @@ function analyzeProfile(profile) {
 		warnings,
 		evidence: {
 			device: summarizeDevice(selectedDevice),
+			device_availability: availability || "unknown",
 			target_bundle_installed: Boolean(targetApp),
 			target_bundle: profile.bundle_id || "",
 			lock_state: lockState || "unknown",
@@ -127,6 +132,55 @@ function analyzeProfile(profile) {
 			failures.push(message);
 		}
 	}
+}
+
+
+function detectDeviceAvailability(profile) {
+	const commands = profile.commands || {};
+	const selectedDevice = profile.selected_device || {};
+	const targetLines = matchingDeviceLines(profile);
+	const text = [
+		JSON.stringify(selectedDevice),
+		targetLines.join("\n"),
+	].join("\n").toLowerCase();
+
+	if (/\bunavailable\b/.test(text)) {
+		return "unavailable";
+	}
+	if (/\boffline\b/.test(text)) {
+		return "offline";
+	}
+	if (/\b(available|online|connected|paired)\b/.test(text)) {
+		return "available";
+	}
+	return "";
+}
+
+
+function matchingDeviceLines(profile) {
+	const commands = profile.commands || {};
+	const tokens = [
+		profile.device,
+		profile.selected_device && profile.selected_device.name,
+		profile.selected_device && profile.selected_device.identifier,
+		profile.selected_device && profile.selected_device.udid,
+		profile.selected_device && profile.selected_device.serialNumber,
+		profile.selected_device && profile.selected_device.serial_number,
+	].map(normalizeToken).filter(Boolean);
+	const texts = [
+		commands.list_devices ? `${commands.list_devices.stdout || ""}\n${commands.list_devices.stderr || ""}\n${commands.list_devices.log || ""}` : "",
+		commands.xctrace_devices ? `${commands.xctrace_devices.stdout || ""}\n${commands.xctrace_devices.stderr || ""}` : "",
+	];
+	if (tokens.length === 0) {
+		return [];
+	}
+	return texts.flatMap((text) => String(text || "").split(/\r?\n/))
+		.filter((line) => tokens.some((token) => normalizeToken(line).includes(token)));
+}
+
+
+function normalizeToken(value) {
+	return String(value || "").trim().toLowerCase();
 }
 
 
