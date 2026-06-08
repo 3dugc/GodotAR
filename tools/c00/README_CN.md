@@ -71,6 +71,22 @@ tools/c00/run_device_cycle.sh all
 
 ## Export Preset 检查
 
+如果设备机还没有 `export_presets.cfg`，可以先生成 C00 starter：
+
+```bash
+node tools/c00/write_export_presets_template.js --output export_presets.cfg
+```
+
+常用参数：
+
+- `--package org.example.app`：Android package id。
+- `--bundle org.example.app`：iOS bundle id。
+- `--team-id ABCDE12345`：Apple Team ID 占位值。
+- `--force`：覆盖已有文件。
+- `--dry-run`：只打印模板。
+
+生成后请在 Godot editor 的 Export 面板打开并复核 Android XR Mode、OpenXR vendor loader、iOS signing 和 plugin 状态，再保存一次。
+
 手动检查 preset 名称和平台：
 
 ```bash

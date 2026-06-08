@@ -10,6 +10,28 @@ node tools/c00/check_export_presets.js --gate all --file export_presets.cfg
 
 `tools/c00/preflight.sh <gate>` 会自动执行同样的检查。
 
+如果设备机还没有任何 preset，可以先生成 C00 starter：
+
+```bash
+node tools/c00/write_export_presets_template.js --output export_presets.cfg
+```
+
+示例：
+
+```bash
+node tools/c00/write_export_presets_template.js \
+  --package org.example.godotxrfoundation \
+  --bundle org.example.godotxrfoundation \
+  --team-id ABCDE12345 \
+  --output export_presets.cfg
+```
+
+生成后必须在 Godot editor 的 Export 面板逐项复核并保存：
+
+- Android/Rokid：确认 XR Mode 是 OpenXR，并按 Rokid runtime 或 OpenXR Vendors 插件配置 loader。
+- Android/ARCore：确认 native ARCore Android plugin 已按本机插件接入方式启用。
+- iOS/iPad：确认 `GodotARKit` plugin 启用，签名和 provisioning 使用本机 Apple Developer 配置。
+
 ## Preset 1: C00 Rokid OpenXR
 
 平台：Android
@@ -105,7 +127,7 @@ APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <devic
 
 ## 不通过 preset 硬编码的原因
 
-Rokid/OpenXR loader、ARCore plugin、ARKit plugin、Team ID、签名和 export template 路径都依赖本机环境和 Godot 版本。C00 当前提交的是稳定的导出命名、检查脚本和 gate 判定；真正的 `export_presets.cfg` 建议在有 Godot 编辑器和设备的机器上生成后再提交。
+Rokid/OpenXR loader、ARCore plugin、ARKit plugin、Team ID、签名和 export template 路径都依赖本机环境和 Godot 版本。C00 当前提交的是稳定的导出命名、starter 生成脚本、检查脚本和 gate 判定；真正的 `export_presets.cfg` 建议在有 Godot 编辑器和设备的机器上生成、复核后再提交。
 
 ## 官方参考
 

@@ -120,7 +120,9 @@ if needs_export_preset; then
 		fi
 	else
 		printf "MISS %s\n" "$PROJECT_ROOT/export_presets.cfg"
-		printf "     Create C00 export presets in the Godot editor. See tools/c00/EXPORT_PRESETS_CN.md\n"
+		printf "     Create C00 export presets in the Godot editor, or run:\n"
+		printf "     node tools/c00/write_export_presets_template.js --output export_presets.cfg\n"
+		printf "     See tools/c00/EXPORT_PRESETS_CN.md\n"
 		status=1
 	fi
 fi

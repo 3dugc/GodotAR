@@ -30,6 +30,7 @@ Codex implementation status:
 - `ios/plugins/godot_arkit/build_xcframework.sh` now builds the ARKit iOS plugin artifacts when `GODOT_SOURCE_DIR` points to matching Godot source headers.
 - `tools/c00/run_device_cycle.sh` now orchestrates preflight, optional ARKit plugin build, Godot export, device log collection, and gate validation for iPad/ARKit and Rokid/OpenXR.
 - `tools/c00/check_export_presets.js` now validates that `export_presets.cfg` contains the required C00 preset names before export, requires Rokid exports to include `--xr-platform=rokid`, and requires the iPad preset to enable `GodotARKit`.
+- `tools/c00/write_export_presets_template.js` now generates a local C00 export preset starter for device machines before Godot editor review.
 - `tools/c00/validate_smoke_log.js` now requires explicit ARKit evidence for the iPad gate, not only `native_plugin=true`.
 - Device collectors now attempt to save media evidence: Android/Rokid records `.mp4` plus `.png`; iOS captures `.png` when `idevicescreenshot` is available and otherwise asks for manual screenshot/recording.
 - `tools/c00/validate_evidence_bundle.js` now enforces publishable evidence: Rokid/Android require screenshot plus recording; iPad requires at least one screenshot or recording.
@@ -48,6 +49,7 @@ Hardware status:
 | `git diff --check` | Pass | No whitespace errors |
 | `node --check tools/c00/validate_smoke_log.js` | Pass | Validator parses |
 | `node --check tools/c00/validate_evidence_bundle.js` | Pass | Evidence validator parses |
+| `node --check tools/c00/write_export_presets_template.js` | Pass | Preset starter writer parses |
 | `bash -n tools/c00/*.sh ios/plugins/godot_arkit/build_xcframework.sh` | Pass | Shell scripts parse |
 | Synthetic iPad ARKit gate | Pass | `backend:"ARKit"`, `native_plugin:true` |
 | Synthetic Rokid AR gate | Pass | `backend:"OpenXR"`, `ar_product_path:true` |

@@ -30,6 +30,12 @@ GODOT_BIN=/Applications/Godot.app/Contents/MacOS/Godot tools/c00/preflight.sh
 tools/c00/EXPORT_PRESETS_CN.md
 ```
 
+如果还没有 `export_presets.cfg`，先生成 C00 starter，然后用 Godot editor 复核并保存：
+
+```bash
+node tools/c00/write_export_presets_template.js --output export_presets.cfg
+```
+
 确认 C00 preset 名称和平台：
 
 ```bash
