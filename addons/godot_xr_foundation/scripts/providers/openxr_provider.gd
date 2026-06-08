@@ -33,6 +33,23 @@ const PASSTHROUGH_EVIDENCE_METHODS := [
 	"is_ar_supported",
 ]
 
+const PASSTHROUGH_START_METHODS := [
+	"start_passthrough",
+	"enable_passthrough",
+	"set_passthrough_enabled",
+	"set_passthrough",
+]
+
+const PASSTHROUGH_STOP_METHODS := [
+	"stop_passthrough",
+	"disable_passthrough",
+	"set_passthrough_enabled",
+	"set_passthrough",
+]
+
+var _passthrough_start_report := {}
+var _passthrough_started_targets: Array[String] = []
+
 
 func configure(p_owner: Node, p_backend: int, options: Dictionary = {}) -> void:
 	super.configure(p_owner, p_backend, options)
@@ -67,6 +84,7 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	var vendor_feature_report := _vendor_feature_report(vendor_singletons)
 	var interface_passthrough_supported := _interface_has_bool_method(xr_iface, "is_passthrough_supported")
 	var has_vendor_passthrough := interface_passthrough_supported or _vendor_report_has_true(vendor_feature_report, PASSTHROUGH_EVIDENCE_METHODS) or _has_vendor_passthrough_singleton(vendor_singletons, vendor_feature_report)
+	var passthrough_started := _passthrough_is_started(xr_iface, vendor_feature_report)
 	var has_planes := _has_openxr_plane_trackers()
 	var has_tracking := xr_iface != null
 	var has_input_ray := xr_iface != null
@@ -91,6 +109,8 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	capabilities["openxr_vendor_feature_report"] = vendor_feature_report
 	capabilities["openxr_interface_passthrough_supported"] = interface_passthrough_supported
 	capabilities["openxr_vendor_passthrough"] = has_vendor_passthrough
+	capabilities["openxr_passthrough_started"] = passthrough_started
+	capabilities["openxr_passthrough_start_report"] = _passthrough_start_report
 	capabilities["openxr_ar_tier"] = ar_tier
 	capabilities["openxr_ar_evidence"] = ar_evidence
 	capabilities["openxr_fallback"] = _fallback_for_tier(ar_tier, has_planes)
@@ -117,6 +137,8 @@ func start(options: Dictionary = {}) -> bool:
 	if owner and owner.get_viewport():
 		owner.get_viewport().use_xr = true
 
+	_start_passthrough(options)
+
 	if bool(options.get("disable_vsync", true)) and OS.get_name() not in ["Android", "iOS"]:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 
@@ -125,6 +147,7 @@ func start(options: Dictionary = {}) -> bool:
 
 
 func stop() -> void:
+	_stop_passthrough()
 	super.stop()
 
 
@@ -186,6 +209,106 @@ func _vendor_feature_report(vendor_singletons: Array[String]) -> Dictionary:
 		if not feature_report.is_empty():
 			report[singleton_name] = feature_report
 	return report
+
+
+func _start_passthrough(options: Dictionary = {}) -> void:
+	_passthrough_start_report = {}
+	_passthrough_started_targets.clear()
+	if not bool(options.get("passthrough", true)) and not bool(options.get("prefer_ar", true)):
+		_passthrough_start_report["skipped"] = "passthrough disabled by options"
+		return
+
+	if xr_interface and xr_interface.has_method("is_passthrough_supported"):
+		var supported: Variant = xr_interface.call("is_passthrough_supported")
+		_passthrough_start_report["xr_interface_supported"] = supported
+		if typeof(supported) == TYPE_BOOL and bool(supported) and xr_interface.has_method("start_passthrough"):
+			var result: Variant = xr_interface.call("start_passthrough")
+			_passthrough_start_report["xr_interface_start_passthrough"] = result
+			if _truthy_call_result(result):
+				_passthrough_started_targets.append("XRInterface")
+
+	var vendor_singletons := _available_vendor_singletons(options)
+	var vendor_report := {}
+	for singleton_name in vendor_singletons:
+		var singleton := Engine.get_singleton(StringName(singleton_name))
+		if singleton == null:
+			continue
+		var start_result := _call_passthrough_lifecycle(singleton, PASSTHROUGH_START_METHODS, true)
+		if not start_result.is_empty():
+			vendor_report[singleton_name] = start_result
+			if bool(start_result.get("started", false)):
+				_passthrough_started_targets.append(singleton_name)
+	if not vendor_report.is_empty():
+		_passthrough_start_report["vendor_start"] = vendor_report
+
+
+func _stop_passthrough() -> void:
+	var stop_report := {}
+	if xr_interface and "XRInterface" in _passthrough_started_targets and xr_interface.has_method("stop_passthrough"):
+		stop_report["XRInterface"] = xr_interface.call("stop_passthrough")
+
+	for singleton_name in _passthrough_started_targets:
+		if singleton_name == "XRInterface":
+			continue
+		if not Engine.has_singleton(StringName(singleton_name)):
+			continue
+		var singleton := Engine.get_singleton(StringName(singleton_name))
+		if singleton == null:
+			continue
+		var result := _call_passthrough_lifecycle(singleton, PASSTHROUGH_STOP_METHODS, false)
+		if not result.is_empty():
+			stop_report[singleton_name] = result
+
+	if not stop_report.is_empty():
+		_passthrough_start_report["stop"] = stop_report
+	_passthrough_started_targets.clear()
+
+
+func _call_passthrough_lifecycle(singleton: Object, methods: Array, enable: bool) -> Dictionary:
+	var report := {}
+	for method_name in methods:
+		if not singleton.has_method(method_name):
+			continue
+		var result: Variant = null
+		var argument_count := _method_argument_count(singleton, method_name)
+		if argument_count > 0:
+			result = singleton.call(method_name, enable)
+		else:
+			result = singleton.call(method_name)
+		report["method"] = method_name
+		report["result"] = result
+		report["started"] = enable and _truthy_call_result(result)
+		report["stopped"] = not enable and _truthy_call_result(result)
+		return report
+	return report
+
+
+func _method_argument_count(target: Object, method_name: String) -> int:
+	for method in target.get_method_list():
+		if String(method.get("name", "")) == method_name:
+			var args: Variant = method.get("args", [])
+			if args is Array:
+				return args.size()
+			return 0
+	return 0
+
+
+func _passthrough_is_started(xr_iface: XRInterface, vendor_feature_report: Dictionary) -> bool:
+	if xr_iface != null and xr_iface.has_method("is_passthrough_started"):
+		var value: Variant = xr_iface.call("is_passthrough_started")
+		if typeof(value) == TYPE_BOOL and bool(value):
+			return true
+	if not _passthrough_started_targets.is_empty():
+		return true
+	return _vendor_report_has_true(vendor_feature_report, ["is_passthrough_started"])
+
+
+func _truthy_call_result(value: Variant) -> bool:
+	if typeof(value) == TYPE_BOOL:
+		return bool(value)
+	if typeof(value) == TYPE_INT:
+		return int(value) == OK
+	return typeof(value) == TYPE_NIL
 
 
 func _vendor_report_has_true(vendor_feature_report: Dictionary, method_names: Array) -> bool:

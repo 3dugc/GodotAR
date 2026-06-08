@@ -12,6 +12,7 @@
 - 配置 AR blend mode。
 - 查询和输出 capability flags。
 - 启动 passthrough 或 see-through 合成。
+- 在 provider `start()` 生命周期中优先调用 `XRInterface.start_passthrough()` / vendor singleton passthrough 启动方法，并在 `stop()` 中成对停止。
 - 提供输入 profile。
 - 将 OpenXR/vendor trackables、raycasts、anchors 转换为 Godot XR Foundation 的统一数据结构。
 - 在 AR 能力不足时提供 fallback。
@@ -95,6 +96,8 @@ var notes: String
 [OpenXRProvider] vendor_singletons=
 [OpenXRProvider] capabilities=
 [OpenXRProvider] ar_tier=A|B|C|D
+[OpenXRProvider] passthrough_started=
+[OpenXRProvider] passthrough_start_report=
 [OpenXRProvider] fallback=
 [OpenXRProvider] errors=
 ```
@@ -105,4 +108,3 @@ var notes: String
 - AR 能力只通过 capability flags 暴露。
 - VR-only runtime 不被误报为 AR-ready。
 - 设备差异进入 profile 和 feature module，不进入业务层。
-
