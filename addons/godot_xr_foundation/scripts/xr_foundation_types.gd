@@ -16,6 +16,14 @@ enum SessionState {
 	FAILED,
 }
 
+enum Availability {
+	UNKNOWN,
+	UNSUPPORTED,
+	SUPPORTED,
+	NEEDS_INSTALL,
+	INSTALLED,
+}
+
 enum TrackingState {
 	NONE,
 	LIMITED,
@@ -61,6 +69,34 @@ static func backend_from_string(value: String) -> int:
 			return Backend.AUTO
 
 
+static func session_state_to_string(session_state: int) -> StringName:
+	match session_state:
+		SessionState.STOPPED:
+			return &"Stopped"
+		SessionState.STARTING:
+			return &"Starting"
+		SessionState.RUNNING:
+			return &"Running"
+		SessionState.FAILED:
+			return &"Failed"
+		_:
+			return &"Unknown"
+
+
+static func availability_to_string(availability: int) -> StringName:
+	match availability:
+		Availability.UNSUPPORTED:
+			return &"Unsupported"
+		Availability.SUPPORTED:
+			return &"Supported"
+		Availability.NEEDS_INSTALL:
+			return &"NeedsInstall"
+		Availability.INSTALLED:
+			return &"Installed"
+		_:
+			return &"Unknown"
+
+
 static func tracking_status_to_state(status: int) -> int:
 	match status:
 		XRInterface.XR_NORMAL_TRACKING:
@@ -70,3 +106,18 @@ static func tracking_status_to_state(status: int) -> int:
 		_:
 			return TrackingState.NONE
 
+
+static func tracking_state_to_string(tracking_state: int) -> StringName:
+	match tracking_state:
+		TrackingState.TRACKING:
+			return &"Tracking"
+		TrackingState.LIMITED:
+			return &"Limited"
+		TrackingState.NONE:
+			return &"None"
+		_:
+			return &"Unknown"
+
+
+static func tracking_status_to_string(status: int) -> StringName:
+	return tracking_state_to_string(tracking_status_to_state(status))

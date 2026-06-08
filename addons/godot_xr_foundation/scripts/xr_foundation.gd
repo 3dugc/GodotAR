@@ -5,6 +5,7 @@ signal session_started(backend: int, display_name: StringName)
 signal session_failed(reason: String)
 signal session_stopped
 signal tracking_state_changed(status: int)
+signal availability_checked(report: Dictionary)
 
 const EditorSimProviderScript := preload("res://addons/godot_xr_foundation/scripts/providers/editor_sim_provider.gd")
 const NativeXRProviderScript := preload("res://addons/godot_xr_foundation/scripts/providers/native_xr_provider.gd")
@@ -41,13 +42,15 @@ func start_session(requested_backend: int = XRFoundationTypes.Backend.AUTO, opti
 	last_error = ""
 
 	var failures: Array[String] = []
-	for candidate in _candidate_backends(requested_backend, options):
+	var resolved_options := options.duplicate()
+	resolved_options["platform_hint"] = resolve_platform_hint(String(options.get("platform_hint", "")))
+	for candidate in _candidate_backends(requested_backend, resolved_options):
 		var candidate_provider := _make_provider(candidate)
-		candidate_provider.configure(self, candidate, options)
+		candidate_provider.configure(self, candidate, resolved_options)
 		if not candidate_provider.is_supported():
 			failures.append("%s unsupported" % String(candidate_provider.display_name))
 			continue
-		if candidate_provider.start(options):
+		if candidate_provider.start(resolved_options):
 			provider = candidate_provider
 			backend = candidate
 			state = XRFoundationTypes.SessionState.RUNNING
@@ -67,6 +70,47 @@ func start_session(requested_backend: int = XRFoundationTypes.Backend.AUTO, opti
 	return false
 
 
+func check_availability(requested_backend: int = XRFoundationTypes.Backend.AUTO, options: Dictionary = {}) -> Dictionary:
+	var resolved_options := options.duplicate()
+	resolved_options["platform_hint"] = resolve_platform_hint(String(options.get("platform_hint", "")))
+
+	var candidates: Array[Dictionary] = []
+	var selected_backend := XRFoundationTypes.Backend.AUTO
+	var supported := false
+	for candidate in _candidate_backends(requested_backend, resolved_options):
+		var candidate_provider := _make_provider(candidate)
+		candidate_provider.configure(self, candidate, resolved_options)
+		var candidate_report := candidate_provider.check_availability(resolved_options)
+		candidates.append(candidate_report)
+		if not supported and bool(candidate_report.get("supported", false)):
+			supported = true
+			selected_backend = candidate
+
+	var report := {
+		"requested_backend": XRFoundationTypes.backend_to_string(requested_backend),
+		"selected_backend": XRFoundationTypes.backend_to_string(selected_backend),
+		"supported": supported,
+		"platform_hint": resolved_options.get("platform_hint", ""),
+		"session_state": get_session_state_name(),
+		"candidates": candidates,
+		"timestamp_msec": Time.get_ticks_msec(),
+	}
+	availability_checked.emit(report)
+	return report
+
+
+func install(requested_backend: int = XRFoundationTypes.Backend.AUTO, options: Dictionary = {}) -> bool:
+	var resolved_options := options.duplicate()
+	resolved_options["platform_hint"] = resolve_platform_hint(String(options.get("platform_hint", "")))
+	for candidate in _candidate_backends(requested_backend, resolved_options):
+		var candidate_provider := _make_provider(candidate)
+		candidate_provider.configure(self, candidate, resolved_options)
+		if candidate_provider.install(resolved_options):
+			return true
+		last_error = candidate_provider.last_error
+	return false
+
+
 func stop_session() -> void:
 	if provider:
 		provider.stop()
@@ -75,6 +119,11 @@ func stop_session() -> void:
 	state = XRFoundationTypes.SessionState.STOPPED
 	session_state_changed.emit(state)
 	session_stopped.emit()
+
+
+func reset_session(requested_backend: int = XRFoundationTypes.Backend.AUTO, options: Dictionary = {}) -> bool:
+	stop_session()
+	return start_session(requested_backend, options)
 
 
 func is_running() -> bool:
@@ -105,6 +154,68 @@ func get_backend_name() -> StringName:
 	return XRFoundationTypes.backend_to_string(backend)
 
 
+func get_backend() -> int:
+	return backend
+
+
+func get_provider_name() -> StringName:
+	if provider == null:
+		return &"None"
+	return provider.display_name
+
+
+func get_session_state_name() -> StringName:
+	return XRFoundationTypes.session_state_to_string(state)
+
+
+func get_tracking_status() -> int:
+	if provider == null:
+		return XRInterface.XR_UNKNOWN_TRACKING
+	return provider.get_tracking_status()
+
+
+func get_tracking_state() -> int:
+	return XRFoundationTypes.tracking_status_to_state(get_tracking_status())
+
+
+func get_tracking_state_name() -> StringName:
+	return XRFoundationTypes.tracking_status_to_string(get_tracking_status())
+
+
+func get_capabilities() -> Dictionary:
+	if provider == null:
+		return {}
+	return provider.get_capabilities({"platform_hint": resolve_platform_hint("")})
+
+
+func get_last_error() -> String:
+	return last_error
+
+
+func resolve_platform_hint(explicit_hint: String = "") -> String:
+	var hint := explicit_hint.strip_edges().to_lower()
+	if hint != "" and hint != "auto":
+		return hint
+
+	for arg in OS.get_cmdline_args():
+		var text := String(arg).strip_edges()
+		if text.begins_with("--xr-platform="):
+			return text.trim_prefix("--xr-platform=").strip_edges().to_lower()
+		if text.begins_with("--xr-backend="):
+			return text.trim_prefix("--xr-backend=").strip_edges().to_lower()
+
+	var project_hint := String(ProjectSettings.get_setting("godot_xr_foundation/platform_hint", "")).strip_edges().to_lower()
+	if project_hint != "" and project_hint != "auto":
+		return project_hint
+
+	var model := OS.get_model_name().to_lower()
+	if model.contains("rokid"):
+		return "rokid"
+	if OS.get_name() == "iOS":
+		return "arkit"
+	return ""
+
+
 func _candidate_backends(requested_backend: int, options: Dictionary) -> Array[int]:
 	if requested_backend != XRFoundationTypes.Backend.AUTO:
 		var requested: Array[int] = [requested_backend]
@@ -117,6 +228,8 @@ func _candidate_backends(requested_backend: int, options: Dictionary) -> Array[i
 		return [XRFoundationTypes.Backend.OPENXR, XRFoundationTypes.Backend.ARCORE, XRFoundationTypes.Backend.EDITOR_SIM]
 	if hint in ["handheld", "handheld_ar", "phone", "mobile_ar", "arcore"]:
 		return [XRFoundationTypes.Backend.ARCORE, XRFoundationTypes.Backend.OPENXR, XRFoundationTypes.Backend.EDITOR_SIM]
+	if hint in ["ipad", "iphone", "ios", "arkit"]:
+		return [XRFoundationTypes.Backend.ARKIT, XRFoundationTypes.Backend.EDITOR_SIM]
 
 	match OS.get_name():
 		"Android":

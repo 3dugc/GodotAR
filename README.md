@@ -10,10 +10,16 @@ The goal is not to hide Godot. The goal is to give Unity projects a familiar mig
 - XRI-style components: `XRRayInteractor`, `XRGrabInteractable`
 - Provider backends: Editor simulation, OpenXR/Rokid, ARCore, ARKit
 
+The project is addon/plugin-first. Platform support should live in Godot addons, Android plugins, iOS plugins, GDExtensions, or OpenXR vendor extensions. Engine patches are a last resort and must stay minimal and isolated.
+
 ## Current Scope
 
 Implemented:
 
+- C00 device smoke test scene: `demo/00_device_smoke_test.tscn`.
+- `GXF_SMOKE|{...}` structured runtime logs for backend, provider, tracking, capabilities, FPS, and errors.
+- Unity AR Foundation-style `ARSession` compatibility wrapper with `CheckAvailability`, `Install`, `Reset`, and `state` aliases.
+- Provider availability reports and capability flags.
 - Runtime backend selection with fallback to editor simulation.
 - OpenXR startup through `XRServer.find_interface("OpenXR")`.
 - AR passthrough setup through `XRInterface.environment_blend_mode` when supported.
@@ -37,7 +43,9 @@ Open this folder in Godot 4:
 outputs/godot_xr_foundation
 ```
 
-Run `demo/main.tscn`.
+Run `demo/00_device_smoke_test.tscn` first. This is the first-cycle device gate for Rokid/OpenXR and iPad/ARKit.
+
+Then run `demo/main.tscn` for the placement sample.
 
 In the editor, the project falls back to `Editor Simulation`. Click in the viewport to place cubes on the simulated floor.
 
@@ -46,6 +54,14 @@ For Rokid or other Android OpenXR hardware, set `XRSessionManager.platform_hint`
 For phone ARCore, set `XRSessionManager.platform_hint` to `handheld_ar` or set `requested_backend` to `ARCore`.
 
 For iOS ARKit, set `requested_backend` to `ARKit`.
+
+The smoke test prints structured lines:
+
+```text
+GXF_SMOKE|{"cycle":"C00","event":"heartbeat","backend":"OpenXR","provider":"OpenXR",...}
+```
+
+For C00, a real Rokid pass must show `backend=OpenXR`, and a real iPad pass must show `backend=ARKit`. `EditorSim` proves that the Godot app starts, but it does not satisfy the device gate.
 
 ## Key Files
 
@@ -73,6 +89,9 @@ For iOS ARKit, set `requested_backend` to `ARKit`.
 - `DEVICE_BRINGUP_CHECKLIST_CN.md`  
   Rokid, Quest/PICO OpenXR, Android ARCore, and iOS ARKit device bring-up checklist.
 
+- `releases/phase_0_smoke/`
+  C00 device runbook and test report template.
+
 - `SPEC_DRIVEN_EXECUTION_CN.md`  
   Spec-driven execution plan: every cycle must be runnable, detectable, and publishable.
 
@@ -84,6 +103,9 @@ For iOS ARKit, set `requested_backend` to `ARKit`.
 
 - `PROVIDER_PRIORITY_AND_RELEASE_GATES_CN.md`  
   Defines OpenXR, ARKit, and ARCore as equal P0 providers, with Rokid/OpenXR and iPad/ARKit as every-cycle release gates.
+
+- `GODOT_PLUGIN_BOUNDARY_CN.md`
+  Defines the addon/plugin-first architecture rule and engine-patch escalation rules.
 
 - `UNITY_REFERENCE_RULES_CN.md`  
   Rules for resolving architecture ambiguity by reverse-engineering Unity AR Foundation, XR Plug-in, and OpenXR documentation.

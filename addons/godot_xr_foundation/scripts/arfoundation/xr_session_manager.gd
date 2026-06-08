@@ -18,7 +18,43 @@ func _ready() -> void:
 
 
 func start() -> bool:
-	var options := {
+	return XRFoundation.start_session(requested_backend, _build_options())
+
+
+func stop() -> void:
+	XRFoundation.stop_session()
+
+
+func reset() -> bool:
+	return XRFoundation.reset_session(requested_backend, _build_options())
+
+
+func check_availability() -> Dictionary:
+	return XRFoundation.check_availability(requested_backend, _build_options())
+
+
+func install() -> bool:
+	return XRFoundation.install(requested_backend, _build_options())
+
+
+func get_state() -> int:
+	return XRFoundation.state
+
+
+func get_session_state_name() -> StringName:
+	return XRFoundation.get_session_state_name()
+
+
+func get_tracking_state() -> int:
+	return XRFoundation.get_tracking_state()
+
+
+func get_tracking_state_name() -> StringName:
+	return XRFoundation.get_tracking_state_name()
+
+
+func _build_options() -> Dictionary:
+	return {
 		"platform_hint": platform_hint,
 		"prefer_ar": prefer_ar,
 		"passthrough": passthrough,
@@ -27,9 +63,3 @@ func start() -> bool:
 		"simulated_floor_height": simulated_floor_height,
 		"simulated_plane_size": simulated_plane_size,
 	}
-	return XRFoundation.start_session(requested_backend, options)
-
-
-func stop() -> void:
-	XRFoundation.stop_session()
-

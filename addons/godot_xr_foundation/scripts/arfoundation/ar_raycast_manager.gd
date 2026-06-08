@@ -23,3 +23,11 @@ func screen_raycast(camera: Camera3D, screen_position: Vector2, max_results: int
 	var origin := camera.project_ray_origin(screen_position)
 	var direction := camera.project_ray_normal(screen_position)
 	return raycast(origin, direction, max_results)
+
+
+func Raycast(origin: Vector3, direction: Vector3, max_results: int = 1) -> Array[XRHit]:
+	return raycast(origin, direction, max_results)
+
+
+func ScreenRaycast(camera: Camera3D, screen_position: Vector2, max_results: int = 1) -> Array[XRHit]:
+	return screen_raycast(camera, screen_position, max_results)

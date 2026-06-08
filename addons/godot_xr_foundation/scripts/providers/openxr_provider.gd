@@ -13,6 +13,39 @@ func is_supported() -> bool:
 	return XRServer.find_interface(DEFAULT_INTERFACE_NAME) != null
 
 
+func get_provider_source() -> StringName:
+	return &"OpenXR XRInterface"
+
+
+func check_availability(options: Dictionary = {}) -> Dictionary:
+	var report := super.check_availability(options)
+	report["interface_registered"] = XRServer.find_interface(DEFAULT_INTERFACE_NAME) != null
+	report["runtime_hint"] = String(options.get("platform_hint", ""))
+	return report
+
+
+func get_capabilities(options: Dictionary = {}) -> Dictionary:
+	var capabilities := super.get_capabilities(options)
+	var xr_iface := XRServer.find_interface(DEFAULT_INTERFACE_NAME)
+	var blend_modes := _environment_blend_mode_names(xr_iface)
+	var has_ar_blend := "alpha_blend" in blend_modes or "additive" in blend_modes
+
+	capabilities["session"] = xr_iface != null
+	capabilities["tracking"] = xr_iface != null
+	capabilities["camera_background"] = has_ar_blend
+	capabilities["passthrough"] = has_ar_blend or _interface_has_bool_method(xr_iface, "is_passthrough_supported")
+	capabilities["raycast"] = true
+	capabilities["plane_detection"] = _has_openxr_plane_trackers()
+	capabilities["anchors"] = true
+	capabilities["input_ray"] = true
+	capabilities["hand_tracking"] = xr_iface != null
+	capabilities["ar_product_path"] = has_ar_blend
+	capabilities["environment_blend_modes"] = blend_modes
+	capabilities["openxr_interface"] = xr_iface != null
+	capabilities["device_profile"] = String(options.get("platform_hint", "openxr"))
+	return capabilities
+
+
 func start(options: Dictionary = {}) -> bool:
 	xr_interface = XRServer.find_interface(DEFAULT_INTERFACE_NAME)
 	if xr_interface == null:
@@ -53,6 +86,21 @@ func get_planes() -> Array[ARPlane]:
 	return planes
 
 
+func _has_openxr_plane_trackers() -> bool:
+	for tracker_name in _get_all_tracker_names():
+		var tracker := XRServer.get_tracker(tracker_name)
+		if tracker != null and tracker.get_class().to_lower().contains("plane"):
+			return true
+	return false
+
+
+func _interface_has_bool_method(xr_iface: XRInterface, method_name: String) -> bool:
+	if xr_iface == null or not xr_iface.has_method(method_name):
+		return false
+	var result: Variant = xr_iface.call(method_name)
+	return typeof(result) == TYPE_BOOL and bool(result)
+
+
 func _get_all_tracker_names() -> Array[StringName]:
 	var names: Array[StringName] = []
 	if XRServer.has_method("get_trackers"):
@@ -83,4 +131,3 @@ func _plane_from_tracker(tracker_name: StringName, tracker: Object) -> ARPlane:
 	var plane := ARPlane.new(tracker_name, Transform3D.IDENTITY, size, alignment, tracker)
 	plane.label = label
 	return plane
-

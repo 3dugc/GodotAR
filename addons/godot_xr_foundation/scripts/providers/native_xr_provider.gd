@@ -23,6 +23,54 @@ func is_supported() -> bool:
 	return _find_interface() != null or _find_singleton() != null
 
 
+func get_provider_source() -> StringName:
+	if _find_interface() != null:
+		return &"XRInterface"
+	if _find_singleton() != null:
+		return &"Native Singleton"
+	return &"Native Plugin"
+
+
+func check_availability(options: Dictionary = {}) -> Dictionary:
+	var report := super.check_availability(options)
+	report["interface_names"] = _string_names_to_strings(interface_names)
+	report["singleton_names"] = _string_names_to_strings(singleton_names)
+	report["interface_registered"] = _find_interface() != null
+	report["singleton_registered"] = _find_singleton() != null
+	return report
+
+
+func install(_options: Dictionary = {}) -> bool:
+	plugin_singleton = _find_singleton()
+	if plugin_singleton:
+		return _call_first_bool(plugin_singleton, ["install", "request_install", "request_arcore_install"])
+	return is_supported()
+
+
+func get_capabilities(options: Dictionary = {}) -> Dictionary:
+	var capabilities := super.get_capabilities(options)
+	var xr_iface := _find_interface()
+	var singleton := _find_singleton()
+	var plugin_available := xr_iface != null or singleton != null
+
+	capabilities["session"] = plugin_available
+	capabilities["tracking"] = plugin_available
+	capabilities["camera_background"] = plugin_available
+	capabilities["passthrough"] = plugin_available
+	capabilities["raycast"] = plugin_available
+	capabilities["plane_detection"] = plugin_available
+	capabilities["anchors"] = plugin_available
+	capabilities["persistent_anchors"] = _singleton_has_any(singleton, ["load_anchor", "save_anchor", "try_load_anchor"])
+	capabilities["light_estimation"] = _singleton_has_any(singleton, ["get_light_estimate", "get_light_estimation"])
+	capabilities["depth"] = _singleton_has_any(singleton, ["get_depth_texture", "get_depth_image"])
+	capabilities["image_tracking"] = _singleton_has_any(singleton, ["add_reference_image", "get_tracked_images"])
+	capabilities["ar_product_path"] = plugin_available
+	capabilities["environment_blend_modes"] = _environment_blend_mode_names(xr_iface)
+	capabilities["native_plugin"] = plugin_available
+	capabilities["device_profile"] = String(options.get("platform_hint", String(display_name).to_lower()))
+	return capabilities
+
+
 func start(options: Dictionary = {}) -> bool:
 	xr_interface = _find_interface()
 	if xr_interface:
@@ -121,3 +169,18 @@ func _to_string_name_array(value: Variant) -> Array[StringName]:
 		result.append(StringName(value))
 	return result
 
+
+func _string_names_to_strings(value: Array[StringName]) -> Array[String]:
+	var result: Array[String] = []
+	for item in value:
+		result.append(String(item))
+	return result
+
+
+func _singleton_has_any(singleton: Object, methods: Array[String]) -> bool:
+	if singleton == null:
+		return false
+	for method in methods:
+		if singleton.has_method(method):
+			return true
+	return false

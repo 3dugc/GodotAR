@@ -1,0 +1,103 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://demo/00_device_smoke_test.gd" id="1_smoke"]
+[ext_resource type="PackedScene" path="res://addons/godot_xr_foundation/scenes/xr_foundation_rig.tscn" id="2_rig"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_session.gd" id="3_session"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_raycast_manager.gd" id="4_raycast"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_plane_manager.gd" id="5_planes"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_anchor_manager.gd" id="6_anchors"]
+
+[sub_resource type="Environment" id="Environment_smoke"]
+background_mode = 1
+background_color = Color(0.03, 0.038, 0.045, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.86, 0.91, 1, 1)
+ambient_light_energy = 0.75
+
+[sub_resource type="BoxMesh" id="BoxMesh_cube"]
+size = Vector3(0.22, 0.22, 0.22)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cube"]
+albedo_color = Color(0.03, 0.66, 0.86, 1)
+roughness = 0.54
+metallic = 0.05
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
+size = Vector2(4, 4)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+transparency = 1
+albedo_color = Color(0.08, 0.12, 0.13, 0.34)
+roughness = 0.85
+
+[sub_resource type="QuadMesh" id="QuadMesh_panel"]
+size = Vector2(1.35, 0.82)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_panel"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.02, 0.026, 0.032, 0.78)
+
+[sub_resource type="SphereMesh" id="SphereMesh_target"]
+radius = 0.055
+height = 0.11
+
+[node name="DeviceSmokeTest" type="Node3D"]
+script = ExtResource("1_smoke")
+
+[node name="ARSession" type="Node" parent="."]
+script = ExtResource("3_session")
+fallback_to_editor_sim = true
+
+[node name="XRFoundationRig" parent="." instance=ExtResource("2_rig")]
+
+[node name="StatusPanel" type="Node3D" parent="XRFoundationRig/XRCamera3D"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, -0.258819, 0, 0.258819, 0.965926, 0, -0.18, -1.45)
+
+[node name="PanelBack" type="MeshInstance3D" parent="XRFoundationRig/XRCamera3D/StatusPanel"]
+mesh = SubResource("QuadMesh_panel")
+surface_material_override/0 = SubResource("StandardMaterial3D_panel")
+
+[node name="StatusLabel" type="Label3D" parent="XRFoundationRig/XRCamera3D/StatusPanel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.61, 0.34, 0.01)
+text = "Godot XR Foundation C00"
+font_size = 18
+modulate = Color(0.9, 0.97, 1, 1)
+outline_size = 2
+outline_modulate = Color(0, 0, 0, 0.78)
+horizontal_alignment = 0
+vertical_alignment = 0
+
+[node name="ARRaycastManager" type="Node" parent="."]
+script = ExtResource("4_raycast")
+
+[node name="ARPlaneManager" type="Node" parent="."]
+script = ExtResource("5_planes")
+xr_origin_path = NodePath("../XRFoundationRig")
+
+[node name="ARAnchorManager" type="Node" parent="."]
+script = ExtResource("6_anchors")
+anchors_parent_path = NodePath("../XRFoundationRig")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_smoke")
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="KeyLight" type="DirectionalLight3D" parent="World"]
+transform = Transform3D(0.866025, -0.25, 0.433013, 0, 0.866025, 0.5, -0.5, -0.433013, 0.75, 0, 3, 2)
+light_energy = 1.35
+
+[node name="EditorPreviewFloor" type="MeshInstance3D" parent="World"]
+mesh = SubResource("PlaneMesh_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor")
+
+[node name="RotatingCube" type="MeshInstance3D" parent="World"]
+transform = Transform3D(1, 0, 0, 0, 0.984808, -0.173648, 0, 0.173648, 0.984808, 0, 1.15, -1.6)
+mesh = SubResource("BoxMesh_cube")
+surface_material_override/0 = SubResource("StandardMaterial3D_cube")
+
+[node name="GazeTarget" type="MeshInstance3D" parent="World"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.42, 1.12, -1.45)
+mesh = SubResource("SphereMesh_target")
+surface_material_override/0 = SubResource("StandardMaterial3D_cube")

@@ -3,8 +3,12 @@ config_version=5
 [application]
 
 config/name="Godot XR Foundation Demo"
-run/main_scene="res://demo/main.tscn"
+run/main_scene="res://demo/00_device_smoke_test.tscn"
 config/features=PackedStringArray("4.3", "Mobile")
+
+[godot_xr_foundation]
+
+platform_hint=""
 
 [autoload]
 
@@ -22,4 +26,3 @@ renderer/rendering_method="mobile"
 
 openxr/enabled=true
 shaders/enabled=true
-

@@ -19,6 +19,25 @@ func is_supported() -> bool:
 	return true
 
 
+func check_availability(options: Dictionary = {}) -> Dictionary:
+	var supported := is_supported()
+	var availability := XRFoundationTypes.Availability.SUPPORTED if supported else XRFoundationTypes.Availability.UNSUPPORTED
+	return {
+		"backend": XRFoundationTypes.backend_to_string(backend),
+		"display_name": display_name,
+		"availability": XRFoundationTypes.availability_to_string(availability),
+		"availability_code": availability,
+		"supported": supported,
+		"provider_source": get_provider_source(),
+		"capabilities": get_capabilities(options),
+		"error": last_error,
+	}
+
+
+func install(_options: Dictionary = {}) -> bool:
+	return is_supported()
+
+
 func start(_options: Dictionary = {}) -> bool:
 	last_error = "Provider does not implement start()."
 	return false
@@ -39,6 +58,36 @@ func get_tracking_status() -> int:
 	if xr_interface:
 		return xr_interface.get_tracking_status()
 	return XRInterface.XR_UNKNOWN_TRACKING
+
+
+func get_tracking_state() -> int:
+	return XRFoundationTypes.tracking_status_to_state(get_tracking_status())
+
+
+func get_provider_source() -> StringName:
+	if xr_interface:
+		return &"XRInterface"
+	return &"Provider"
+
+
+func get_capabilities(_options: Dictionary = {}) -> Dictionary:
+	return {
+		"session": is_supported(),
+		"tracking": xr_interface != null,
+		"camera_background": false,
+		"passthrough": false,
+		"raycast": true,
+		"plane_detection": false,
+		"anchors": true,
+		"persistent_anchors": false,
+		"light_estimation": false,
+		"depth": false,
+		"image_tracking": false,
+		"input_ray": false,
+		"hand_tracking": false,
+		"ar_product_path": false,
+		"environment_blend_modes": [],
+	}
 
 
 func get_planes() -> Array[ARPlane]:
@@ -79,6 +128,30 @@ func apply_environment_blend(options: Dictionary = {}) -> void:
 
 	if owner and owner.get_viewport():
 		owner.get_viewport().transparent_bg = desired_blend == XRInterface.XR_ENV_BLEND_MODE_ALPHA_BLEND
+
+
+func _environment_blend_mode_names(target_interface: XRInterface = null) -> Array[String]:
+	var source := target_interface if target_interface != null else xr_interface
+	var names: Array[String] = []
+	if source == null or not source.has_method("get_supported_environment_blend_modes"):
+		return names
+
+	var modes: Array = source.get_supported_environment_blend_modes()
+	for mode in modes:
+		names.append(_environment_blend_mode_to_string(int(mode)))
+	return names
+
+
+func _environment_blend_mode_to_string(mode: int) -> String:
+	match mode:
+		XRInterface.XR_ENV_BLEND_MODE_OPAQUE:
+			return "opaque"
+		XRInterface.XR_ENV_BLEND_MODE_ADDITIVE:
+			return "additive"
+		XRInterface.XR_ENV_BLEND_MODE_ALPHA_BLEND:
+			return "alpha_blend"
+		_:
+			return "unknown_%d" % mode
 
 
 func _physics_raycast(origin: Vector3, direction: Vector3, max_distance: float, mask: int) -> Array[XRHit]:

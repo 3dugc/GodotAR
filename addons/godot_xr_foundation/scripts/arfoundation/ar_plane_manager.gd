@@ -41,6 +41,10 @@ func get_all_planes() -> Array[ARPlane]:
 	return result
 
 
+func GetAllPlanes() -> Array[ARPlane]:
+	return get_all_planes()
+
+
 func _on_session_started(_backend: int, _display_name: StringName) -> void:
 	_sync_provider_planes()
 
@@ -122,4 +126,3 @@ func _create_anchor_node(tracker_name: StringName) -> void:
 	anchor.tracker = tracker_name
 	origin.add_child(anchor)
 	anchor_nodes[tracker_name] = anchor
-

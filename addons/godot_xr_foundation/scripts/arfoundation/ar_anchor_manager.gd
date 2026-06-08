@@ -39,6 +39,14 @@ func remove_anchor(anchor_or_id: Variant) -> void:
 	anchor_removed.emit(anchor)
 
 
+func AddAnchor(transform: Transform3D, attached_trackable: ARTrackable = null) -> ARAnchor:
+	return add_anchor(transform, attached_trackable)
+
+
+func RemoveAnchor(anchor_or_id: Variant) -> void:
+	remove_anchor(anchor_or_id)
+
+
 func _get_anchor_parent() -> Node3D:
 	if anchors_parent_path != NodePath():
 		var configured := get_node_or_null(anchors_parent_path)

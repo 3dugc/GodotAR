@@ -36,10 +36,13 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 | Unity | Godot XR Foundation |
 | --- | --- |
 | `ARSession.enabled = true` | `XRFoundation.start_session(...)` |
-| `ARSession.Reset()` | `XRDeviceRig.recenter()` or `XRServer.center_on_hmd(...)` |
-| `ARRaycastManager.Raycast(...)` | `ARRaycastManager.raycast(...)` or `screen_raycast(...)` |
-| `ARAnchorManager.AddAnchor(...)` | `ARAnchorManager.add_anchor(...)` |
-| `ARPlaneManager.trackables` | `ARPlaneManager.get_all_planes()` |
+| `ARSession.CheckAvailability()` | `ARSession.CheckAvailability(...)` or `XRFoundation.check_availability(...)` |
+| `ARSession.Install()` | `ARSession.Install(...)` or `XRFoundation.install(...)` |
+| `ARSession.Reset()` | `ARSession.Reset()`, `XRFoundation.reset_session(...)`, or `XRDeviceRig.recenter()` |
+| `ARSession.state` | `ARSession.state()` or `XRFoundation.state` |
+| `ARRaycastManager.Raycast(...)` | `ARRaycastManager.Raycast(...)`, `raycast(...)`, or `ScreenRaycast(...)` |
+| `ARAnchorManager.AddAnchor(...)` | `ARAnchorManager.AddAnchor(...)` or `add_anchor(...)` |
+| `ARPlaneManager.trackables` | `ARPlaneManager.GetAllPlanes()` or `get_all_planes()` |
 | `XROrigin.Camera` | `XRDeviceRig.get_camera()` |
 | `XRRayInteractor` | `XRRayInteractor` |
 | `XRGrabInteractable` | `XRGrabInteractable` |
@@ -57,7 +60,12 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 
 ```gdscript
 func _ready() -> void:
-	var ok := XRFoundation.start_session(XRFoundationTypes.Backend.AUTO, {
+	var report := ARSession.CheckAvailability(XRFoundationTypes.Backend.OPENXR, {
+		"platform_hint": "rokid",
+	})
+	print(report)
+
+	var ok := XRFoundation.start_session(XRFoundationTypes.Backend.OPENXR, {
 		"platform_hint": "rokid",
 		"prefer_ar": true,
 		"passthrough": true,
@@ -65,6 +73,8 @@ func _ready() -> void:
 	if not ok:
 		push_warning(XRFoundation.last_error)
 ```
+
+For Unity service classes that currently depend on `ARSession`, keep them talking to the Godot `ARSession` wrapper first. Move lower-level calls to `XRFoundation` only when you need provider diagnostics or custom fallback behavior.
 
 ## Example Placement
 
@@ -105,4 +115,3 @@ ARFoundation hides a lot of native SDK detail. Godot can match the shape, but co
 - Image/object tracking.
 
 The provider layer in this addon is designed so those features can be added per platform without rewriting gameplay code.
-

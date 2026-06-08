@@ -24,6 +24,18 @@ func start(_options: Dictionary = {}) -> bool:
 	return true
 
 
+func get_capabilities(_options: Dictionary = {}) -> Dictionary:
+	var capabilities := super.get_capabilities(_options)
+	capabilities["tracking"] = true
+	capabilities["raycast"] = true
+	capabilities["plane_detection"] = true
+	capabilities["anchors"] = true
+	capabilities["input_ray"] = true
+	capabilities["ar_product_path"] = true
+	capabilities["simulation"] = true
+	return capabilities
+
+
 func get_tracking_status() -> int:
 	return XRInterface.XR_NORMAL_TRACKING
 

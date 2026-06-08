@@ -21,6 +21,12 @@ For production builds, also review the OpenXR form factor and view configuration
 
 ARCore is handled by `NativeXRProvider`.
 
+Native plugin files should live under:
+
+```text
+res://android/plugins
+```
+
 The provider searches for an XR interface named one of:
 
 ```gdscript
@@ -54,6 +60,12 @@ Native plugin methods currently supported by convention:
 
 ARKit is also handled by `NativeXRProvider`.
 
+Native plugin files should live under:
+
+```text
+res://ios/plugins
+```
+
 The provider searches for:
 
 ```gdscript
@@ -67,6 +79,14 @@ and singletons:
 ```
 
 iOS plugin singletons are normally only available in exported iOS builds, not when running in the desktop editor. Keep editor simulation enabled for desktop iteration.
+
+For the C00 iPad gate:
+
+- Export and deploy `demo/00_device_smoke_test.tscn`.
+- Install or build the ARKit iOS plugin before claiming ARKit success.
+- The in-device panel must show `Backend: ARKit`.
+- The device log must include `GXF_SMOKE` with `backend:"ARKit"` and `session_state:"Running"`.
+- If it shows `EditorSim`, the Godot app launched but the ARKit gate failed.
 
 ## Rokid / OpenXR
 
@@ -90,6 +110,14 @@ For Android OpenXR exports:
 - Install and configure the Godot OpenXR Vendors plugin if vendor extensions or Android XR features are required.
 - Enable only the vendor needed by that export preset.
 
+For the C00 Rokid gate:
+
+- Export and deploy `demo/00_device_smoke_test.tscn`.
+- Pass `platform_hint="rokid"` in the `ARSession` node, set `godot_xr_foundation/platform_hint="rokid"`, or launch with `--xr-platform=rokid`.
+- The in-device panel must show `Backend: OpenXR`.
+- The device log must include `GXF_SMOKE` with `backend:"OpenXR"` and `session_state:"Running"`.
+- `ar_product_path` should be true for an AR pass. If the runtime only exposes `opaque` blend mode, it is an OpenXR rendering pass but not yet an AR product pass.
+
 ## Android XR Trackables
 
 The OpenXR Vendors plugin exposes Android XR plane/object/anchor tracker classes through `XRServer` trackers.
@@ -105,3 +133,17 @@ and accepts trackers whose class name contains `plane`.
 
 Raycasts against the physical environment need the Android XR raycast extension. Keep that bridge optional because referencing vendor extension classes directly will fail in projects where the plugin is not installed.
 
+## C00 Log Collection
+
+Filter device logs by:
+
+```text
+GXF_SMOKE
+```
+
+Each line is JSON after the pipe. Keep at least:
+
+- One `availability` event.
+- One `session_started` event.
+- One `heartbeat` event after the scene is visibly rendering.
+- One screenshot or 15-second recording showing the in-world status panel.
