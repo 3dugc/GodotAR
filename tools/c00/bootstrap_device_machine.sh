@@ -3,6 +3,18 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+DEFAULT_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env.sh"
+
+source_device_env_if_present() {
+	local env_file="${C00_DEVICE_ENV_FILE:-$DEFAULT_DEVICE_ENV_FILE}"
+	if [[ "${C00_AUTO_SOURCE_DEVICE_ENV:-1}" == "1" && -f "$env_file" ]]; then
+		# shellcheck disable=SC1090
+		source "$env_file"
+	fi
+}
+
+source_device_env_if_present
+
 REPORT="${REPORT:-$PROJECT_ROOT/releases/phase_0_smoke/evidence/device-readiness-${TIMESTAMP}.md}"
 DEFAULT_GODOT_SOURCE_DIR="$PROJECT_ROOT/.godot/cache/c00/godot-source"
 DOWNLOADS_DIR="$PROJECT_ROOT/.godot/cache/c00/downloads"

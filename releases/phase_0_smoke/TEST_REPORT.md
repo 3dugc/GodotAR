@@ -135,7 +135,8 @@ Hardware status:
 - `tools/c00/bootstrap_device_machine.sh` now includes a Download Cache section so device-machine reports show partial dependency files and the exact resume command for each installer.
 - Online dependency installers now share `C00_CURL_RETRY`, `C00_CURL_RETRY_DELAY`, `C00_CURL_CONNECT_TIMEOUT`, `C00_CURL_SPEED_LIMIT`, `C00_CURL_SPEED_TIME`, and `C00_CURL_EXTRA_ARGS`, so a device machine can tune retry/low-speed behavior without editing scripts.
 - Godot export template download now tries the Godot official downloads entry first, then the GitHub release URL; all online dependency installers can accept multiple candidate URLs for device-machine mirrors or proxies.
-- Offline device-machine setup is still supported through `tools/c00/import_device_dependency_bundle.sh --bundle <device-bundle-dir>`. Put `Godot_v4.4.1-stable_export_templates.tpz`, Android SDK `platform-tools`/`build-tools`, a real JDK, optional `Godot.app`, and optional `godot-source` into the bundle, then run `source .godot/cache/c00/device-env.sh` before preflight.
+- `tools/c00/preflight.sh`, `tools/c00/bootstrap_device_machine.sh`, and `tools/c00/run_device_cycle.sh` now auto-source `.godot/cache/c00/device-env.sh` when present, with `C00_DEVICE_ENV_FILE` / `C00_AUTO_SOURCE_DEVICE_ENV` overrides for alternate device-machine setups.
+- Offline device-machine setup is still supported through `tools/c00/import_device_dependency_bundle.sh --bundle <device-bundle-dir>`. Put `Godot_v4.4.1-stable_export_templates.tpz`, Android SDK `platform-tools`/`build-tools`, a real JDK, optional `Godot.app`, and optional `godot-source` into the bundle, then either source `.godot/cache/c00/device-env.sh` manually or let the C00 entry scripts auto-source it.
 - No Rokid/Android device is currently attached through ADB. The detected `iPad M4` is currently reported by `devicectl` as `unavailable`.
 - Do not mark this report as passed until the device evidence below is filled.
 

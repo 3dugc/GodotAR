@@ -62,6 +62,7 @@ tools/c00/configure_android_export_environment.sh --install-build-template
 ```
 
 如果网络不稳定，把 `Godot_v4.4.1-stable_export_templates.tpz`、Android command line tools zip、OpenJDK 17 tar.gz、Android SDK 或 JDK 放进离线依赖包，再用 `tools/c00/import_device_dependency_bundle.sh --bundle <dir>` 导入。
+导入后生成的 `.godot/cache/c00/device-env.sh` 会被 `preflight.sh`、`bootstrap_device_machine.sh` 和 `run_device_cycle.sh` 自动读取；需要换路径时设置 `C00_DEVICE_ENV_FILE=/path/to/device-env.sh`，需要临时忽略时设置 `C00_AUTO_SOURCE_DEVICE_ENV=0`。
 
 iPad/ARKit 真机构建需要与 iOS export template 版本匹配的 Godot source headers。设备机没有现成 source tree 时，先用 helper 准备：
 

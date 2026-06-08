@@ -29,8 +29,27 @@ if (failures.length === 0) {
 		"audit_phase1_completion.js",
 		"DRY_RUN",
 		"CONTINUE_AFTER_CYCLE",
+		"source_env_if_present",
 		"NOT_READY",
 		"C00_COMPLETION_AUDIT.md",
+	]);
+
+	requireContains("tools/c00/preflight.sh", [
+		"C00_DEVICE_ENV_FILE",
+		"C00_AUTO_SOURCE_DEVICE_ENV",
+		"source_device_env_if_present",
+	]);
+
+	requireContains("tools/c00/bootstrap_device_machine.sh", [
+		"C00_DEVICE_ENV_FILE",
+		"C00_AUTO_SOURCE_DEVICE_ENV",
+		"source_device_env_if_present",
+	]);
+
+	requireContains("tools/c00/run_device_cycle.sh", [
+		"C00_DEVICE_ENV_FILE",
+		"C00_AUTO_SOURCE_DEVICE_ENV",
+		"source_device_env_if_present",
 	]);
 
 	requireContains(files.staticGates, [

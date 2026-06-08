@@ -5,6 +5,17 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GATE="${1:-}"
 DEVICE="${2:-${DEVICE:-}}"
 DEFAULT_GODOT_SOURCE_DIR="$PROJECT_ROOT/.godot/cache/c00/godot-source"
+DEFAULT_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env.sh"
+
+source_device_env_if_present() {
+	local env_file="${C00_DEVICE_ENV_FILE:-$DEFAULT_DEVICE_ENV_FILE}"
+	if [[ "${C00_AUTO_SOURCE_DEVICE_ENV:-1}" == "1" && -f "$env_file" ]]; then
+		# shellcheck disable=SC1090
+		source "$env_file"
+	fi
+}
+
+source_device_env_if_present
 
 PACKAGE="${PACKAGE:-org.godotengine.godotxrfoundation}"
 DURATION="${DURATION:-30}"

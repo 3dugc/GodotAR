@@ -4,8 +4,17 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GATE="${1:-all}"
 DEFAULT_GODOT_SOURCE_DIR="$PROJECT_ROOT/.godot/cache/c00/godot-source"
+DEFAULT_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env.sh"
 
 status=0
+
+source_device_env_if_present() {
+	local env_file="${C00_DEVICE_ENV_FILE:-$DEFAULT_DEVICE_ENV_FILE}"
+	if [ "${C00_AUTO_SOURCE_DEVICE_ENV:-1}" = "1" ] && [ -f "$env_file" ]; then
+		# shellcheck disable=SC1090
+		source "$env_file"
+	fi
+}
 
 usage() {
 	cat <<EOF
@@ -28,6 +37,8 @@ case "$GATE" in
 		exit 2
 		;;
 esac
+
+source_device_env_if_present
 
 needs_android_tools() {
 	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ] || [ "$GATE" = "android-arcore" ]

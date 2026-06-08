@@ -87,6 +87,7 @@ device-bundle/
 
 ```bash
 tools/c00/import_device_dependency_bundle.sh --bundle /Volumes/USB/device-bundle
+# 可选：当前 shell 也需要这些变量时手动 source；C00 入口脚本会自动读取该文件。
 source .godot/cache/c00/device-env.sh
 ```
 
@@ -97,6 +98,8 @@ tools/c00/import_device_dependency_bundle.sh \
   --bundle /Volumes/USB/device-bundle \
   --configure-android-export
 ```
+
+`tools/c00/preflight.sh`、`tools/c00/bootstrap_device_machine.sh` 和 `tools/c00/run_device_cycle.sh` 独立运行时会自动读取 `.godot/cache/c00/device-env.sh`。需要换路径时设置 `C00_DEVICE_ENV_FILE=/path/to/device-env.sh`；需要临时忽略该文件时设置 `C00_AUTO_SOURCE_DEVICE_ENV=0`。
 
 导入后立即跑三条预检：
 
