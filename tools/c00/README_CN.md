@@ -49,6 +49,14 @@ tools/c00/preflight.sh android-arcore
 - C00 smoke scene 是否是 Godot 主场景。
 - `project.godot` 是否开启 OpenXR。
 
+一键静态 gate：
+
+```bash
+node tools/c00/run_static_gates.js --gate all --report releases/phase_0_smoke/evidence/static-gates.md
+```
+
+该命令不导出、不安装、不连接设备。它汇总 Node 工具语法、shell 脚本语法、Godot project/scene 静态完整性、ARFoundation API surface、XRI API surface、OpenXR/Rokid provider surface、iOS plugin 配置和 ARKit Objective-C++ syntax smoke。缺少 `export_presets.cfg` 会作为 warning 记录，因为真正导出前仍需在设备机 Godot editor 里复核保存。
+
 iPad/ARKit gate 前先构建插件：
 
 ```bash

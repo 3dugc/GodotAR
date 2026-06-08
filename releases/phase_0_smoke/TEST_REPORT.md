@@ -41,6 +41,7 @@ Codex implementation status:
 - `tools/c00/bootstrap_device_machine.sh` now generates a C00 readiness report for device machines and can optionally create the export preset starter.
 - C00 preflight, export helper, Android/Rokid log collector, iPad log collector, and gate validator created under `tools/c00`.
 - `tools/c00/check_godot_project_static.js` now validates C00 project settings, scene resource references, load steps, required smoke nodes, and critical NodePaths without requiring a Godot binary.
+- `tools/c00/run_static_gates.js` now runs the C00 static gate set in one command and can write a Markdown report for CI/device-machine readiness.
 - `tools/c00/import_device_evidence.sh` now imports manually captured device logs/media into the standard C00 evidence directory and runs the same smoke/media validators.
 - `NativeXRProvider` now detects native provider singletons through `Engine.has_singleton(...)` and merges their availability/capability reports.
 - `ios/plugins/godot_arkit` now contains a first-party ARKit iOS plugin skeleton that registers `GodotARKit` as a Godot `Engine` singleton.
@@ -88,6 +89,8 @@ Hardware status:
 | `node --check tools/c00/collect_ios_device_profile.js` | Pass | iPad profile collector parses |
 | `node --check tools/c00/validate_evidence_bundle.js` | Pass | Evidence validator parses |
 | `node --check tools/c00/verify_phase_evidence.js` | Pass | C00 aggregate verifier parses |
+| `node --check tools/c00/run_static_gates.js` | Pass | Static gate runner parses |
+| `node tools/c00/run_static_gates.js --gate all --report /private/tmp/godotar-static-gates.md` | Pass with warning | Static gate report passes; missing `export_presets.cfg` is recorded as warning |
 | `node --check tools/c00/check_ios_plugin_artifacts.js` | Pass | iOS plugin artifact checker parses |
 | `node --check tools/c00/check_godot_project_static.js` | Pass | Godot project/static scene checker parses |
 | `node tools/c00/check_godot_project_static.js` | Pass | C00 project settings, scene resources, load steps, required nodes, and NodePaths are intact |
@@ -101,6 +104,7 @@ Hardware status:
 | `bash -n tools/c00/*.sh ios/plugins/godot_arkit/build_xcframework.sh` | Pass | Shell scripts parse |
 | `tools/c00/build_ios_xcode_project.sh --help` | Pass | Documents exported Xcode project build path into `builds/ipad/GodotXRFoundation.app` |
 | `tools/c00/bootstrap_device_machine.sh` | Blocked by host prerequisites | Generates readiness report, confirms `xcodebuild`, and records missing `godot`, `adb`, export presets, and ARKit build artifacts on this host |
+| `REPORT=/private/tmp/godotar-device-readiness.md tools/c00/bootstrap_device_machine.sh` | Blocked by host prerequisites | Readiness report includes `C00 static gates` PASS and still records missing Godot/ADB/export/ARKit binary prerequisites |
 | Synthetic Android device profile smoke | Pass | `collect_android_device_profile.js` writes Markdown/JSON with a fake adb command to verify report generation |
 | Synthetic Rokid device profile analysis | Pass | Analyzer accepts a Rokid/OpenXR profile with target app, runtime packages, camera, Vulkan, and XR feature evidence |
 | Synthetic bad Rokid profile analysis | Fail as expected | Analyzer rejects missing ADB and missing target package while warning about missing OpenXR/camera/Vulkan/XR evidence |

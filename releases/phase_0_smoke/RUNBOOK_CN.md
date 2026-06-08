@@ -32,6 +32,12 @@ tools/c00/bootstrap_device_machine.sh --write-export-presets --package org.examp
 tools/c00/preflight.sh
 ```
 
+设备机第一道静态 gate：
+
+```bash
+node tools/c00/run_static_gates.js --gate all --report releases/phase_0_smoke/evidence/static-gates.md
+```
+
 如果设备机还没有 Godot binary，也可以先跑不依赖 Godot 的项目/场景完整性检查：
 
 ```bash

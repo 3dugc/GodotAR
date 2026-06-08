@@ -235,6 +235,13 @@ else
 	add_row MISS "export_presets.cfg C00 presets" "Run tools/c00/bootstrap_device_machine.sh --write-export-presets, then review and save in Godot editor."
 fi
 
+static_report="$(dirname "$REPORT")/static-gates-${TIMESTAMP}.md"
+if static_output="$(run_capture node "$PROJECT_ROOT/tools/c00/run_static_gates.js" --gate all --report "$static_report")"; then
+	add_row PASS "C00 static gates" "$static_report"
+else
+	add_row MISS "C00 static gates" "$static_output"
+fi
+
 if [[ -f "$PROJECT_ROOT/project.godot" ]]; then
 	add_row PASS "project.godot" "Project file exists."
 else
