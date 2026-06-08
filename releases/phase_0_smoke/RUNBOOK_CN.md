@@ -211,6 +211,16 @@ APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <devic
 如果本机安装了 `idevicescreenshot`，脚本会自动截图；否则请手动补一张截图或 15 秒录屏。
 手动素材可以通过 `MANUAL_MEDIA_PATH=/path/to/ipad.mov` 传给采集脚本；没有任何媒体素材时，iPad gate 默认失败。
 
+如果日志或媒体是从 Xcode、Console.app、Android Studio 或手动录屏导出的，用统一导入脚本归档：
+
+```bash
+tools/c00/import_device_evidence.sh --gate ipad --log path/to/ipad.log --manual-media path/to/ipad.mov
+```
+
+```bash
+tools/c00/import_device_evidence.sh --gate rokid --log path/to/rokid.log --screenshot path/to/rokid.png --video path/to/rokid.mp4
+```
+
 ## 归档材料
 
 每台设备至少保存：

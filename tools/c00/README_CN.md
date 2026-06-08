@@ -242,6 +242,23 @@ node tools/c00/validate_smoke_log.js --gate rokid --log path/to/rokid.log --repo
 node tools/c00/validate_smoke_log.js --gate ipad --log path/to/ipad.log --report releases/phase_0_smoke/evidence/ipad.md
 ```
 
+也可以把手动采集的日志/截图/录屏导入到标准 C00 evidence 目录，并自动生成同格式报告：
+
+```bash
+tools/c00/import_device_evidence.sh \
+  --gate rokid \
+  --log path/to/rokid.log \
+  --screenshot path/to/rokid.png \
+  --video path/to/rokid.mp4
+```
+
+```bash
+tools/c00/import_device_evidence.sh \
+  --gate ipad \
+  --log path/to/ipad.log \
+  --manual-media path/to/ipad.mov
+```
+
 支持的 gate：
 
 - `editor`

@@ -160,6 +160,7 @@ function explicitOrLatest(gate, argName, extension = "") {
 	const extensions = extension ? [extension] : ["png", "jpg", "jpeg", "mp4", "mov"];
 	const candidates = fs.readdirSync(evidenceDir)
 		.filter((name) => name.startsWith(`${gate}-`))
+		.filter((name) => argName !== "manual-media" || name.includes("-manual-media."))
 		.filter((name) => extensions.includes(path.extname(name).slice(1).toLowerCase()))
 		.map((name) => path.join(evidenceDir, name))
 		.filter((filePath) => fs.statSync(filePath).isFile())
