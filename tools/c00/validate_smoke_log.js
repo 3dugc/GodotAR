@@ -27,6 +27,7 @@ const summary = {
 	warnings: result.warnings,
 	events: events.length,
 	selectedEvidence: result.evidence,
+	runtimeMetadata: result.evidence && result.evidence.runtime ? result.evidence.runtime : null,
 };
 
 console.log(JSON.stringify(summary, null, 2));
@@ -140,6 +141,10 @@ function evaluateGate(events, gate, options) {
 		failures.push("Capabilities object is missing.");
 	}
 
+	if (!evidence.runtime || typeof evidence.runtime !== "object") {
+		warnings.push("Runtime metadata is missing. New C00 logs should include Godot version, XR command-line args, and rendering/XR project settings.");
+	}
+
 	if (!evidence.tracking || evidence.tracking === "None") {
 		warnings.push("Tracking state is missing or None.");
 	}
@@ -236,6 +241,12 @@ function renderMarkdownReport(summary) {
 	lines.push("");
 	lines.push("```json");
 	lines.push(JSON.stringify(summary.selectedEvidence || {}, null, 2));
+	lines.push("```");
+	lines.push("");
+	lines.push("## Runtime Metadata");
+	lines.push("");
+	lines.push("```json");
+	lines.push(JSON.stringify(summary.runtimeMetadata || {}, null, 2));
 	lines.push("```");
 	lines.push("");
 	return lines.join("\n");

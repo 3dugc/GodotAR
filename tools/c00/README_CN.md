@@ -177,6 +177,7 @@ iPad gate 要求：
 - `session_state:"Running"`
 - `capabilities.native_plugin:true`
 - `capabilities.runtime:"ARKit"` 或 `capabilities.arkit_supported:true`
+- `runtime` metadata 能看到 Godot 版本、`--xr-platform=ipad`、rendering/OpenXR 设置和 viewport XR 状态。
 
 ## 手动日志验证
 
@@ -193,6 +194,8 @@ node tools/c00/validate_smoke_log.js --gate ipad --log path/to/ipad.log --report
 - `rokid`
 - `ipad`
 - `android-arcore`
+
+新 C00 日志会包含 `runtime` 字段。`validate_smoke_log.js` 会在报告中追加 `Runtime Metadata` 章节；旧日志缺少该字段时仍可验证 backend，但会产生 warning。
 
 ## 手动媒体证据验证
 

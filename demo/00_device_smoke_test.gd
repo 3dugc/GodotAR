@@ -116,6 +116,7 @@ func _emit_smoke_log(event_name: String, extra: Dictionary) -> void:
 		"cycle": CYCLE_ID,
 		"version": VERSION,
 		"event": event_name,
+		"runtime": _runtime_metadata(),
 		"os": OS.get_name(),
 		"model": OS.get_model_name(),
 		"platform_hint": XRFoundation.resolve_platform_hint(platform_hint),
@@ -130,6 +131,29 @@ func _emit_smoke_log(event_name: String, extra: Dictionary) -> void:
 	for key in extra.keys():
 		payload[key] = extra[key]
 	print("GXF_SMOKE|%s" % JSON.stringify(payload))
+
+
+func _runtime_metadata() -> Dictionary:
+	var viewport := get_viewport()
+	return {
+		"app_name": String(ProjectSettings.get_setting("application/config/name", "")),
+		"godot": Engine.get_version_info(),
+		"cmdline_xr_args": _safe_cmdline_args(),
+		"rendering_method": String(ProjectSettings.get_setting("rendering/renderer/rendering_method", "")),
+		"openxr_enabled": bool(ProjectSettings.get_setting("xr/openxr/enabled", false)),
+		"xr_shaders_enabled": bool(ProjectSettings.get_setting("xr/shaders/enabled", false)),
+		"viewport_use_xr": viewport.use_xr if viewport else false,
+		"viewport_transparent_bg": viewport.transparent_bg if viewport else false,
+	}
+
+
+func _safe_cmdline_args() -> Array[String]:
+	var result: Array[String] = []
+	for arg in OS.get_cmdline_args():
+		var text := String(arg).strip_edges()
+		if text.begins_with("--xr-") or text.begins_with("--rendering-") or text.begins_with("--display-driver"):
+			result.append(text)
+	return result
 
 
 func _yes_no(value: bool) -> String:

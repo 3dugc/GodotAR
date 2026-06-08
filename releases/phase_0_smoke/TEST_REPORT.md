@@ -21,6 +21,7 @@ Codex implementation status:
 - C00 smoke scene created.
 - Runtime status panel created.
 - `GXF_SMOKE` structured logs created.
+- `GXF_SMOKE` now includes runtime metadata: Godot version info, XR-related command-line args, rendering method, OpenXR/XR shader settings, and viewport XR state.
 - Provider capability reports created.
 - Unity-style `ARSession` wrapper created.
 - Godot plugin-first boundary documented. No Godot engine patch is used in C00.
@@ -54,6 +55,7 @@ Hardware status:
 | `bash -n tools/c00/*.sh ios/plugins/godot_arkit/build_xcframework.sh` | Pass | Shell scripts parse |
 | Synthetic iPad ARKit gate | Pass | `backend:"ARKit"`, `native_plugin:true` |
 | Synthetic Rokid AR gate | Pass | `backend:"OpenXR"`, `ar_product_path:true` |
+| Synthetic runtime metadata report | Pass | Report includes Godot version and `--xr-platform=rokid` metadata |
 | Synthetic evidence bundle gates | Pass | Rokid requires screenshot + video; iPad accepts manual media |
 | Synthetic Rokid OpenXR-only strict gate | Fail as expected | `ar_product_path:false` is not accepted as AR product pass |
 | `ios/plugins/godot_arkit/build_xcframework.sh --help` | Pass | Documents required Godot source header path and outputs |
@@ -174,6 +176,7 @@ Notes:
 
 - Rokid passes only when `backend:"OpenXR"` and `session_state:"Running"` are present in `GXF_SMOKE`.
 - iPad passes only when `backend:"ARKit"` and `session_state:"Running"` are present in `GXF_SMOKE`.
+- C00 device reports should include runtime metadata so startup arguments, Godot version, rendering method, and XR project settings are visible in the gate report.
 - `EditorSim` is useful evidence that the app starts, but never satisfies a device AR gate.
 - OpenXR with only `opaque` blend mode is an OpenXR rendering pass, not an AR product pass.
 - Rokid/Android publishable results require both screenshot and screen recording artifacts; iPad publishable results require at least one screenshot or recording artifact.

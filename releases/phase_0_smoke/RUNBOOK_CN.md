@@ -89,6 +89,7 @@ C00 不修改 Godot 主干。
 - 面板显示 `Session: Running`。
 - 面板显示 `Backend: OpenXR`。
 - 日志包含 `GXF_SMOKE`，且 JSON 中 `backend` 为 `OpenXR`。
+- 日志 `runtime.cmdline_xr_args` 包含 `--xr-platform=rokid`，并能看到 Godot 版本、rendering method、OpenXR/XR shader 设置。
 - `capabilities.ar_product_path` 为 `true` 时，才算 AR 产品路径通过。
 
 建议设置：
@@ -144,6 +145,7 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - 面板显示 `Session: Running`。
 - 面板显示 `Backend: ARKit`。
 - 日志包含 `GXF_SMOKE`，且 JSON 中 `backend` 为 `ARKit`。
+- 日志包含 runtime metadata，能确认 Godot 版本、`--xr-platform=ipad` 启动参数和 viewport XR 状态。
 - `capabilities.native_plugin=true`。
 - `capabilities.runtime="ARKit"` 或 `capabilities.arkit_supported=true`。
 
@@ -198,6 +200,8 @@ releases/phase_0_smoke/evidence/
 
 - smoke log gate：验证 `GXF_SMOKE`、backend、native plugin、ARKit/OpenXR 证据。
 - evidence bundle gate：验证截图和录屏是否存在并非空文件。
+
+smoke log gate 还会展示 `Runtime Metadata`，用于确认 Godot 版本、启动参数和 XR/rendering project setting 是否符合设备 gate。
 
 ## 参考原则
 
