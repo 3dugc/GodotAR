@@ -83,6 +83,7 @@ demo/00_device_smoke_test.tscn
 - `XRFoundation.get_provider_name()`
 - `XRFoundation.get_tracking_state_name()`
 - `tools/c00/validate_smoke_log.js`
+- `tools/c00/check_export_presets.js`
 - `tools/c00/collect_android_smoke.sh`
 - `tools/c00/collect_ios_smoke.sh`
 - `tools/c00/export_with_godot.sh`

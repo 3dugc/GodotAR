@@ -40,6 +40,10 @@ needs_openxr() {
 	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ]
 }
 
+needs_export_preset() {
+	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ] || [ "$GATE" = "ipad" ] || [ "$GATE" = "android-arcore" ]
+}
+
 check_command() {
 	local name="$1"
 	local purpose="$2"
@@ -104,6 +108,21 @@ if needs_ios_tools; then
 	printf "\nNative plugin artifacts\n"
 	check_file "$PROJECT_ROOT/ios/plugins/godot_arkit/GodotARKit.gdip" "required for the iPad/ARKit gate; run ios/plugins/godot_arkit/build_xcframework.sh"
 	check_dir "$PROJECT_ROOT/ios/plugins/godot_arkit/GodotARKit.xcframework" "required for the iPad/ARKit gate; run ios/plugins/godot_arkit/build_xcframework.sh"
+fi
+
+if needs_export_preset; then
+	printf "\nExport presets\n"
+	if [ -f "$PROJECT_ROOT/export_presets.cfg" ]; then
+		if node "$PROJECT_ROOT/tools/c00/check_export_presets.js" --gate "$GATE" --file "$PROJECT_ROOT/export_presets.cfg"; then
+			printf "OK   export_presets.cfg C00 preset check\n"
+		else
+			status=1
+		fi
+	else
+		printf "MISS %s\n" "$PROJECT_ROOT/export_presets.cfg"
+		printf "     Create C00 export presets in the Godot editor. See tools/c00/EXPORT_PRESETS_CN.md\n"
+		status=1
+	fi
 fi
 
 printf "\nGodot project checks\n"

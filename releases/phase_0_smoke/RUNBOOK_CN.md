@@ -30,6 +30,12 @@ GODOT_BIN=/Applications/Godot.app/Contents/MacOS/Godot tools/c00/preflight.sh
 tools/c00/EXPORT_PRESETS_CN.md
 ```
 
+确认 C00 preset 名称和平台：
+
+```bash
+node tools/c00/check_export_presets.js --gate all --file export_presets.cfg
+```
+
 ## 一键执行
 
 设备机上优先用 spec runner：

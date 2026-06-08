@@ -24,6 +24,7 @@ tools/c00/preflight.sh android-arcore
 - `xcrun`：iPad 安装和启动。
 - `android/plugins`、`ios/plugins` 是否存在。
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` 和 `.gdip` 是否存在。
+- `export_presets.cfg` 是否包含目标 C00 preset。
 - C00 smoke scene 是否是 Godot 主场景。
 - `project.godot` 是否开启 OpenXR。
 
@@ -63,6 +64,20 @@ tools/c00/run_device_cycle.sh all
 - `RUN_COLLECT=0`：只做预检和导出。
 - `BUILD_ARKIT_PLUGIN=0`：跳过 ARKit 插件构建。
 - `INCLUDE_ANDROID_ARCORE=1`：`all` 模式额外跑 Android ARCore gate。
+
+## Export Preset 检查
+
+手动检查 preset 名称和平台：
+
+```bash
+node tools/c00/check_export_presets.js --gate all --file export_presets.cfg
+```
+
+C00 runner 依赖这些 preset 名称：
+
+- `C00 Rokid OpenXR`
+- `C00 iPad ARKit`
+- `C00 Android ARCore`
 
 ## Rokid / Android 日志采集
 

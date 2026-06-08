@@ -2,6 +2,14 @@
 
 本文件说明 C00 需要在 Godot 编辑器里创建的导出 preset。不要把证书、密码、provisioning profile 等敏感内容写进仓库；Godot 官方文档说明 `export_presets.cfg` 可以提交，敏感项应进入 `.godot/export_credentials.cfg`。
 
+创建后先检查：
+
+```bash
+node tools/c00/check_export_presets.js --gate all --file export_presets.cfg
+```
+
+`tools/c00/preflight.sh <gate>` 会自动执行同样的检查。
+
 ## Preset 1: C00 Rokid OpenXR
 
 平台：Android
