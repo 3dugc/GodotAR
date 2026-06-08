@@ -14,6 +14,20 @@ res://demo/00_device_smoke_test.tscn
 
 ## 工具链预检
 
+第一次配置设备机时，先生成 readiness report：
+
+```bash
+tools/c00/bootstrap_device_machine.sh
+```
+
+如果还没有 `export_presets.cfg`，可以同时生成 starter：
+
+```bash
+tools/c00/bootstrap_device_machine.sh --write-export-presets --package org.example.godotar --bundle org.example.godotar --team-id ABCDE12345
+```
+
+生成后仍要在 Godot editor 里复核 Android OpenXR loader、iOS signing、`GodotARKit` plugin 选项，然后保存。
+
 ```bash
 tools/c00/preflight.sh
 ```

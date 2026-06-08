@@ -4,6 +4,24 @@
 
 ## 预检
 
+第一次配置设备机时，先生成 readiness report：
+
+```bash
+tools/c00/bootstrap_device_machine.sh
+```
+
+可选生成 C00 export preset starter：
+
+```bash
+tools/c00/bootstrap_device_machine.sh \
+  --write-export-presets \
+  --package org.example.godotar \
+  --bundle org.example.godotar \
+  --team-id ABCDE12345
+```
+
+该脚本只生成报告和可选 starter，不会安装 Godot、Android platform tools、证书、provisioning profile 或设备 runtime。
+
 ```bash
 tools/c00/preflight.sh
 ```
