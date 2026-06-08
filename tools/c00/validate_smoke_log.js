@@ -144,6 +144,7 @@ function evaluateGate(events, gate, options) {
 	if (!evidence.runtime || typeof evidence.runtime !== "object") {
 		warnings.push("Runtime metadata is missing. New C00 logs should include Godot version, XR command-line args, and rendering/XR project settings.");
 	}
+	validateLaunchPlatformEvidence(evidence, gate, failures);
 
 	if (!evidence.tracking || evidence.tracking === "None") {
 		warnings.push("Tracking state is missing or None.");
@@ -237,6 +238,73 @@ function getCapability(event, key) {
 		return undefined;
 	}
 	return event.capabilities[key];
+}
+
+
+function validateLaunchPlatformEvidence(evidence, gate, failures) {
+	const allowed = platformHintsForGate(gate);
+	if (allowed.length === 0) {
+		return;
+	}
+
+	const observed = new Set();
+	for (const value of [
+		evidence.platform_hint,
+		evidence.runtime && evidence.runtime.resolved_platform_hint,
+		evidence.runtime && evidence.runtime.project_platform_hint,
+	]) {
+		const text = String(value || "").trim().toLowerCase();
+		if (text) {
+			observed.add(text);
+		}
+	}
+	for (const value of parseXrPlatformArgs(evidence.runtime && evidence.runtime.cmdline_xr_args)) {
+		observed.add(value);
+	}
+
+	if (allowed.some((value) => observed.has(value))) {
+		return;
+	}
+
+	const observedText = Array.from(observed).join(", ") || "none";
+	failures.push(`${gate} gate requires launch platform evidence (${allowed.join("|")}) in platform_hint, runtime.resolved_platform_hint, project setting, or runtime.cmdline_xr_args; observed ${observedText}.`);
+}
+
+
+function platformHintsForGate(gate) {
+	switch (gate) {
+		case "rokid":
+			return ["rokid", "openxr", "androidxr", "android_xr"];
+		case "ipad":
+			return ["ipad", "iphone", "ios", "arkit"];
+		case "android-arcore":
+			return ["arcore", "handheld", "handheld_ar", "phone", "mobile_ar"];
+		case "ios-simulator":
+		case "android-emulator":
+			return ["simulator", "simulation", "sim", "editor", "editorsim", "editor_sim"];
+		default:
+			return [];
+	}
+}
+
+
+function parseXrPlatformArgs(value) {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	const result = [];
+	for (let index = 0; index < value.length; index += 1) {
+		const text = String(value[index] || "").trim().toLowerCase();
+		for (const prefix of ["--xr-platform=", "--xr-backend="]) {
+			if (text.startsWith(prefix)) {
+				result.push(text.slice(prefix.length).trim());
+			}
+		}
+		if (["--xr-platform", "--xr-backend"].includes(text) && value[index + 1]) {
+			result.push(String(value[index + 1]).trim().toLowerCase());
+		}
+	}
+	return result.filter(Boolean);
 }
 
 

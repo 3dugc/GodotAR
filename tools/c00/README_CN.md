@@ -119,6 +119,14 @@ node tools/c00/check_xri_api_surface.js
 
 该检查不需要 Godot binary。它确认 XRI 风格的 `XRInteractionManager`、`XRRayInteractor`、`XRGrabInteractable`、hover/select/activate 事件和 C00 demo 交互 smoke 节点仍存在，用于防止后续周期破坏 Unity XRI 服务迁移入口。
 
+检查启动平台证据链：
+
+```bash
+node tools/c00/check_launch_platform_surface.js
+```
+
+该检查确认运行时会同时解析 Godot 普通 command-line args 和 user args，`GXF_SMOKE.runtime` 会输出 `resolved_platform_hint`，并确认 Rokid/iPad/Android ARCore 的 smoke/aggregate gate 会拒绝缺少目标启动平台证据的日志。
+
 检查 OpenXR/Rokid provider 诊断面：
 
 ```bash
@@ -484,7 +492,7 @@ tools/c00/import_device_evidence.sh \
 - `ipad`
 - `android-arcore`
 
-新 C00 日志会包含 `runtime` 字段。`validate_smoke_log.js` 会在报告中追加 `Runtime Metadata` 章节；旧日志缺少该字段时仍可验证 backend，但会产生 warning。
+新 C00 日志会包含 `runtime` 字段。`validate_smoke_log.js` 会在报告中追加 `Runtime Metadata` 章节；Rokid/iPad/Android ARCore 真机 gate 还要求 `platform_hint`、`runtime.resolved_platform_hint`、project setting 或 `runtime.cmdline_xr_args` 中至少一个值能证明本次启动选择了目标 XR platform。
 
 ## 手动媒体证据验证
 

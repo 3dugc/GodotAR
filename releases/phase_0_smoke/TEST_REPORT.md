@@ -77,6 +77,7 @@ Codex implementation status:
 - `OpenXRProvider` now records method-level OpenXR Vendors/Rokid passthrough evidence in `openxr_vendor_feature_report` and `openxr_ar_evidence`.
 - `OpenXRProvider` now attempts passthrough lifecycle startup through `XRInterface.start_passthrough()` or vendor singleton passthrough methods and reports `openxr_passthrough_started` / `openxr_passthrough_start_report`.
 - `tools/c00/validate_smoke_log.js` and `tools/c00/verify_phase_evidence.js` now require Rokid/OpenXR logs to include non-empty `capabilities.openxr_ar_evidence`.
+- `XRFoundation.resolve_platform_hint()` now reads both Godot command-line args and user args, and smoke/aggregate gates require launch platform evidence for Rokid, iPad, and Android ARCore device gates.
 - C00 now includes an XRI-style smoke surface: `XRInteractionManager`, `XRRayInteractor`, `XRGrabInteractable`, hover/select/activate events, and `GXF_SMOKE.xri` runtime evidence from the demo scene.
 
 Hardware status:
@@ -98,6 +99,8 @@ Hardware status:
 | `node --check tools/c00/verify_phase_evidence.js` | Pass | C00 aggregate verifier parses |
 | `node --check tools/c00/run_static_gates.js` | Pass | Static gate runner parses |
 | `node tools/c00/run_static_gates.js --gate all --report /private/tmp/godotar-static-gates.md` | Pass with warning | Static gate report passes; missing `export_presets.cfg` is recorded as warning |
+| `node --check tools/c00/check_launch_platform_surface.js` | Pass | Launch platform surface checker parses |
+| `node tools/c00/check_launch_platform_surface.js` | Pass | Runtime/platform hint parser, smoke metadata, and device gate launch evidence checks are present |
 | `node --check tools/c00/check_ios_plugin_artifacts.js` | Pass | iOS plugin artifact checker parses |
 | `node tools/c00/check_ios_plugin_artifacts.js` | Pass with warning | Runtime bridge surface is present; warns that real `GodotARKit.xcframework` is not built on this host |
 | `node --check tools/c00/check_ios_export_project.js` | Pass | iOS export project checker parses |
@@ -124,7 +127,10 @@ Hardware status:
 | Synthetic bad ARCore profile analysis | Fail as expected | Analyzer rejects Android ARCore profile JSON with no ARCore package |
 | Synthetic Android ARCore smoke gate | Pass | `validate_smoke_log.js --gate android-arcore` accepts `backend:"ARCore"` only when native plugin and explicit ARCore runtime/capability evidence are present |
 | Synthetic bad Android ARCore smoke gate | Fail as expected | `validate_smoke_log.js --gate android-arcore` rejects logs that only expose `native_plugin:true` without `runtime:"ARCore"` or `arcore_supported:true` |
+| Synthetic launch platform smoke gates | Pass | Rokid, iPad, and Android ARCore logs pass when `platform_hint`, `runtime.resolved_platform_hint`, or `runtime.cmdline_xr_args` proves the target launch path |
+| Synthetic bad launch platform smoke gate | Fail as expected | Rokid log with backend/capabilities but no platform launch evidence is rejected |
 | Synthetic Android ARCore aggregate gate | Pass | `verify_phase_evidence.js --gate android-arcore` accepts ARCore smoke, screenshot, recording, device profile Markdown, and ARCore package JSON evidence |
+| Synthetic launch platform aggregate gate | Pass | `verify_phase_evidence.js --gate rokid` accepts launch evidence and rejects the same log when that evidence is removed |
 | Synthetic Rokid phase profile analysis | Pass | `verify_phase_evidence.js --gate rokid` accepts good Rokid profile analysis when media size is relaxed for synthetic files |
 | Synthetic bad Rokid phase profile analysis | Fail as expected | `verify_phase_evidence.js --gate rokid` rejects profile JSON where ADB and target package evidence are missing |
 | Synthetic iPad device profile smoke | Pass | `collect_ios_device_profile.js` writes Markdown/JSON with a fake devicectl command to verify report generation |

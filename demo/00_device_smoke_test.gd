@@ -170,6 +170,8 @@ func _runtime_metadata() -> Dictionary:
 		"app_name": String(ProjectSettings.get_setting("application/config/name", "")),
 		"godot": Engine.get_version_info(),
 		"cmdline_xr_args": _safe_cmdline_args(),
+		"resolved_platform_hint": XRFoundation.resolve_platform_hint(platform_hint),
+		"project_platform_hint": String(ProjectSettings.get_setting("godot_xr_foundation/platform_hint", "")),
 		"rendering_method": String(ProjectSettings.get_setting("rendering/renderer/rendering_method", "")),
 		"openxr_enabled": bool(ProjectSettings.get_setting("xr/openxr/enabled", false)),
 		"xr_shaders_enabled": bool(ProjectSettings.get_setting("xr/shaders/enabled", false)),
@@ -235,12 +237,7 @@ func _ensure_xri_input_actions() -> void:
 
 
 func _safe_cmdline_args() -> Array[String]:
-	var result: Array[String] = []
-	for arg in OS.get_cmdline_args():
-		var text := String(arg).strip_edges()
-		if text.begins_with("--xr-") or text.begins_with("--rendering-") or text.begins_with("--display-driver"):
-			result.append(text)
-	return result
+	return XRFoundation.get_xr_cmdline_args()
 
 
 func _yes_no(value: bool) -> String:

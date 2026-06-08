@@ -29,6 +29,11 @@ const checks = [
 		required: true,
 	},
 	{
+		name: "Launch platform evidence surface",
+		command: ["node", "tools/c00/check_launch_platform_surface.js"],
+		required: true,
+	},
+	{
 		name: "ARFoundation migration API surface",
 		command: ["node", "tools/c00/check_arfoundation_api_surface.js"],
 		required: true,

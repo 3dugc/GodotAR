@@ -212,13 +212,22 @@ func get_last_error() -> String:
 	return last_error
 
 
+func get_xr_cmdline_args() -> Array[String]:
+	var result: Array[String] = []
+	for arg in _all_cmdline_args():
+		var text := String(arg).strip_edges()
+		if text.begins_with("--xr-") or text.begins_with("--rendering-") or text.begins_with("--display-driver"):
+			result.append(text)
+	return result
+
+
 func resolve_platform_hint(explicit_hint: String = "") -> String:
 	var hint := explicit_hint.strip_edges().to_lower()
 	if hint != "" and hint != "auto":
 		return hint
 
 	var cmdline_hint := ""
-	for arg in OS.get_cmdline_args():
+	for arg in _all_cmdline_args():
 		var text := String(arg).strip_edges()
 		if text.begins_with("--xr-platform="):
 			cmdline_hint = text.trim_prefix("--xr-platform=").strip_edges().to_lower()
@@ -273,3 +282,16 @@ func _make_provider(candidate: int) -> XRProvider:
 			return NativeXRProviderScript.new()
 		_:
 			return EditorSimProviderScript.new()
+
+
+func _all_cmdline_args() -> Array[String]:
+	var result: Array[String] = []
+	var sources: Array = [OS.get_cmdline_args()]
+	if OS.has_method("get_cmdline_user_args"):
+		sources.append(OS.get_cmdline_user_args())
+	for source_args in sources:
+		for arg in source_args:
+			var text := String(arg).strip_edges()
+			if text != "" and text not in result:
+				result.append(text)
+	return result

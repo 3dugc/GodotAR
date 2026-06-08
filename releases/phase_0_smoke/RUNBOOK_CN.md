@@ -162,7 +162,7 @@ tools/c00/collect_ios_simulator_smoke.sh booted org.godotengine.godotxrfoundatio
 - 面板显示 `Backend: OpenXR`。
 - 日志包含 `GXF_SMOKE`，且 JSON 中 `backend` 为 `OpenXR`。
 - 日志包含 `ar_session_state` 和 `not_tracking_reason`，用于对照 Unity ARFoundation 状态。
-- 日志 `runtime.cmdline_xr_args` 包含 `--xr-platform=rokid`，并能看到 Godot 版本、rendering method、OpenXR/XR shader 设置。
+- 日志能看到启动平台证据：`platform_hint`、`runtime.resolved_platform_hint`、project setting 或 `runtime.cmdline_xr_args` 中至少一个值指向 `rokid` / `openxr`；并能看到 Godot 版本、rendering method、OpenXR/XR shader 设置。
 - `capabilities.ar_product_path` 为 `true` 时，才算 AR 产品路径通过。
 - `capabilities.openxr_ar_evidence` 必须说明 AR 路径来自 environment blend mode 或 OpenXR Vendors/Rokid passthrough singleton 方法。
 - `capabilities.openxr_passthrough_start_report` 应记录 `XRInterface.start_passthrough` 或 vendor singleton passthrough lifecycle 调用结果。
@@ -225,6 +225,7 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - 面板显示 `Backend: ARCore`。
 - 日志包含 `GXF_SMOKE`，且 JSON 中 `backend` 为 `ARCore`。
 - 日志包含 `ar_session_state` 和 `not_tracking_reason`，用于对照 Unity ARFoundation 状态。
+- 日志能看到启动平台证据：`platform_hint`、`runtime.resolved_platform_hint`、project setting 或 `runtime.cmdline_xr_args` 中至少一个值指向 `arcore` / `handheld` / `phone`。
 - `capabilities.native_plugin=true`。
 - `capabilities.runtime="ARCore"` 或 `capabilities.arcore_supported=true`。
 - device profile JSON 检测到 ARCore package，例如 `com.google.ar.core`。
@@ -258,7 +259,7 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 - 日志包含 `GXF_SMOKE`，且 JSON 中 `backend` 为 `ARKit`。
 - 日志包含 `ar_session_state` 和 `not_tracking_reason`，用于对照 Unity ARFoundation 状态。
 - `not_tracking_reason` 会优先使用 ARKit singleton 的 `arkit_tracking_reason` 映射结果，便于直接对照 Unity `ARSession.notTrackingReason`。
-- 日志包含 runtime metadata，能确认 Godot 版本、`--xr-platform=ipad` 启动参数和 viewport XR 状态。
+- 日志能看到启动平台证据：`platform_hint`、`runtime.resolved_platform_hint`、project setting 或 `runtime.cmdline_xr_args` 中至少一个值指向 `ipad` / `ios` / `arkit`；并能确认 Godot 版本和 viewport XR 状态。
 - `capabilities.native_plugin=true`。
 - `capabilities.runtime="ARKit"` 或 `capabilities.arkit_supported=true`。
 - `capabilities.arkit_tracking_state` 和 `capabilities.arkit_tracking_reason` 能说明 ARKit 当前是 `normal`、`limited` 还是 `not_available`。

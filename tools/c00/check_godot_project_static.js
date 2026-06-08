@@ -17,6 +17,7 @@ const evidence = [];
 
 checkProjectSettings();
 checkAddon();
+checkStartupHintSurface();
 checkScene("demo/00_device_smoke_test.tscn", {
 	requiredNodes: [
 		"DeviceSmokeTest",
@@ -123,6 +124,27 @@ function checkAddon() {
 		text.includes('script="res://addons/godot_xr_foundation/godot_xr_foundation.gd"');
 	addCheck(localEvidence, "plugin script", hasPluginScript, `${file}: plugin script reference is missing.`);
 	checkResPathExists("res://addons/godot_xr_foundation/godot_xr_foundation.gd", localEvidence);
+	evidence.push(localEvidence);
+}
+
+
+function checkStartupHintSurface() {
+	const runtimeFile = "addons/godot_xr_foundation/scripts/xr_foundation.gd";
+	const demoFile = "demo/00_device_smoke_test.gd";
+	const runtimeText = readProjectFile(runtimeFile);
+	const demoText = readProjectFile(demoFile);
+	const localEvidence = { file: "startup hint surface", exists: Boolean(runtimeText && demoText), checks: [] };
+	if (!runtimeText) {
+		failures.push(`Missing ${runtimeFile}.`);
+	}
+	if (!demoText) {
+		failures.push(`Missing ${demoFile}.`);
+	}
+	addCheck(localEvidence, "get_xr_cmdline_args", /func\s+get_xr_cmdline_args\s*\(/.test(runtimeText), `${runtimeFile}: missing get_xr_cmdline_args().`);
+	addCheck(localEvidence, "cmdline user args compatibility", /get_cmdline_user_args/.test(runtimeText), `${runtimeFile}: should include OS.get_cmdline_user_args() compatibility.`);
+	addCheck(localEvidence, "all cmdline args helper", /func\s+_all_cmdline_args\s*\(/.test(runtimeText), `${runtimeFile}: missing _all_cmdline_args().`);
+	addCheck(localEvidence, "resolved platform runtime metadata", /"resolved_platform_hint"\s*:\s*XRFoundation\.resolve_platform_hint/.test(demoText), `${demoFile}: smoke runtime metadata should include resolved_platform_hint.`);
+	addCheck(localEvidence, "project platform runtime metadata", /"project_platform_hint"\s*:\s*String\(ProjectSettings\.get_setting\("godot_xr_foundation\/platform_hint"/.test(demoText), `${demoFile}: smoke runtime metadata should include project_platform_hint.`);
 	evidence.push(localEvidence);
 }
 
