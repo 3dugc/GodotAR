@@ -9,6 +9,14 @@ signal activated(interactor: Node)
 signal deactivated(interactor: Node)
 signal focus_entered(interactor: Node)
 signal focus_exited(interactor: Node)
+signal hoverEntered(interactor: Node)
+signal hoverExited(interactor: Node)
+signal selectEntered(interactor: Node)
+signal selectExited(interactor: Node)
+signal firstSelectEntered(interactor: Node)
+signal lastSelectExited(interactor: Node)
+signal focusEntered(interactor: Node)
+signal focusExited(interactor: Node)
 
 @export var interaction_manager_path: NodePath
 @export var reparent_on_grab := true
@@ -41,9 +49,11 @@ func on_select_enter(interactor: Node) -> void:
 		var global := global_transform
 		get_parent().remove_child(self)
 		interactor.add_child(self)
-		if keep_global_transform:
-			global_transform = global
+	if keep_global_transform:
+		global_transform = global
 	select_entered.emit(interactor)
+	selectEntered.emit(interactor)
+	firstSelectEntered.emit(interactor)
 
 
 func on_select_exit(interactor: Node) -> void:
@@ -58,6 +68,8 @@ func on_select_exit(interactor: Node) -> void:
 	selected_by = null
 	_original_parent = null
 	select_exited.emit(interactor)
+	selectExited.emit(interactor)
+	lastSelectExited.emit(interactor)
 
 
 func on_hover_enter(interactor: Node) -> void:
@@ -65,6 +77,7 @@ func on_hover_enter(interactor: Node) -> void:
 		return
 	hovered_by.append(interactor)
 	hover_entered.emit(interactor)
+	hoverEntered.emit(interactor)
 
 
 func on_hover_exit(interactor: Node) -> void:
@@ -72,6 +85,7 @@ func on_hover_exit(interactor: Node) -> void:
 		return
 	hovered_by.erase(interactor)
 	hover_exited.emit(interactor)
+	hoverExited.emit(interactor)
 
 
 func on_activate(interactor: Node) -> void:
@@ -85,6 +99,7 @@ func on_deactivate(interactor: Node) -> void:
 func on_focus_enter(interactor: Node) -> void:
 	focused_by = interactor
 	focus_entered.emit(interactor)
+	focusEntered.emit(interactor)
 
 
 func on_focus_exit(interactor: Node) -> void:
@@ -92,6 +107,7 @@ func on_focus_exit(interactor: Node) -> void:
 		return
 	focused_by = null
 	focus_exited.emit(interactor)
+	focusExited.emit(interactor)
 
 
 func IsHovered() -> bool:

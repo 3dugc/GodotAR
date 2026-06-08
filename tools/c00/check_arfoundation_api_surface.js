@@ -74,6 +74,8 @@ const checks = [
 			["raycast from screen helper", /func\s+raycast_from_screen\s*\(/],
 			["RaycastFromScreen alias", /func\s+RaycastFromScreen\s*\(/],
 			["RaycastScreen alias", /func\s+RaycastScreen\s*\(/],
+			["RaycastScreenPoint alias", /func\s+RaycastScreenPoint\s*\(/],
+			["RaycastList alias", /func\s+RaycastList\s*\(/],
 			["TryScreenRaycast list API", /func\s+TryScreenRaycast\s*\(/],
 		],
 	},
@@ -147,6 +149,13 @@ const checks = [
 	{
 		file: "addons/godot_xr_foundation/scripts/xr_hit.gd",
 		requirements: [
+			["Unity pose alias", /var\s+pose\s*:\s*Transform3D/],
+			["Unity trackableId alias", /var\s+trackableId\s*:\s*StringName/],
+			["Unity trackableType alias", /var\s+trackableType\s*:=/],
+			["Unity trackableId dictionary import", /trackableId/],
+			["Unity pose getter", /func\s+GetPose\s*\(/],
+			["Unity trackable id getter", /func\s+GetTrackableId\s*\(/],
+			["Unity trackable type getter", /func\s+GetTrackableType\s*\(/],
 			["trackable type name fallback", /trackable_type_name/],
 			["trackable type variant conversion", /trackable_type_from_variant/],
 		],

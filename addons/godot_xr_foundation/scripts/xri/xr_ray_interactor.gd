@@ -11,6 +11,16 @@ signal select_exiting(target: XRGrabInteractable)
 signal select_exited(target: XRGrabInteractable)
 signal activated(target: XRGrabInteractable)
 signal deactivated(target: XRGrabInteractable)
+signal hoverEntering(target: XRGrabInteractable)
+signal hoverEntered(target: XRGrabInteractable)
+signal hoverExiting(target: XRGrabInteractable)
+signal hoverExited(target: XRGrabInteractable)
+signal selectEntering(target: XRGrabInteractable)
+signal selectEntered(target: XRGrabInteractable)
+signal selectExiting(target: XRGrabInteractable)
+signal selectExited(target: XRGrabInteractable)
+signal firstSelectEntered(target: XRGrabInteractable)
+signal lastSelectExited(target: XRGrabInteractable)
 
 @export var select_action: StringName = &"xr_select"
 @export var activate_action: StringName = &"xr_activate"
@@ -73,9 +83,12 @@ func select() -> bool:
 	if hover_target.IsSelected():
 		return false
 	select_entering.emit(hover_target)
+	selectEntering.emit(hover_target)
 	selected_target = hover_target
 	selected_target.on_select_enter(self)
 	select_entered.emit(selected_target)
+	selectEntered.emit(selected_target)
+	firstSelectEntered.emit(selected_target)
 	return true
 
 
@@ -86,9 +99,12 @@ func release() -> bool:
 		return false
 	var released := selected_target
 	select_exiting.emit(released)
+	selectExiting.emit(released)
 	selected_target.on_select_exit(self)
 	selected_target = null
 	select_exited.emit(released)
+	selectExited.emit(released)
+	lastSelectExited.emit(released)
 	return true
 
 
@@ -175,33 +191,47 @@ func _set_hover_target_direct(next_target: XRGrabInteractable) -> void:
 		return
 	if hover_target:
 		hover_exiting.emit(hover_target)
+		hoverExiting.emit(hover_target)
 		hover_target.on_hover_exit(self)
 		hover_exited.emit(hover_target)
+		hoverExited.emit(hover_target)
 	hover_target = next_target
 	if hover_target:
 		hover_entering.emit(hover_target)
+		hoverEntering.emit(hover_target)
 		hover_target.on_hover_enter(self)
 		hover_entered.emit(hover_target)
+		hoverEntered.emit(hover_target)
 
 
 func _emit_hover_entered(target: XRGrabInteractable) -> void:
 	hover_entering.emit(target)
+	hoverEntering.emit(target)
 	hover_entered.emit(target)
+	hoverEntered.emit(target)
 
 
 func _emit_hover_exited(target: XRGrabInteractable) -> void:
 	hover_exiting.emit(target)
+	hoverExiting.emit(target)
 	hover_exited.emit(target)
+	hoverExited.emit(target)
 
 
 func _emit_select_entered(target: XRGrabInteractable) -> void:
 	select_entering.emit(target)
+	selectEntering.emit(target)
 	select_entered.emit(target)
+	selectEntered.emit(target)
+	firstSelectEntered.emit(target)
 
 
 func _emit_select_exited(target: XRGrabInteractable) -> void:
 	select_exiting.emit(target)
+	selectExiting.emit(target)
 	select_exited.emit(target)
+	selectExited.emit(target)
+	lastSelectExited.emit(target)
 
 
 func _emit_activated(target: XRGrabInteractable) -> void:

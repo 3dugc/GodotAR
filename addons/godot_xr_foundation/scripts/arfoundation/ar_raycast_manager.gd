@@ -58,6 +58,14 @@ func RaycastFromScreen(camera: Camera3D, screen_position: Vector2, results: Arra
 	return raycast_from_screen(camera, screen_position, results, trackable_types)
 
 
+func RaycastScreenPoint(camera: Camera3D, screen_position: Vector2, results: Array, trackable_types: int = 0xffffffff) -> bool:
+	return raycast_from_screen(camera, screen_position, results, trackable_types)
+
+
+func RaycastList(camera: Camera3D, screen_position: Vector2, results: Array, trackable_types: int = 0xffffffff) -> bool:
+	return raycast_from_screen(camera, screen_position, results, trackable_types)
+
+
 func RaycastScreen(camera: Camera3D, screen_position: Vector2, results: Array, trackable_types: int = 0xffffffff) -> bool:
 	return raycast_from_screen(camera, screen_position, results, trackable_types)
 

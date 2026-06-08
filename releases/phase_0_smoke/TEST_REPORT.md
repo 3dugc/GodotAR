@@ -98,6 +98,9 @@ Codex implementation status:
 - ARFoundation manager facades now expose Unity AR Foundation 6-style `trackablesChanged(changes)` signals with `ARTrackablesChangedEventArgs.added/updated/removed`, while preserving the original Godot-side `planes_changed(added, updated, removed)` and `anchors_changed(added, updated, removed)` signals.
 - `ARPlaneManager` now exposes `requested_detection_mode`, detection-mode string mapping, `GetTrackable(...)`, `TryGetTrackable(...)`, and `TryGetPlane(...)` migration aliases.
 - `ARAnchorManager` now exposes `GetTrackable(...)`, `TryGetTrackable(...)`, and `TryGetAnchor(...)` migration aliases.
+- `XRHit` now exposes Unity-style `pose`, `trackableId`, `trackableType`, `GetTrackableId()`, and `GetTrackableType()` aliases alongside the existing Godot snake_case fields.
+- `ARRaycastManager` now exposes additional Unity-placement migration aliases `RaycastScreenPoint(...)` and `RaycastList(...)` for screen-point list-output workflows that still require Godot's explicit `Camera3D`.
+- `XRInteractionManager`, `XRRayInteractor`, and `XRGrabInteractable` now emit Unity XRI-style camelCase signals such as `hoverEntered`, `selectEntered`, `firstSelectEntered`, and `lastSelectExited` alongside their snake_case Godot signals.
 - Official Godot OpenXR Vendors 4.2.0 is now vendored under `addons/godotopenxrvendors` for Godot 4.4 Android/OpenXR exports.
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` and `GodotARKit.gdip` are now built locally against Godot 4.4.1 source headers; the archive contains `GodotARKitPlugin.mm.o` and `GodotARKitSession.mm.o` for iOS arm64 plus simulator arm64/x86_64.
 - `tools/c00/prepare_godot_source.sh` now generates the minimum Godot build headers needed by external iOS plugin builds: `version_generated.gen.h`, `disabled_classes.gen.h`, and `gdvirtual.gen.inc`.
@@ -166,6 +169,8 @@ Hardware status:
 | `node tools/c00/check_arfoundation_api_surface.js` | Pass | Unity-style ARSession/raycast/trackables surface is present |
 | `node --check tools/c00/check_xri_api_surface.js` | Pass | XRI migration API checker parses |
 | `node tools/c00/check_xri_api_surface.js` | Pass | XRI manager/ray/interactable smoke surface is present |
+| Unity ARRaycastHit alias surface | Pass | `XRHit.pose`, `trackableId`, `trackableType`, `GetTrackableId()`, and `GetTrackableType()` are guarded by `check_arfoundation_api_surface.js` |
+| Unity XRI camelCase signal surface | Pass | `hoverEntered`, `selectEntered`, `firstSelectEntered`, and `lastSelectExited` are guarded by `check_xri_api_surface.js` |
 | `node --check tools/c00/check_openxr_provider_surface.js` | Pass | OpenXR provider surface checker parses |
 | `node tools/c00/check_openxr_provider_surface.js` | Pass | OpenXR/Rokid AR evidence and virtual plane fallback surfaces are present |
 | `node --check tools/c00/check_rokid_openxr_export_surface.js` | Pass | Rokid/OpenXR export surface checker parses |

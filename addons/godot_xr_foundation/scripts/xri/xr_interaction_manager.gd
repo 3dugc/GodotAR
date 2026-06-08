@@ -17,6 +17,18 @@ signal activated(interactor: Node, interactable: Node)
 signal deactivated(interactor: Node, interactable: Node)
 signal focus_entered(interactor: Node, interactable: Node)
 signal focus_exited(interactor: Node, interactable: Node)
+signal hoverEntering(interactor: Node, interactable: Node)
+signal hoverEntered(interactor: Node, interactable: Node)
+signal hoverExiting(interactor: Node, interactable: Node)
+signal hoverExited(interactor: Node, interactable: Node)
+signal selectEntering(interactor: Node, interactable: Node)
+signal selectEntered(interactor: Node, interactable: Node)
+signal selectExiting(interactor: Node, interactable: Node)
+signal selectExited(interactor: Node, interactable: Node)
+signal firstSelectEntered(interactor: Node, interactable: Node)
+signal lastSelectExited(interactor: Node, interactable: Node)
+signal focusEntered(interactor: Node, interactable: Node)
+signal focusExited(interactor: Node, interactable: Node)
 
 var interactors: Array[Node] = []
 var interactables: Array[Node] = []
@@ -83,21 +95,25 @@ func set_hover_target(interactor: Node, next_target: Node) -> void:
 
 	if current != null:
 		hover_exiting.emit(interactor, current)
+		hoverExiting.emit(interactor, current)
 		if current.has_method("on_hover_exit"):
 			current.call("on_hover_exit", interactor)
 		if interactor.has_method("_emit_hover_exited"):
 			interactor.call("_emit_hover_exited", current)
 		hover_exited.emit(interactor, current)
+		hoverExited.emit(interactor, current)
 
 	interactor.set("hover_target", next_target)
 
 	if next_target != null:
 		hover_entering.emit(interactor, next_target)
+		hoverEntering.emit(interactor, next_target)
 		if next_target.has_method("on_hover_enter"):
 			next_target.call("on_hover_enter", interactor)
 		if interactor.has_method("_emit_hover_entered"):
 			interactor.call("_emit_hover_entered", next_target)
 		hover_entered.emit(interactor, next_target)
+		hoverEntered.emit(interactor, next_target)
 
 
 func select(interactor: Node) -> bool:
@@ -109,12 +125,15 @@ func select(interactor: Node) -> bool:
 	if target.has_method("IsSelected") and bool(target.call("IsSelected")):
 		return false
 	select_entering.emit(interactor, target)
+	selectEntering.emit(interactor, target)
 	if target.has_method("on_select_enter"):
 		target.call("on_select_enter", interactor)
 	interactor.set("selected_target", target)
 	if interactor.has_method("_emit_select_entered"):
 		interactor.call("_emit_select_entered", target)
 	select_entered.emit(interactor, target)
+	selectEntered.emit(interactor, target)
+	firstSelectEntered.emit(interactor, target)
 	return true
 
 
@@ -125,12 +144,15 @@ func release(interactor: Node) -> bool:
 	if target == null:
 		return false
 	select_exiting.emit(interactor, target)
+	selectExiting.emit(interactor, target)
 	if target.has_method("on_select_exit"):
 		target.call("on_select_exit", interactor)
 	interactor.set("selected_target", null)
 	if interactor.has_method("_emit_select_exited"):
 		interactor.call("_emit_select_exited", target)
 	select_exited.emit(interactor, target)
+	selectExited.emit(interactor, target)
+	lastSelectExited.emit(interactor, target)
 	return true
 
 

@@ -47,8 +47,9 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 | `ARSession.currentTrackingMode` | `ARSession.get_current_tracking_mode()` |
 | `ARSession.matchFrameRate` / `matchFrameRateRequested` | `XRSessionManager.match_frame_rate` / `match_frame_rate_requested`; native providers may ignore this until their frame pacing bridge is implemented |
 | `ARRaycastManager.Raycast(Ray, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.RaycastToList(origin, direction, results, max_results, trackable_types)` or `TryRaycast(...)` |
-| `ARRaycastManager.Raycast(Vector2, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.RaycastFromScreen(camera, screen_position, results, trackable_types)` or `TryScreenRaycast(...)` |
-| `ARRaycastHit.pose` | `XRHit.get_pose()`, `XRHit.GetPose()`, or `XRHit.to_dictionary().pose` |
+| `ARRaycastManager.Raycast(Vector2, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.RaycastFromScreen(camera, screen_position, results, trackable_types)`, `RaycastScreenPoint(...)`, `RaycastList(...)`, or `TryScreenRaycast(...)`; Godot requires an explicit `Camera3D` |
+| `ARRaycastHit.pose` | `XRHit.pose`, `XRHit.get_pose()`, `XRHit.GetPose()`, or `XRHit.to_dictionary().pose` |
+| `ARRaycastHit.trackableId` / `trackableType` | `XRHit.trackableId` / `trackableType`, `GetTrackableId()`, `GetTrackableType()`, or the snake_case `trackable_id` / `trackable_type` fields |
 | `ARAnchorManager.AddAnchor(...)` | `ARAnchorManager.AddAnchor(...)` or `add_anchor(...)` |
 | `ARAnchorManager.TryAddAnchorAsync(Pose)` | `ARAnchorManager.TryAddAnchorAsync(transform_or_pose_dictionary)` |
 | `ARAnchorManager.TryRemoveAnchor(anchor)` | `ARAnchorManager.TryRemoveAnchor(anchor)` |
@@ -61,6 +62,9 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 | `XRInteractionManager` | `XRInteractionManager` |
 | `XRRayInteractor` | `XRRayInteractor` |
 | `XRGrabInteractable` | `XRGrabInteractable` |
+| `hoverEntered` / `hoverExited` | XRI-style camelCase signals are emitted alongside Godot snake_case `hover_entered` / `hover_exited` |
+| `selectEntered` / `selectExited` | XRI-style camelCase signals are emitted alongside `select_entered` / `select_exited`; `firstSelectEntered` and `lastSelectExited` are also emitted for single-select migration |
+| `activated` / `deactivated` | `activated` / `deactivated` signals on the interactor, interactable, and interaction manager |
 
 ## C00 ARFoundation API Surface
 
@@ -88,6 +92,7 @@ C00 includes a thin XRI-style interaction smoke layer so Unity services that ass
 
 - `XRInteractionManager` centrally registers interactors/interactables and dispatches hover/select/activate transitions.
 - `XRRayInteractor` exposes `GetValidTargets(...)`, `TryGetCurrent3DRaycastHit()`, `select()`, `release()`, `activate()`, and `deactivate()`.
+- `XRRayInteractor`, `XRGrabInteractable`, and `XRInteractionManager` emit both Godot-style snake_case signals and Unity XRI-style camelCase signals such as `hoverEntered`, `selectEntered`, `firstSelectEntered`, `lastSelectExited`, `activated`, and `deactivated`.
 - `XRGrabInteractable` exposes XRI-style hover/select/activate events plus `IsHovered()` and `IsSelected()`.
 - The C00 smoke scene includes a camera ray and a small interactable target, and writes XRI state into the `GXF_SMOKE.xri` payload.
 
