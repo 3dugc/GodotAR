@@ -105,6 +105,39 @@ tools/c00/preflight.sh ipad
 tools/c00/preflight.sh android-arcore
 ```
 
+## 第一阶段完成审计
+
+当设备机依赖和真机证据都准备好后，用 completion audit 做最后确认：
+
+```bash
+node tools/c00/audit_phase1_completion.js
+```
+
+默认报告输出到：
+
+```text
+releases/phase_0_smoke/C00_COMPLETION_AUDIT.md
+releases/phase_0_smoke/C00_COMPLETION_AUDIT.json
+```
+
+该审计会同时检查：
+
+- C00 静态 gate。
+- ARFoundation / XRI Unity 迁移 API surface。
+- `GodotARKit.gdip` + `GodotARKit.xcframework` 是否按 iOS plugin 方式构建完成。
+- Rokid/OpenXR provider AR evidence surface。
+- Android ARCore gate surface。
+- `tools/c00/preflight.sh rokid/ipad/android-arcore` 是否在当前设备机通过。
+- `tools/c00/verify_phase_evidence.js` 是否验证到 Rokid/OpenXR、iPad/ARKit、Android/ARCore 的日志、媒体和设备画像。
+
+只要 iPad/Rokid/Android 任一条真机证据缺失，审计会输出 `NOT_READY` 并以非零状态退出；这就是预期行为，不能用模拟器结果替代真机通过。临时只想看代码面是否完整时可以跳过设备预检或证据聚合：
+
+```bash
+node tools/c00/audit_phase1_completion.js --skip-preflight --skip-evidence --report /tmp/c00-audit.md --json /tmp/c00-audit.json
+```
+
+带 `--skip-*` 的审计只会输出 `PARTIAL`，即使命令退出 0，也只代表所选代码面检查通过，不代表第一阶段完成。
+
 安装 Godot 官方 export templates：
 
 ```bash

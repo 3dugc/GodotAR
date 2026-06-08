@@ -44,6 +44,11 @@ const checks = [
 		required: true,
 	},
 	{
+		name: "Phase 1 completion audit surface",
+		command: ["node", "tools/c00/check_phase1_completion_audit_surface.js"],
+		required: true,
+	},
+	{
 		name: "ARFoundation migration API surface",
 		command: ["node", "tools/c00/check_arfoundation_api_surface.js"],
 		required: true,

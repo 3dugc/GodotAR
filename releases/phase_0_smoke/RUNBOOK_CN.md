@@ -120,6 +120,21 @@ tools/c00/run_device_cycle.sh all
 如需临时只聚合某几台设备，设置 `PHASE_GATES=rokid,ipad`；C00 发布默认要求 `rokid,ipad,android-arcore`。
 单台 collector 即使 smoke validation 失败，也会继续做媒体证据验证并追加 device profile / profile analysis，最后再返回非零状态；失败时优先打开对应 `releases/phase_0_smoke/evidence/<gate>-*.md`。
 
+真机跑完后，用 completion audit 做发布前最终审计：
+
+```bash
+node tools/c00/audit_phase1_completion.js
+```
+
+报告会写到：
+
+```text
+releases/phase_0_smoke/C00_COMPLETION_AUDIT.md
+releases/phase_0_smoke/C00_COMPLETION_AUDIT.json
+```
+
+只有静态 gate、Unity ARFoundation/XRI 迁移 surface、ARKit plugin binary、Rokid/iPad/Android preflight 和三平台真机证据全部通过时，审计才会输出 `READY`。任何缺失都会输出 `NOT_READY`；这时不能发布为第一阶段完成。
+
 设备机第一次运行前，可以先 dry-run 整条编排：
 
 ```bash
