@@ -172,5 +172,5 @@ iPad gate 应记录 `capabilities.arkit_tracking_state` 和 `capabilities.arkit_
 - [ ] iPad 设备报告包含自动采集的 devicectl device profile，用于确认设备详情、display、lock state 和目标 bundle 状态。
 - [ ] Rokid/Android 设备报告通过 `validate_evidence_bundle.js`，截图和录屏都存在。
 - [ ] iPad 设备报告通过 `validate_evidence_bundle.js`，至少存在截图或录屏。
-- [ ] `tools/c00/verify_phase_evidence.js` 聚合验证通过，Rokid/OpenXR 和 iPad/ARKit 双 gate 都是 `PASS`。
+- [ ] `tools/c00/verify_phase_evidence.js` 聚合验证通过，Rokid/OpenXR 和 iPad/ARKit 双 gate 都是 `PASS`，并且两个 gate 都包含 device profile Markdown 与 JSON。
 - [ ] 失败平台有明确错误和下一步。

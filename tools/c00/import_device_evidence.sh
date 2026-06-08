@@ -7,6 +7,8 @@ LOG_SOURCE=""
 SCREENSHOT_SOURCE=""
 VIDEO_SOURCE=""
 MANUAL_MEDIA_SOURCE=""
+DEVICE_PROFILE_SOURCE=""
+DEVICE_PROFILE_JSON_SOURCE=""
 OUT_DIR="${OUT_DIR:-$PROJECT_ROOT/releases/phase_0_smoke/evidence}"
 STAMP="${STAMP:-$(date +%Y%m%d-%H%M%S)}"
 EXTRA_VALIDATE_ARGS="${EXTRA_VALIDATE_ARGS:-}"
@@ -22,6 +24,8 @@ Media:
   --screenshot <file>      Screenshot evidence.
   --video <file>           Screen recording evidence.
   --manual-media <file>    Manual iPad screenshot or recording fallback.
+  --device-profile <file>       Device profile Markdown evidence.
+  --device-profile-json <file>  Device profile JSON evidence.
 
 Options:
   --out-dir <dir>          Evidence output dir. Default: releases/phase_0_smoke/evidence.
@@ -57,6 +61,14 @@ while [[ "$#" -gt 0 ]]; do
 			;;
 		--manual-media)
 			MANUAL_MEDIA_SOURCE="$2"
+			shift 2
+			;;
+		--device-profile)
+			DEVICE_PROFILE_SOURCE="$2"
+			shift 2
+			;;
+		--device-profile-json)
+			DEVICE_PROFILE_JSON_SOURCE="$2"
 			shift 2
 			;;
 		--out-dir)
@@ -137,6 +149,25 @@ copy_optional() {
 	printf "%s" "$target"
 }
 
+copy_optional_named() {
+	local kind="$1"
+	local source="$2"
+	local fallback_ext="$3"
+	local target_name="$4"
+	if [[ -z "$source" ]]; then
+		return 0
+	fi
+	if [[ ! -f "$source" ]]; then
+		echo "ERROR: $kind file does not exist: $source" >&2
+		exit 2
+	fi
+	local ext
+	ext="$(extension_for "$source" "$fallback_ext")"
+	local target="$OUT_DIR/${GATE}-${STAMP}-${target_name}.${ext}"
+	cp "$source" "$target"
+	printf "%s" "$target"
+}
+
 LOG_PATH="$OUT_DIR/${GATE}-${STAMP}.log"
 REPORT_PATH="$OUT_DIR/${GATE}-${STAMP}.md"
 cp "$LOG_SOURCE" "$LOG_PATH"
@@ -144,6 +175,8 @@ cp "$LOG_SOURCE" "$LOG_PATH"
 SCREENSHOT_PATH="$(copy_optional screenshot "$SCREENSHOT_SOURCE" png)"
 VIDEO_PATH="$(copy_optional video "$VIDEO_SOURCE" mp4)"
 MANUAL_MEDIA_PATH="$(copy_optional manual-media "$MANUAL_MEDIA_SOURCE" media)"
+DEVICE_PROFILE_PATH="$(copy_optional_named device-profile "$DEVICE_PROFILE_SOURCE" md device)"
+DEVICE_PROFILE_JSON_PATH="$(copy_optional_named device-profile-json "$DEVICE_PROFILE_JSON_SOURCE" json device)"
 
 echo "Imported log: $LOG_PATH"
 if [[ -n "$SCREENSHOT_PATH" ]]; then
@@ -154,6 +187,12 @@ if [[ -n "$VIDEO_PATH" ]]; then
 fi
 if [[ -n "$MANUAL_MEDIA_PATH" ]]; then
 	echo "Imported manual media: $MANUAL_MEDIA_PATH"
+fi
+if [[ -n "$DEVICE_PROFILE_PATH" ]]; then
+	echo "Imported device profile: $DEVICE_PROFILE_PATH"
+fi
+if [[ -n "$DEVICE_PROFILE_JSON_PATH" ]]; then
+	echo "Imported device profile JSON: $DEVICE_PROFILE_JSON_PATH"
 fi
 
 echo "Validating smoke log: $GATE"
@@ -179,5 +218,9 @@ fi
 
 echo "Validating evidence bundle"
 node "$PROJECT_ROOT/tools/c00/validate_evidence_bundle.js" "${EVIDENCE_ARGS[@]}"
+
+if [[ -n "$DEVICE_PROFILE_PATH" ]]; then
+	cat "$DEVICE_PROFILE_PATH" >> "$REPORT_PATH"
+fi
 
 echo "Report: $REPORT_PATH"

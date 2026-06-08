@@ -291,14 +291,18 @@ tools/c00/import_device_evidence.sh \
   --gate rokid \
   --log path/to/rokid.log \
   --screenshot path/to/rokid.png \
-  --video path/to/rokid.mp4
+  --video path/to/rokid.mp4 \
+  --device-profile path/to/rokid-device.md \
+  --device-profile-json path/to/rokid-device.json
 ```
 
 ```bash
 tools/c00/import_device_evidence.sh \
   --gate ipad \
   --log path/to/ipad.log \
-  --manual-media path/to/ipad.mov
+  --manual-media path/to/ipad.mov \
+  --device-profile path/to/ipad-device.md \
+  --device-profile-json path/to/ipad-device.json
 ```
 
 支持的 gate：
@@ -354,8 +358,10 @@ releases/phase_0_smoke/C00_PHASE_REPORT.md
 
 - 最新 `rokid-*.log` 通过 OpenXR AR gate。
 - 最新 `rokid-*.png` 和 `rokid-*.mp4` 都存在。
+- 最新 `rokid-*-device.md` 和 `rokid-*-device.json` 都存在，且 JSON 可解析。
 - 最新 `ipad-*.log` 通过 ARKit gate。
 - 最新 `ipad-*.png`、`ipad-*.mp4` 或显式 `--ipad-manual-media` 至少一个存在。
+- 最新 `ipad-*-device.md` 和 `ipad-*-device.json` 都存在，且 JSON 可解析。
 
 如果要显式指定素材：
 
@@ -364,8 +370,12 @@ node tools/c00/verify_phase_evidence.js \
   --rokid-log releases/phase_0_smoke/evidence/rokid-xxx.log \
   --rokid-screenshot releases/phase_0_smoke/evidence/rokid-xxx.png \
   --rokid-video releases/phase_0_smoke/evidence/rokid-xxx.mp4 \
+  --rokid-device-profile releases/phase_0_smoke/evidence/rokid-xxx-device.md \
+  --rokid-device-profile-json releases/phase_0_smoke/evidence/rokid-xxx-device.json \
   --ipad-log releases/phase_0_smoke/evidence/ipad-xxx.log \
-  --ipad-manual-media releases/phase_0_smoke/evidence/ipad-xxx.mov
+  --ipad-manual-media releases/phase_0_smoke/evidence/ipad-xxx.mov \
+  --ipad-device-profile releases/phase_0_smoke/evidence/ipad-xxx-device.md \
+  --ipad-device-profile-json releases/phase_0_smoke/evidence/ipad-xxx-device.json
 ```
 
 ## 报告位置

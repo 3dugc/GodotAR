@@ -19,6 +19,7 @@ const evidenceDir = path.resolve(args.dir || DEFAULT_EVIDENCE_DIR);
 const reportPath = args.report ? path.resolve(args.report) : DEFAULT_REPORT;
 const allowOpenXRWithoutARBlend = Boolean(args["allow-openxr-without-ar-blend"]);
 const allowMissingMedia = Boolean(args["allow-missing-media"]);
+const allowMissingDeviceProfile = Boolean(args["allow-missing-device-profile"]);
 const minBytes = Number(args["min-bytes"] || 1024);
 const gates = gatesFromArgs(args);
 
@@ -86,7 +87,10 @@ function usage() {
 		"  --<gate>-screenshot <file>    Explicit screenshot path.",
 		"  --<gate>-video <file>         Explicit recording path.",
 		"  --<gate>-manual-media <file>  Explicit manual iPad media path.",
+		"  --<gate>-device-profile <file>       Explicit device profile Markdown path.",
+		"  --<gate>-device-profile-json <file>  Explicit device profile JSON path.",
 		"  --allow-missing-media         Downgrade missing media from failure to warning.",
+		"  --allow-missing-device-profile  Downgrade missing device profile evidence from failure to warning.",
 		"  --allow-openxr-without-ar-blend  Downgrade Rokid ar_product_path=false to warning.",
 		"  --min-bytes <bytes>           Minimum non-empty media file size. Default: 1024.",
 	].join("\n"));
@@ -126,6 +130,10 @@ function verifyGate(gate) {
 	failures.push(...evidence.failures);
 	warnings.push(...evidence.warnings);
 
+	const profile = validateDeviceProfile(gate, files.deviceProfile, files.deviceProfileJson);
+	failures.push(...profile.failures);
+	warnings.push(...profile.warnings);
+
 	return {
 		gate,
 		pass: failures.length === 0,
@@ -134,6 +142,7 @@ function verifyGate(gate) {
 		files,
 		smoke: smoke ? smoke.summary : null,
 		media: evidence.media,
+		deviceProfile: profile.summary,
 	};
 }
 
@@ -144,6 +153,8 @@ function resolveGateFiles(gate) {
 		screenshot: explicitOrLatest(gate, "screenshot", "png"),
 		video: explicitOrLatest(gate, "video", "mp4"),
 		manualMedia: explicitOrLatest(gate, "manual-media"),
+		deviceProfile: explicitOrLatest(gate, "device-profile", "md"),
+		deviceProfileJson: explicitOrLatest(gate, "device-profile-json", "json"),
 	};
 }
 
@@ -161,12 +172,77 @@ function explicitOrLatest(gate, argName, extension = "") {
 	const candidates = fs.readdirSync(evidenceDir)
 		.filter((name) => name.startsWith(`${gate}-`))
 		.filter((name) => argName !== "manual-media" || name.includes("-manual-media."))
+		.filter((name) => argName !== "device-profile" || name.includes("-device."))
+		.filter((name) => argName !== "device-profile-json" || name.includes("-device."))
 		.filter((name) => extensions.includes(path.extname(name).slice(1).toLowerCase()))
 		.map((name) => path.join(evidenceDir, name))
 		.filter((filePath) => fs.statSync(filePath).isFile())
 		.sort((left, right) => fs.statSync(right).mtimeMs - fs.statSync(left).mtimeMs);
 
 	return candidates[0] || "";
+}
+
+
+function validateDeviceProfile(gate, markdownPath, jsonPath) {
+	const failures = [];
+	const warnings = [];
+	const summary = {
+		markdown: fileEvidence("device-profile", markdownPath),
+		json: fileEvidence("device-profile-json", jsonPath),
+		jsonPreview: null,
+	};
+
+	if (gate === "editor") {
+		return { failures, warnings, summary };
+	}
+
+	requireProfile(summary.markdown, `${gate} gate requires a device profile Markdown artifact.`);
+	requireProfile(summary.json, `${gate} gate requires a device profile JSON artifact.`);
+	if (summary.json.exists && summary.json.bytes >= minBytes) {
+		try {
+			const parsed = JSON.parse(fs.readFileSync(summary.json.path, "utf8"));
+			summary.jsonPreview = summarizeDeviceProfileJson(parsed);
+		} catch (error) {
+			recordProblem(`Device profile JSON is not parseable: ${summary.json.path}`);
+		}
+	}
+
+	return { failures, warnings, summary };
+
+	function requireProfile(item, message) {
+		if (!item.path) {
+			recordProblem(message);
+		} else if (!item.exists) {
+			recordProblem(`${item.kind} evidence is missing: ${item.path}`);
+		} else if (item.bytes < minBytes) {
+			recordProblem(`${item.kind} evidence is too small (${item.bytes} bytes): ${item.path}`);
+		}
+	}
+
+	function recordProblem(message) {
+		if (allowMissingDeviceProfile) {
+			warnings.push(message);
+		} else {
+			failures.push(message);
+		}
+	}
+}
+
+
+function summarizeDeviceProfileJson(parsed) {
+	if (!parsed || typeof parsed !== "object") {
+		return parsed;
+	}
+	return {
+		gate: parsed.gate || null,
+		device: parsed.device || null,
+		package: parsed.package || parsed.bundle_id || null,
+		generated_at: parsed.generated_at || null,
+		warnings: Array.isArray(parsed.warnings) ? parsed.warnings : [],
+		selected_device: parsed.selected_device || null,
+		target_package: parsed.target_package || null,
+		target_app: parsed.target_app || null,
+	};
 }
 
 
@@ -372,6 +448,24 @@ function mediaEntry(kind, value) {
 }
 
 
+function fileEvidence(kind, value) {
+	if (!value) {
+		return { kind, path: "", exists: false, bytes: 0 };
+	}
+	const absolutePath = path.resolve(String(value));
+	let exists = false;
+	let bytes = 0;
+	try {
+		const stats = fs.statSync(absolutePath);
+		exists = stats.isFile();
+		bytes = exists ? stats.size : 0;
+	} catch (error) {
+		exists = false;
+	}
+	return { kind, path: absolutePath, exists, bytes };
+}
+
+
 function backendForGate(gate) {
 	switch (gate) {
 		case "rokid":
@@ -456,6 +550,21 @@ function renderMarkdown(summary) {
 				const state = item.exists ? `${item.bytes} bytes` : "missing";
 				lines.push(`- ${item.kind}: \`${item.path}\` (${state})`);
 			}
+		}
+		lines.push("");
+		lines.push("### Device Profile");
+		lines.push("");
+		if (gateSummary.deviceProfile) {
+			for (const item of [gateSummary.deviceProfile.markdown, gateSummary.deviceProfile.json]) {
+				const state = item.exists ? `${item.bytes} bytes` : "missing";
+				lines.push(`- ${item.kind}: ${item.path ? `\`${item.path}\`` : "missing"} (${state})`);
+			}
+			lines.push("");
+			lines.push("```json");
+			lines.push(JSON.stringify(gateSummary.deviceProfile.jsonPreview || {}, null, 2));
+			lines.push("```");
+		} else {
+			lines.push("- None");
 		}
 		lines.push("");
 		lines.push("### Selected Smoke Evidence");

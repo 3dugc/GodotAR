@@ -223,6 +223,16 @@ tools/c00/import_device_evidence.sh --gate ipad --log path/to/ipad.log --manual-
 tools/c00/import_device_evidence.sh --gate rokid --log path/to/rokid.log --screenshot path/to/rokid.png --video path/to/rokid.mp4
 ```
 
+如果手工导入的素材已经包含 device profile，也一起传入：
+
+```bash
+tools/c00/import_device_evidence.sh --gate ipad --log path/to/ipad.log --manual-media path/to/ipad.mov --device-profile path/to/ipad-device.md --device-profile-json path/to/ipad-device.json
+```
+
+```bash
+tools/c00/import_device_evidence.sh --gate rokid --log path/to/rokid.log --screenshot path/to/rokid.png --video path/to/rokid.mp4 --device-profile path/to/rokid-device.md --device-profile-json path/to/rokid-device.json
+```
+
 ## 归档材料
 
 每台设备至少保存：
@@ -274,6 +284,7 @@ releases/phase_0_smoke/C00_PHASE_REPORT.md
 ```
 
 只有这个总报告显示 `PASS`，C00 才能作为可发表结果。单台设备 gate 通过但另一台缺证据时，C00 仍然不能标记完成。
+总报告默认还要求 Rokid 和 iPad 都有 `*-device.md` 与 `*-device.json` device profile；临时调试可用 `--allow-missing-device-profile` 降级为 warning，但不能作为 C00 可发表结果。
 
 ## 参考原则
 
