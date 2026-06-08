@@ -4,6 +4,7 @@ class_name ARPlaneManager
 signal plane_added(plane: ARPlane)
 signal plane_updated(plane: ARPlane)
 signal plane_removed(trackable_id: StringName)
+signal planes_changed(added: Array, updated: Array, removed: Array)
 
 @export var create_anchor_nodes := true
 @export var xr_origin_path: NodePath
@@ -41,8 +42,16 @@ func get_all_planes() -> Array[ARPlane]:
 	return result
 
 
+func get_trackables() -> Array[ARPlane]:
+	return get_all_planes()
+
+
 func GetAllPlanes() -> Array[ARPlane]:
 	return get_all_planes()
+
+
+func GetTrackables() -> Array[ARPlane]:
+	return get_trackables()
 
 
 func _on_session_started(_backend: int, _display_name: StringName) -> void:
@@ -69,8 +78,10 @@ func _on_tracker_added(tracker_name: StringName, _type: int) -> void:
 
 func _on_tracker_removed(tracker_name: StringName, _type: int) -> void:
 	if planes.has(tracker_name):
+		var plane: ARPlane = planes[tracker_name]
 		planes.erase(tracker_name)
 		plane_removed.emit(tracker_name)
+		planes_changed.emit([], [], [plane])
 	if anchor_nodes.has(tracker_name):
 		var node: Node = anchor_nodes[tracker_name]
 		if is_instance_valid(node):
@@ -82,9 +93,11 @@ func _add_or_update_plane(plane: ARPlane) -> void:
 	if planes.has(plane.trackable_id):
 		planes[plane.trackable_id] = plane
 		plane_updated.emit(plane)
+		planes_changed.emit([], [plane], [])
 	else:
 		planes[plane.trackable_id] = plane
 		plane_added.emit(plane)
+		planes_changed.emit([plane], [], [])
 
 
 func _is_plane_tracker(tracker: Object) -> bool:

@@ -168,10 +168,28 @@ func get_session_state_name() -> StringName:
 	return XRFoundationTypes.session_state_to_string(state)
 
 
+func get_ar_session_state() -> int:
+	return XRFoundationTypes.ar_session_state_from_foundation_state(state, get_tracking_status())
+
+
+func get_ar_session_state_name() -> StringName:
+	return XRFoundationTypes.ar_session_state_to_string(get_ar_session_state())
+
+
 func get_tracking_status() -> int:
 	if provider == null:
 		return XRInterface.XR_UNKNOWN_TRACKING
 	return provider.get_tracking_status()
+
+
+func get_not_tracking_reason() -> int:
+	if state == XRFoundationTypes.SessionState.FAILED:
+		return XRFoundationTypes.NotTrackingReason.UNSUPPORTED
+	return XRFoundationTypes.not_tracking_reason_from_status(get_tracking_status())
+
+
+func get_not_tracking_reason_name() -> StringName:
+	return XRFoundationTypes.not_tracking_reason_to_string(get_not_tracking_reason())
 
 
 func get_tracking_state() -> int:

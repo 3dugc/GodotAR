@@ -24,10 +24,32 @@ enum Availability {
 	INSTALLED,
 }
 
+enum ARSessionState {
+	NONE,
+	UNSUPPORTED,
+	CHECKING_AVAILABILITY,
+	NEEDS_INSTALL,
+	INSTALLING,
+	READY,
+	SESSION_INITIALIZING,
+	SESSION_TRACKING,
+}
+
 enum TrackingState {
 	NONE,
 	LIMITED,
 	TRACKING,
+}
+
+enum NotTrackingReason {
+	NONE,
+	INITIALIZING,
+	RELOCALIZING,
+	EXCESSIVE_MOTION,
+	INSUFFICIENT_FEATURES,
+	INSUFFICIENT_LIGHT,
+	UNSUPPORTED,
+	UNKNOWN,
 }
 
 enum TrackableType {
@@ -97,6 +119,44 @@ static func availability_to_string(availability: int) -> StringName:
 			return &"Unknown"
 
 
+static func ar_session_state_to_string(session_state: int) -> StringName:
+	match session_state:
+		ARSessionState.UNSUPPORTED:
+			return &"Unsupported"
+		ARSessionState.CHECKING_AVAILABILITY:
+			return &"CheckingAvailability"
+		ARSessionState.NEEDS_INSTALL:
+			return &"NeedsInstall"
+		ARSessionState.INSTALLING:
+			return &"Installing"
+		ARSessionState.READY:
+			return &"Ready"
+		ARSessionState.SESSION_INITIALIZING:
+			return &"SessionInitializing"
+		ARSessionState.SESSION_TRACKING:
+			return &"SessionTracking"
+		ARSessionState.NONE:
+			return &"None"
+		_:
+			return &"Unknown"
+
+
+static func ar_session_state_from_foundation_state(session_state: int, tracking_status: int = XRInterface.XR_UNKNOWN_TRACKING) -> int:
+	match session_state:
+		SessionState.RUNNING:
+			if tracking_status == XRInterface.XR_NORMAL_TRACKING:
+				return ARSessionState.SESSION_TRACKING
+			return ARSessionState.SESSION_INITIALIZING
+		SessionState.STARTING:
+			return ARSessionState.SESSION_INITIALIZING
+		SessionState.FAILED:
+			return ARSessionState.UNSUPPORTED
+		SessionState.STOPPED:
+			return ARSessionState.READY
+		_:
+			return ARSessionState.NONE
+
+
 static func tracking_status_to_state(status: int) -> int:
 	match status:
 		XRInterface.XR_NORMAL_TRACKING:
@@ -121,3 +181,37 @@ static func tracking_state_to_string(tracking_state: int) -> StringName:
 
 static func tracking_status_to_string(status: int) -> StringName:
 	return tracking_state_to_string(tracking_status_to_state(status))
+
+
+static func not_tracking_reason_from_status(status: int) -> int:
+	match status:
+		XRInterface.XR_NORMAL_TRACKING:
+			return NotTrackingReason.NONE
+		XRInterface.XR_EXCESSIVE_MOTION:
+			return NotTrackingReason.EXCESSIVE_MOTION
+		XRInterface.XR_INSUFFICIENT_FEATURES:
+			return NotTrackingReason.INSUFFICIENT_FEATURES
+		XRInterface.XR_UNKNOWN_TRACKING:
+			return NotTrackingReason.INITIALIZING
+		_:
+			return NotTrackingReason.UNKNOWN
+
+
+static func not_tracking_reason_to_string(reason: int) -> StringName:
+	match reason:
+		NotTrackingReason.NONE:
+			return &"None"
+		NotTrackingReason.INITIALIZING:
+			return &"Initializing"
+		NotTrackingReason.RELOCALIZING:
+			return &"Relocalizing"
+		NotTrackingReason.EXCESSIVE_MOTION:
+			return &"ExcessiveMotion"
+		NotTrackingReason.INSUFFICIENT_FEATURES:
+			return &"InsufficientFeatures"
+		NotTrackingReason.INSUFFICIENT_LIGHT:
+			return &"InsufficientLight"
+		NotTrackingReason.UNSUPPORTED:
+			return &"Unsupported"
+		_:
+			return &"Unknown"

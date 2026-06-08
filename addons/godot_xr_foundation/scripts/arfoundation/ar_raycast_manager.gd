@@ -42,12 +42,24 @@ func screen_raycast_to_list(camera: Camera3D, screen_position: Vector2, results:
 	return not hits.is_empty()
 
 
+func raycast_from_screen(camera: Camera3D, screen_position: Vector2, results: Array, trackable_types: int = 0xffffffff) -> bool:
+	return screen_raycast_to_list(camera, screen_position, results, 0, trackable_types)
+
+
 func RaycastToList(origin: Vector3, direction: Vector3, results: Array, max_results: int = 0, trackable_types: int = 0xffffffff) -> bool:
 	return raycast_to_list(origin, direction, results, max_results, trackable_types)
 
 
 func ScreenRaycastToList(camera: Camera3D, screen_position: Vector2, results: Array, max_results: int = 0, trackable_types: int = 0xffffffff) -> bool:
 	return screen_raycast_to_list(camera, screen_position, results, max_results, trackable_types)
+
+
+func RaycastFromScreen(camera: Camera3D, screen_position: Vector2, results: Array, trackable_types: int = 0xffffffff) -> bool:
+	return raycast_from_screen(camera, screen_position, results, trackable_types)
+
+
+func RaycastScreen(camera: Camera3D, screen_position: Vector2, results: Array, trackable_types: int = 0xffffffff) -> bool:
+	return raycast_from_screen(camera, screen_position, results, trackable_types)
 
 
 func Raycast(origin: Vector3, direction: Vector3, max_results: int = 1, trackable_types: int = 0xffffffff) -> Array[XRHit]:

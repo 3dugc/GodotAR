@@ -143,6 +143,7 @@ tools/c00/collect_ios_simulator_smoke.sh booted org.godotengine.godotxrfoundatio
 - 面板显示 `Session: Running`。
 - 面板显示 `Backend: OpenXR`。
 - 日志包含 `GXF_SMOKE`，且 JSON 中 `backend` 为 `OpenXR`。
+- 日志包含 `ar_session_state` 和 `not_tracking_reason`，用于对照 Unity ARFoundation 状态。
 - 日志 `runtime.cmdline_xr_args` 包含 `--xr-platform=rokid`，并能看到 Godot 版本、rendering method、OpenXR/XR shader 设置。
 - `capabilities.ar_product_path` 为 `true` 时，才算 AR 产品路径通过。
 
@@ -201,6 +202,7 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - 面板显示 `Session: Running`。
 - 面板显示 `Backend: ARKit`。
 - 日志包含 `GXF_SMOKE`，且 JSON 中 `backend` 为 `ARKit`。
+- 日志包含 `ar_session_state` 和 `not_tracking_reason`，用于对照 Unity ARFoundation 状态。
 - 日志包含 runtime metadata，能确认 Godot 版本、`--xr-platform=ipad` 启动参数和 viewport XR 状态。
 - `capabilities.native_plugin=true`。
 - `capabilities.runtime="ARKit"` 或 `capabilities.arkit_supported=true`。
@@ -281,7 +283,7 @@ releases/phase_0_smoke/evidence/
 
 `.md` 报告会包含两个门禁结果：
 
-- smoke log gate：验证 `GXF_SMOKE`、backend、native plugin、ARKit/OpenXR 证据。
+- smoke log gate：验证 `GXF_SMOKE`、backend、Unity-style session state、native plugin、ARKit/OpenXR 证据。
 - evidence bundle gate：验证截图和录屏是否存在并非空文件。
 - Android/Rokid device profile：记录设备属性、target package、XR 相关包和关键 feature。
 - iPad device profile：记录 devicectl details、display、lock state、目标 bundle 安装状态和原始 JSON。

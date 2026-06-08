@@ -429,6 +429,12 @@ function evaluateSmokeEvents(events, gate) {
 	if (!evidence.tracking || evidence.tracking === "None") {
 		warnings.push("Tracking state is missing or None.");
 	}
+	if (!evidence.ar_session_state) {
+		failures.push("Unity-style ar_session_state is missing from GXF_SMOKE evidence.");
+	}
+	if (!evidence.not_tracking_reason) {
+		failures.push("Unity-style not_tracking_reason is missing from GXF_SMOKE evidence.");
+	}
 
 	if (gate === "rokid") {
 		const arProductPath = Boolean(getCapability(evidence, "ar_product_path"));

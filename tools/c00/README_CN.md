@@ -75,6 +75,14 @@ node tools/c00/check_ios_plugin_artifacts.js --file ios/plugins/godot_arkit/Godo
 
 该检查会验证 Godot 官方 `.gdip` 必需字段、`GodotARKit.xcframework` 引用、`init_godot_arkit` / `deinit_godot_arkit` 符号、ARKit/Metal capability、系统 framework、plist camera 权限和 required device capabilities。
 
+检查 ARFoundation 迁移 API surface：
+
+```bash
+node tools/c00/check_arfoundation_api_surface.js
+```
+
+该检查不需要 Godot binary。它确认 Unity 风格的 `ARSession.state/notTrackingReason/requestedTrackingMode/matchFrameRate`、`ARRaycastManager` screen/list raycast、`ARPlaneManager`/`ARAnchorManager` trackables 与 changed events 仍存在，用于防止后续周期破坏 Unity 项目迁移入口。
+
 ## 一键执行 Gate
 
 设备机上优先使用：
@@ -268,6 +276,7 @@ Rokid 默认严格要求：
 
 - `backend:"OpenXR"`
 - `session_state:"Running"`
+- `ar_session_state` 和 `not_tracking_reason` 必须存在，用于对照 Unity ARFoundation 状态判断。
 - `capabilities.ar_product_path:true`
 - 新日志应包含 `capabilities.openxr_ar_tier`。`A/B/C` 可作为 AR 路径证据，`D` 是 VR-only，不能算 AR 通过。
 
@@ -334,6 +343,7 @@ iPad gate 要求：
 
 - `backend:"ARKit"`
 - `session_state:"Running"`
+- `ar_session_state` 和 `not_tracking_reason` 必须存在，用于对照 Unity ARFoundation 状态判断。
 - `capabilities.native_plugin:true`
 - `capabilities.runtime:"ARKit"` 或 `capabilities.arkit_supported:true`
 - `capabilities.arkit_tracking_state` / `capabilities.arkit_tracking_reason` 必须存在，用于区分正常跟踪、初始化、重定位、运动过快或特征不足。

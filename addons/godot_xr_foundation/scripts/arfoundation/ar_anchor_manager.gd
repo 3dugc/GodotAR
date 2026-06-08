@@ -3,6 +3,7 @@ class_name ARAnchorManager
 
 signal anchor_added(anchor: ARAnchor)
 signal anchor_removed(anchor: ARAnchor)
+signal anchors_changed(added: Array, updated: Array, removed: Array)
 
 @export var anchors_parent_path: NodePath
 
@@ -16,6 +17,10 @@ func get_all_anchors() -> Array[ARAnchor]:
 	return result
 
 
+func get_trackables() -> Array[ARAnchor]:
+	return get_all_anchors()
+
+
 func add_anchor(transform: Transform3D, attached_trackable: ARTrackable = null) -> ARAnchor:
 	var anchor := XRFoundation.create_anchor(transform, attached_trackable)
 	var parent := _get_anchor_parent()
@@ -27,6 +32,7 @@ func add_anchor(transform: Transform3D, attached_trackable: ARTrackable = null) 
 		anchor.node = node
 	anchors[anchor.trackable_id] = anchor
 	anchor_added.emit(anchor)
+	anchors_changed.emit([anchor], [], [])
 	return anchor
 
 
@@ -44,6 +50,7 @@ func remove_anchor(anchor_or_id: Variant) -> void:
 		anchor.node.queue_free()
 	anchors.erase(id)
 	anchor_removed.emit(anchor)
+	anchors_changed.emit([], [], [anchor])
 
 
 func try_add_anchor(pose: Variant) -> Dictionary:
@@ -65,6 +72,10 @@ func try_remove_anchor(anchor: ARAnchor) -> bool:
 
 func GetAllAnchors() -> Array[ARAnchor]:
 	return get_all_anchors()
+
+
+func GetTrackables() -> Array[ARAnchor]:
+	return get_trackables()
 
 
 func AddAnchor(transform: Transform3D, attached_trackable: ARTrackable = null) -> ARAnchor:

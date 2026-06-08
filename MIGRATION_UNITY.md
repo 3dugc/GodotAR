@@ -39,16 +39,44 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 | `ARSession.CheckAvailability()` | `ARSession.CheckAvailability(...)` or `XRFoundation.check_availability(...)` |
 | `ARSession.Install()` | `ARSession.Install(...)` or `XRFoundation.install(...)` |
 | `ARSession.Reset()` | `ARSession.Reset()`, `XRFoundation.reset_session(...)`, or `XRDeviceRig.recenter()` |
-| `ARSession.state` | `ARSession.state()` or `XRFoundation.state` |
-| `ARRaycastManager.Raycast(...)` | `ARRaycastManager.Raycast(...)`, `TryRaycast(...)`, `RaycastToList(...)`, `ScreenRaycast(...)`, or `TryScreenRaycast(...)` |
+| `ARSession.state` | `ARSession.state()`, `ARSession.GetState()`, or `XRFoundation.get_ar_session_state()` |
+| Unity internal/session lifecycle checks | `ARSession.foundation_state()`, `ARSession.GetFoundationState()`, or `XRFoundation.state` |
+| `ARSession.notTrackingReason` | `ARSession.notTrackingReason()`, `ARSession.GetNotTrackingReason()`, or `XRFoundation.get_not_tracking_reason()` |
+| `ARSession.requestedTrackingMode` | `ARSession.requested_tracking_mode`, `get_requested_tracking_mode()`, or `set_requested_tracking_mode(...)` |
+| `ARSession.currentTrackingMode` | `ARSession.get_current_tracking_mode()` |
+| `ARSession.matchFrameRate` / `matchFrameRateRequested` | `XRSessionManager.match_frame_rate` / `match_frame_rate_requested`; native providers may ignore this until their frame pacing bridge is implemented |
+| `ARRaycastManager.Raycast(Ray, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.RaycastToList(origin, direction, results, max_results, trackable_types)` or `TryRaycast(...)` |
+| `ARRaycastManager.Raycast(Vector2, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.RaycastFromScreen(camera, screen_position, results, trackable_types)` or `TryScreenRaycast(...)` |
 | `ARRaycastHit.pose` | `XRHit.get_pose()`, `XRHit.GetPose()`, or `XRHit.to_dictionary().pose` |
 | `ARAnchorManager.AddAnchor(...)` | `ARAnchorManager.AddAnchor(...)` or `add_anchor(...)` |
 | `ARAnchorManager.TryAddAnchorAsync(Pose)` | `ARAnchorManager.TryAddAnchorAsync(transform_or_pose_dictionary)` |
 | `ARAnchorManager.TryRemoveAnchor(anchor)` | `ARAnchorManager.TryRemoveAnchor(anchor)` |
-| `ARPlaneManager.trackables` | `ARPlaneManager.GetAllPlanes()` or `get_all_planes()` |
+| `ARPlaneManager.trackables` | `ARPlaneManager.GetTrackables()`, `GetAllPlanes()`, or `get_all_planes()` |
+| `ARPlaneManager.planesChanged` | `ARPlaneManager.planes_changed(added, updated, removed)` |
+| `ARAnchorManager.trackables` | `ARAnchorManager.GetTrackables()` or `GetAllAnchors()` |
+| `ARAnchorManager.anchorsChanged` | `ARAnchorManager.anchors_changed(added, updated, removed)` |
 | `XROrigin.Camera` | `XRDeviceRig.get_camera()` |
 | `XRRayInteractor` | `XRRayInteractor` |
 | `XRGrabInteractable` | `XRGrabInteractable` |
+
+## C00 ARFoundation API Surface
+
+C00 keeps the compatibility layer intentionally thin: it copies the Unity naming shape where that helps port services, while still exposing Godot-native snake_case methods for new code.
+
+- `ARSession.state()` follows Unity ARFoundation semantics and returns `XRFoundationTypes.ARSessionState`, not the internal `Stopped/Starting/Running/Failed` lifecycle value.
+- `ARSession.foundation_state()` and `XRFoundation.state` expose the internal lifecycle value when gate scripts need to know whether the provider has started or failed.
+- `ARSession.notTrackingReason()` maps the current Godot/XR tracking status to `XRFoundationTypes.NotTrackingReason`.
+- Manager changed events use list payloads like Unity: `planes_changed(added, updated, removed)` and `anchors_changed(added, updated, removed)`.
+- Screen-space raycast needs a `Camera3D` argument because Godot does not have Unity's implicit active AR camera.
+- `match_frame_rate_requested` is surfaced as a migration option now; actual native frame pacing should be implemented in the ARKit/ARCore/OpenXR providers when those SDK bridges expose preferred frame timing.
+
+Static API surface gate:
+
+```bash
+node tools/c00/check_arfoundation_api_surface.js
+```
+
+This check is meant to run in CI or on a device machine before the real iPad/Rokid gate. It does not prove native AR tracking; it only keeps the migration-facing facade stable.
 
 ## Porting Order
 
@@ -101,7 +129,7 @@ Unity-style list output is also supported:
 ```gdscript
 func place_from_screen_unity_style(screen_position: Vector2) -> void:
 	var hits: Array = []
-	if not raycast_manager.TryScreenRaycast(camera, screen_position, hits):
+	if not raycast_manager.RaycastFromScreen(camera, screen_position, hits):
 		return
 
 	var result := anchor_manager.TryAddAnchorAsync(hits[0].get_pose())
@@ -135,3 +163,9 @@ ARFoundation hides a lot of native SDK detail. Godot can match the shape, but co
 - Image/object tracking.
 
 The provider layer in this addon is designed so those features can be added per platform without rewriting gameplay code.
+
+## Unity References Used For This Surface
+
+- Unity AR Foundation `ARSession`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%404.2/api/UnityEngine.XR.ARFoundation.ARSession.html
+- Unity AR Foundation managers architecture: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%405.0/manual/architecture/managers.html
+- Unity AR Foundation `ARRaycastManager`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%405.0/api/UnityEngine.XR.ARFoundation.ARRaycastManager.html

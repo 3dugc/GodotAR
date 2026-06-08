@@ -8,6 +8,8 @@ class_name XRSessionManager
 @export var passthrough := true
 @export var fallback_to_editor_sim := true
 @export var disable_vsync := true
+@export var match_frame_rate := false
+@export var match_frame_rate_requested := false
 @export var simulated_floor_height := 0.0
 @export var simulated_plane_size := Vector2(5.0, 5.0)
 
@@ -45,12 +47,28 @@ func get_session_state_name() -> StringName:
 	return XRFoundation.get_session_state_name()
 
 
+func get_ar_session_state() -> int:
+	return XRFoundation.get_ar_session_state()
+
+
+func get_ar_session_state_name() -> StringName:
+	return XRFoundation.get_ar_session_state_name()
+
+
 func get_tracking_state() -> int:
 	return XRFoundation.get_tracking_state()
 
 
 func get_tracking_state_name() -> StringName:
 	return XRFoundation.get_tracking_state_name()
+
+
+func get_not_tracking_reason() -> int:
+	return XRFoundation.get_not_tracking_reason()
+
+
+func get_not_tracking_reason_name() -> StringName:
+	return XRFoundation.get_not_tracking_reason_name()
 
 
 func _build_options() -> Dictionary:
@@ -60,6 +78,8 @@ func _build_options() -> Dictionary:
 		"passthrough": passthrough,
 		"fallback_to_editor_sim": fallback_to_editor_sim,
 		"disable_vsync": disable_vsync,
+		"match_frame_rate": match_frame_rate,
+		"match_frame_rate_requested": match_frame_rate_requested or match_frame_rate,
 		"simulated_floor_height": simulated_floor_height,
 		"simulated_plane_size": simulated_plane_size,
 	}
