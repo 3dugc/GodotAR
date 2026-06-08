@@ -18,7 +18,7 @@ if (args.help || args.h) {
 	process.exit(0);
 }
 
-if (!["all", "rokid", "ipad", "android-arcore", "editor"].includes(gate)) {
+if (!["all", "rokid", "ipad", "ios-simulator", "android-arcore", "editor"].includes(gate)) {
 	usage();
 	process.exit(2);
 }
@@ -30,7 +30,11 @@ if (!fs.existsSync(file)) {
 
 const text = fs.readFileSync(file, "utf8");
 const presets = parsePresets(text);
-const gates = gate === "all" ? ["rokid", "ipad", "android-arcore"] : gate === "editor" ? [] : [gate];
+const gates = gate === "all"
+	? ["rokid", "ipad", "android-arcore"]
+	: gate === "editor"
+		? []
+		: [gate === "ios-simulator" ? "ipad" : gate];
 const failures = [];
 const warnings = [];
 const evidence = [];
@@ -121,7 +125,7 @@ function parseArgs(argv) {
 function usage() {
 	console.error([
 		"Usage:",
-		"  node tools/c00/check_export_presets.js --gate <all|rokid|ipad|android-arcore|editor> --file export_presets.cfg",
+		"  node tools/c00/check_export_presets.js --gate <all|rokid|ipad|ios-simulator|android-arcore|editor> --file export_presets.cfg",
 	].join("\n"));
 }
 

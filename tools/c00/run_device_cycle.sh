@@ -13,6 +13,7 @@ RUN_COLLECT="${RUN_COLLECT:-1}"
 BUILD_ARKIT_PLUGIN="${BUILD_ARKIT_PLUGIN:-auto}"
 BUILD_IPAD_APP="${BUILD_IPAD_APP:-auto}"
 INCLUDE_EDITOR_SIM="${INCLUDE_EDITOR_SIM:-0}"
+INCLUDE_IOS_SIMULATOR="${INCLUDE_IOS_SIMULATOR:-0}"
 INCLUDE_ANDROID_ARCORE="${INCLUDE_ANDROID_ARCORE:-0}"
 CONTINUE_ON_FAILURE="${CONTINUE_ON_FAILURE:-auto}"
 RUN_PHASE_VERIFY="${RUN_PHASE_VERIFY:-1}"
@@ -25,14 +26,18 @@ ANDROID_ARCORE_APK_PATH="${ANDROID_ARCORE_APK_PATH:-builds/android_arcore/c00.ap
 IPAD_PRESET="${IPAD_PRESET:-C00 iPad ARKit}"
 IPAD_EXPORT_PATH="${IPAD_EXPORT_PATH:-builds/ipad/c00.zip}"
 IPAD_APP_PATH="${IPAD_APP_PATH:-builds/ipad/GodotXRFoundation.app}"
+IOS_SIMULATOR_EXPORT_PATH="${IOS_SIMULATOR_EXPORT_PATH:-builds/ios_simulator/c00.zip}"
+IOS_SIMULATOR_APP_PATH="${IOS_SIMULATOR_APP_PATH:-builds/ios_simulator/GodotXRFoundation.app}"
+SIMULATOR_DEVICE="${SIMULATOR_DEVICE:-booted}"
 
 usage() {
 	cat <<EOF
 Usage:
-  tools/c00/run_device_cycle.sh <editor|rokid|ipad|android-arcore|all> [ipad-device]
+  tools/c00/run_device_cycle.sh <editor|ios-simulator|rokid|ipad|android-arcore|all> [ipad-device]
 
 Examples:
   tools/c00/run_device_cycle.sh editor
+  APP_PATH=builds/ios_simulator/GodotXRFoundation.app tools/c00/run_device_cycle.sh ios-simulator
   tools/c00/run_device_cycle.sh rokid
   GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh ipad
   APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/run_device_cycle.sh ipad <ipad-device>
@@ -56,6 +61,9 @@ iPad / ARKit:
   BUILD_ARKIT_PLUGIN=auto|1|0        Default auto: build only when GODOT_SOURCE_DIR is set.
   BUILD_IPAD_APP=auto|1|0            Build exported Xcode project into .app when APP_PATH is empty.
   IPAD_APP_PATH="$IPAD_APP_PATH"
+  IOS_SIMULATOR_EXPORT_PATH="$IOS_SIMULATOR_EXPORT_PATH"
+  IOS_SIMULATOR_APP_PATH="$IOS_SIMULATOR_APP_PATH"
+  SIMULATOR_DEVICE=booted              iOS Simulator UDID or booted alias.
   SCHEME=<xcode-scheme>              Optional Xcode scheme for the exported project.
   TARGET_NAME=<xcode-target>         Optional target fallback when no scheme exists.
   APP_PATH=builds/ipad/App.app       Optional installed app bundle for devicectl.
@@ -68,6 +76,7 @@ Rokid / Android:
 All:
   Runs ipad then rokid. Set INCLUDE_ANDROID_ARCORE=1 to include Android ARCore.
   INCLUDE_EDITOR_SIM=1             Run the local EditorSim gate before device gates.
+  INCLUDE_IOS_SIMULATOR=1          Run iOS Simulator development gate before device gates.
   CONTINUE_ON_FAILURE=auto|1|0     Default auto continues in all mode so every device can produce evidence.
   RUN_PHASE_VERIFY=1               Run verify_phase_evidence.js after all gates.
   PHASE_REPORT="$PHASE_REPORT"
@@ -80,7 +89,7 @@ if [[ "$GATE" == "-h" || "$GATE" == "--help" ]]; then
 fi
 
 case "$GATE" in
-	editor|rokid|ipad|android-arcore|all)
+	editor|ios-simulator|rokid|ipad|android-arcore|all)
 		;;
 	*)
 		usage >&2
@@ -141,6 +150,38 @@ build_ipad_app_if_requested() {
 	export APP_PATH
 }
 
+build_ios_simulator_app_if_requested() {
+	if [[ -n "${APP_PATH:-}" ]]; then
+		echo "APP_PATH is already set; skipping iOS Simulator Xcode build: $APP_PATH"
+		return
+	fi
+
+	local export_zip
+	export_zip="$(project_path "$IOS_SIMULATOR_EXPORT_PATH")"
+	if [[ ! -f "$export_zip" ]]; then
+		echo "iOS Simulator export zip is missing: $export_zip" >&2
+		return 2
+	fi
+	if ! command -v xcodebuild >/dev/null 2>&1; then
+		echo "xcodebuild not found; cannot build iOS Simulator app." >&2
+		return 2
+	fi
+
+	local app_output
+	app_output="$(project_path "$IOS_SIMULATOR_APP_PATH")"
+	echo "Building iOS Simulator Xcode export into app bundle..."
+	IOS_BUILD_PLATFORM=simulator \
+	ALLOW_PROVISIONING_UPDATES=0 \
+	CODE_SIGN_STYLE="" \
+	CODE_SIGNING_ALLOWED=NO \
+	BUILD_ROOT="$PROJECT_ROOT/builds/ios_simulator/xcode" \
+	DERIVED_DATA_PATH="$PROJECT_ROOT/builds/ios_simulator/DerivedData" \
+	APP_OUTPUT_PATH="$app_output" \
+		"$PROJECT_ROOT/tools/c00/build_ios_xcode_project.sh" "$export_zip"
+	APP_PATH="$app_output"
+	export APP_PATH
+}
+
 run_preflight() {
 	local gate="$1"
 	if [[ "$RUN_PREFLIGHT" == "0" ]]; then
@@ -163,7 +204,18 @@ run_export() {
 			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$ANDROID_ARCORE_PRESET" "${APK_PATH:-$ANDROID_ARCORE_APK_PATH}"
 			;;
 		ipad)
+			if [[ -n "${APP_PATH:-}" ]]; then
+				echo "APP_PATH is already set; skipping iPad export: $APP_PATH"
+				return
+			fi
 			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$IPAD_PRESET" "$IPAD_EXPORT_PATH"
+			;;
+		ios-simulator)
+			if [[ -n "${APP_PATH:-}" ]]; then
+				echo "APP_PATH is already set; skipping iOS Simulator export: $APP_PATH"
+				return
+			fi
+			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$IPAD_PRESET" "$IOS_SIMULATOR_EXPORT_PATH"
 			;;
 		editor)
 			echo "EditorSim gate does not require export."
@@ -180,6 +232,13 @@ run_collect() {
 	case "$gate" in
 		editor)
 			"$PROJECT_ROOT/tools/c00/collect_editor_smoke.sh" "$DURATION"
+			;;
+		ios-simulator)
+			if [[ -z "${APP_PATH:-}" ]]; then
+				echo "APP_PATH is empty; expected iOS Simulator .app from the build step." >&2
+				exit 2
+			fi
+			"$PROJECT_ROOT/tools/c00/collect_ios_simulator_smoke.sh" "$SIMULATOR_DEVICE" "$PACKAGE" "$DURATION"
 			;;
 		rokid)
 			local apk_path="${APK_PATH:-$(project_path "$ROKID_APK_PATH")}"
@@ -206,13 +265,16 @@ run_gate() {
 	local gate="$1"
 	echo
 	echo "== C00 gate: $gate =="
-	if [[ "$gate" == "ipad" ]]; then
+	if [[ "$gate" == "ipad" || "$gate" == "ios-simulator" ]]; then
 		build_arkit_plugin_if_requested || return $?
 	fi
 	run_preflight "$gate" || return $?
 	run_export "$gate" || return $?
 	if [[ "$gate" == "ipad" ]]; then
 		build_ipad_app_if_requested || return $?
+	fi
+	if [[ "$gate" == "ios-simulator" ]]; then
+		build_ios_simulator_app_if_requested || return $?
 	fi
 	run_collect "$gate" || return $?
 }
@@ -253,6 +315,12 @@ if [[ "$GATE" == "all" ]]; then
 	phase_status=0
 	if [[ "$INCLUDE_EDITOR_SIM" == "1" ]]; then
 		run_gate_for_all editor || phase_status="$?"
+		if [[ "$phase_status" != "0" && "$CONTINUE_ON_FAILURE" == "0" ]]; then
+			exit "$phase_status"
+		fi
+	fi
+	if [[ "$INCLUDE_IOS_SIMULATOR" == "1" ]]; then
+		run_gate_for_all ios-simulator || phase_status="$?"
 		if [[ "$phase_status" != "0" && "$CONTINUE_ON_FAILURE" == "0" ]]; then
 			exit "$phase_status"
 		fi

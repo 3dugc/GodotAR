@@ -118,6 +118,23 @@ tools/c00/collect_editor_smoke.sh 15
 
 iOS Simulator 和 Android Emulator 也可以作为周期内的辅助成果：它们用于验证导出链路、app 启动、日志格式，以及 iOS `.xcframework` 是否包含 simulator slice。它们不能证明真实 ARKit/OpenXR AR tracking，因此不能让 C00 发布门禁通过。
 
+iOS Simulator 辅助 gate：
+
+```bash
+tools/c00/run_device_cycle.sh ios-simulator
+```
+
+如果已经有 simulator `.app`：
+
+```bash
+APP_PATH=builds/ios_simulator/GodotXRFoundation.app \
+tools/c00/collect_ios_simulator_smoke.sh booted org.godotengine.godotxrfoundation 30
+```
+
+该 gate 会通过 `--xr-platform=simulator` 选择 `EditorSim` backend，用来验证 iOS 导出、simulator app 启动、日志和截图链路。报告路径仍在 `releases/phase_0_smoke/evidence/ios-simulator-*.md`，但不会进入 C00 真机总验收。
+
+如果 export preset 和启动命令都包含 `--xr-platform=...`，运行时以后出现的参数为准；这允许 simulator gate 复用 iPad preset，同时在启动时覆盖成 `--xr-platform=simulator`。
+
 ## Rokid / OpenXR
 
 通过标准：

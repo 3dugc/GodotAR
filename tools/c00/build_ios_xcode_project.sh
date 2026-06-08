@@ -15,6 +15,9 @@ ALLOW_PROVISIONING_UPDATES="${ALLOW_PROVISIONING_UPDATES:-1}"
 TEAM_ID="${TEAM_ID:-${DEVELOPMENT_TEAM:-}}"
 BUNDLE_ID="${BUNDLE_ID:-${PACKAGE:-org.godotengine.godotxrfoundation}}"
 CODE_SIGN_STYLE="${CODE_SIGN_STYLE:-Automatic}"
+CODE_SIGNING_ALLOWED="${CODE_SIGNING_ALLOWED:-}"
+IOS_BUILD_PLATFORM="${IOS_BUILD_PLATFORM:-ios}"
+IOS_DESTINATION="${IOS_DESTINATION:-}"
 
 usage() {
 	cat <<EOF
@@ -31,6 +34,9 @@ Environment:
   TEAM_ID / DEVELOPMENT_TEAM     Optional Apple team id passed to xcodebuild.
   BUNDLE_ID / PACKAGE            Optional bundle id override.
   CODE_SIGN_STYLE                Default: Automatic.
+  CODE_SIGNING_ALLOWED           Optional xcodebuild override, useful as NO for Simulator.
+  IOS_BUILD_PLATFORM             ios | simulator. Default: ios.
+  IOS_DESTINATION                Optional full xcodebuild destination override.
   ALLOW_PROVISIONING_UPDATES     Pass -allowProvisioningUpdates when 1. Default: 1.
 
 This script builds the Xcode project produced by the Godot iOS export preset and
@@ -113,8 +119,23 @@ if [[ -z "$SCHEME" && -z "$TARGET_NAME" ]]; then
 	exit 1
 fi
 
-DESTINATION="generic/platform=iOS"
-if [[ -n "$DEVICE" ]]; then
+case "$IOS_BUILD_PLATFORM" in
+	ios|simulator)
+		;;
+	*)
+		echo "ERROR: IOS_BUILD_PLATFORM must be ios or simulator." >&2
+		exit 2
+		;;
+esac
+
+if [[ -n "$IOS_DESTINATION" ]]; then
+	DESTINATION="$IOS_DESTINATION"
+elif [[ "$IOS_BUILD_PLATFORM" == "simulator" ]]; then
+	DESTINATION="generic/platform=iOS Simulator"
+else
+	DESTINATION="generic/platform=iOS"
+fi
+if [[ "$IOS_BUILD_PLATFORM" == "ios" && -n "$DEVICE" ]]; then
 	DESTINATION="platform=iOS,id=$DEVICE"
 fi
 
@@ -145,6 +166,12 @@ fi
 if [[ -n "$CODE_SIGN_STYLE" ]]; then
 	BUILD_SETTINGS+=("CODE_SIGN_STYLE=$CODE_SIGN_STYLE")
 fi
+if [[ -n "$CODE_SIGNING_ALLOWED" ]]; then
+	BUILD_SETTINGS+=("CODE_SIGNING_ALLOWED=$CODE_SIGNING_ALLOWED")
+fi
+if [[ "$IOS_BUILD_PLATFORM" == "simulator" ]]; then
+	BUILD_SETTINGS+=("SDKROOT=iphonesimulator")
+fi
 
 echo "Building iOS app"
 echo "Project: $XCODE_PROJECT"
@@ -154,6 +181,7 @@ else
 	echo "Target: $TARGET_NAME"
 fi
 echo "Destination: $DESTINATION"
+echo "Build platform: $IOS_BUILD_PLATFORM"
 xcodebuild "${XCODE_ARGS[@]}" build "${BUILD_SETTINGS[@]}"
 
 APP_FOUND="$(find "$DERIVED_DATA_PATH/Build/Products" -name "*.app" -type d | sort | head -n 1 || true)"

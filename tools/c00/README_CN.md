@@ -84,6 +84,11 @@ tools/c00/run_device_cycle.sh editor
 ```
 
 ```bash
+APP_PATH=builds/ios_simulator/GodotXRFoundation.app \
+tools/c00/run_device_cycle.sh ios-simulator
+```
+
+```bash
 tools/c00/run_device_cycle.sh rokid
 ```
 
@@ -101,7 +106,7 @@ DEVICE=<ipad-uuid-or-name> \
 tools/c00/run_device_cycle.sh all
 ```
 
-`all` 模式会按 iPad、Rokid 顺序执行。默认即使某个 gate 失败也会继续跑后续 gate，最后自动执行 `verify_phase_evidence.js` 生成 C00 总报告。设置 `INCLUDE_EDITOR_SIM=1` 可在设备 gate 前先跑本地模拟器 gate。
+`all` 模式会按 iPad、Rokid 顺序执行。默认即使某个 gate 失败也会继续跑后续 gate，最后自动执行 `verify_phase_evidence.js` 生成 C00 总报告。设置 `INCLUDE_EDITOR_SIM=1` 可在设备 gate 前先跑本地 EditorSim gate；设置 `INCLUDE_IOS_SIMULATOR=1` 可额外跑 iOS Simulator 辅助 gate。
 
 常用开关：
 
@@ -120,6 +125,7 @@ tools/c00/run_device_cycle.sh all
 - `RUN_PHASE_VERIFY=0`：`all` 模式跳过最终 C00 聚合验证。
 - `PHASE_REPORT=releases/phase_0_smoke/C00_PHASE_REPORT.md`：覆盖 C00 总报告输出路径。
 - `INCLUDE_EDITOR_SIM=1`：`all` 模式先跑 EditorSim gate。
+- `INCLUDE_IOS_SIMULATOR=1`：`all` 模式先跑 iOS Simulator 辅助 gate。
 
 ## EditorSim / 模拟器
 
@@ -138,6 +144,36 @@ tools/c00/collect_editor_smoke.sh 15
 它会用 `--xr-platform=simulator` 启动 Godot，并要求日志通过 `backend:"EditorSim"` gate。模拟器 gate 只能证明上层 ARFoundation-style API、raycast、anchor、plane 和日志链路可用，不能替代 Rokid/OpenXR 或 iPad/ARKit 真机 gate。
 
 iOS Simulator 和 Android Emulator 可以作为补充：用于验证导出链路、app 启动、日志格式、以及 iOS `.xcframework` simulator slice 是否存在。它们不具备真实 ARKit/OpenXR AR tracking 证据，不能作为 C00 发表通过标准。
+
+iOS Simulator 辅助 gate：
+
+```bash
+tools/c00/export_with_godot.sh "C00 iPad ARKit" builds/ios_simulator/c00.zip
+```
+
+```bash
+IOS_BUILD_PLATFORM=simulator \
+ALLOW_PROVISIONING_UPDATES=0 \
+CODE_SIGN_STYLE= \
+CODE_SIGNING_ALLOWED=NO \
+APP_OUTPUT_PATH=builds/ios_simulator/GodotXRFoundation.app \
+tools/c00/build_ios_xcode_project.sh builds/ios_simulator/c00.zip
+```
+
+```bash
+APP_PATH=builds/ios_simulator/GodotXRFoundation.app \
+tools/c00/collect_ios_simulator_smoke.sh booted org.godotengine.godotxrfoundation 30
+```
+
+或一键执行：
+
+```bash
+tools/c00/run_device_cycle.sh ios-simulator
+```
+
+该 gate 会用 `--xr-platform=simulator` 启动 iOS app，并要求 `validate_smoke_log.js --gate ios-simulator` 看到 `backend:"EditorSim"`。它证明 iOS 导出、simulator app 启动和统一接口日志链路，不证明 ARKit 真机 tracking。
+
+如果 export preset 和启动命令都包含 `--xr-platform=...`，运行时以后出现的参数为准；因此 iOS Simulator 可以覆盖 iPad preset 中的 `--xr-platform=ipad`。
 
 ## Export Preset 检查
 

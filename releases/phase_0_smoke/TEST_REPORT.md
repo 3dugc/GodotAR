@@ -11,6 +11,7 @@ Scene: `res://demo/00_device_smoke_test.tscn`
 | Gate | Required backend | Result | Evidence |
 | --- | --- | --- | --- |
 | Editor smoke | EditorSim | Pending local Godot run | Screenshot/log |
+| iOS Simulator development gate | EditorSim | Pending simulator app run | Simulator log/screenshot |
 | Rokid AR gate | OpenXR | Pending device run | Screenshot/log |
 | iPad AR gate | ARKit | Pending device run | Screenshot/log |
 | Android ARCore availability | ARCore | Pending device run | Screenshot/log |
@@ -29,6 +30,7 @@ Codex implementation status:
 - Unity-style migration helpers added for placement workflows: `ARRaycastManager.TryRaycast`, `ARRaycastManager.RaycastToList`, `ARRaycastManager.TryScreenRaycast`, `XRHit.get_pose()`, `ARAnchorManager.TryAddAnchorAsync`, and `ARAnchorManager.TryRemoveAnchor`.
 - EditorSim/simulator gate added for local ARFoundation-style API validation through `--xr-platform=simulator`; it does not replace Rokid/iPad device gates.
 - iOS Simulator and Android Emulator are documented as auxiliary cycle outputs for export/startup/log validation only; they cannot satisfy the C00 ARKit/OpenXR publish gate.
+- `tools/c00/collect_ios_simulator_smoke.sh` and `tools/c00/run_device_cycle.sh ios-simulator` now provide a runnable iOS Simulator development gate that expects `backend:"EditorSim"` and validates the iOS export/startup/log path before iPad hardware.
 - Godot plugin-first boundary documented. No Godot engine patch is used in C00.
 - `tools/c00/bootstrap_device_machine.sh` now generates a C00 readiness report for device machines and can optionally create the export preset starter.
 - C00 preflight, export helper, Android/Rokid log collector, iPad log collector, and gate validator created under `tools/c00`.
@@ -90,10 +92,14 @@ Hardware status:
 | Synthetic evidence bundle gates | Pass | Rokid requires screenshot + video; iPad accepts manual media |
 | Synthetic C00 phase evidence gate | Pass | Aggregate report passes with Rokid + iPad evidence and fails on empty evidence |
 | Synthetic EditorSim gate | Pass | `backend:"EditorSim"` validates without media evidence |
+| Synthetic iOS Simulator gate | Pass | `validate_smoke_log.js --gate ios-simulator` accepts `backend:"EditorSim"` as development evidence |
+| Synthetic iOS Simulator vs iPad boundary | Fail as expected | The same `EditorSim` log fails `--gate ipad` with `Expected backend ARKit` |
 | Synthetic Rokid OpenXR-only strict gate | Fail as expected | `ar_product_path:false` is not accepted as AR product pass |
 | `ios/plugins/godot_arkit/build_xcframework.sh --help` | Pass | Documents required Godot source header path and outputs |
-| `tools/c00/run_device_cycle.sh --help` | Pass | Documents iPad/Rokid full gate execution |
+| `tools/c00/collect_ios_simulator_smoke.sh --help` | Pass | Documents the iOS Simulator development gate |
+| `tools/c00/run_device_cycle.sh --help` | Pass | Documents EditorSim, iOS Simulator, iPad, Rokid, and Android ARCore gate execution |
 | `tools/c00/run_device_cycle.sh all` control flow | Pass | With export/collect disabled, records failing preflights and exits nonzero instead of silently passing |
+| `APP_PATH=/private/tmp/missing.app tools/c00/preflight.sh ios-simulator` | Fail as expected | Collection-only simulator gate skips Godot/export preset checks but requires an existing `.app` |
 | `node --check tools/c00/check_export_presets.js` | Pass | Preset checker parses |
 | ARKit plugin symbol/static check | Pass | `.gdip` init symbols are `extern "C"` and `GodotARKitPlugin` registers with `ClassDB` |
 | ARKit tracking state/static check | Pass | `GodotARKitSession` implements `ARSessionDelegate` and exposes ARKit tracking state/reason |

@@ -137,6 +137,36 @@ builds/ipad/GodotXRFoundation.app
 APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <device> org.godotengine.godotxrfoundation 30
 ```
 
+### iOS Simulator 辅助验证
+
+iOS Simulator 复用 `C00 iPad ARKit` preset，不新增发布 preset。它只验证导出、simulator slice、app 启动和日志链路：
+
+```bash
+tools/c00/export_with_godot.sh "C00 iPad ARKit" builds/ios_simulator/c00.zip
+```
+
+```bash
+IOS_BUILD_PLATFORM=simulator \
+ALLOW_PROVISIONING_UPDATES=0 \
+CODE_SIGN_STYLE= \
+CODE_SIGNING_ALLOWED=NO \
+APP_OUTPUT_PATH=builds/ios_simulator/GodotXRFoundation.app \
+tools/c00/build_ios_xcode_project.sh builds/ios_simulator/c00.zip
+```
+
+```bash
+APP_PATH=builds/ios_simulator/GodotXRFoundation.app \
+tools/c00/collect_ios_simulator_smoke.sh booted org.godotengine.godotxrfoundation 30
+```
+
+等价一键命令：
+
+```bash
+tools/c00/run_device_cycle.sh ios-simulator
+```
+
+通过标准是 `backend:"EditorSim"`；它不能替代 iPad/ARKit 真机 gate。
+
 ## 不通过 preset 硬编码的原因
 
 Rokid/OpenXR loader、ARCore plugin、ARKit plugin、Team ID、签名和 export template 路径都依赖本机环境和 Godot 版本。C00 当前提交的是稳定的导出命名、starter 生成脚本、检查脚本和 gate 判定；真正的 `export_presets.cfg` 建议在有 Godot 编辑器和设备的机器上生成、复核后再提交。

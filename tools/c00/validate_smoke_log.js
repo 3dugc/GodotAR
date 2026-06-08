@@ -63,7 +63,7 @@ function parseArgs(argv) {
 function usage() {
 	console.error([
 		"Usage:",
-		"  node tools/c00/validate_smoke_log.js --gate <rokid|ipad|android-arcore|editor> --log <file> [--report <file>]",
+		"  node tools/c00/validate_smoke_log.js --gate <rokid|ipad|android-arcore|editor|ios-simulator|android-emulator> --log <file> [--report <file>]",
 		"",
 		"Options:",
 		"  --allow-openxr-without-ar-blend   Downgrade Rokid ar_product_path=false from failure to warning.",
@@ -204,6 +204,8 @@ function backendForGate(gate) {
 		case "android-arcore":
 			return "ARCore";
 		case "editor":
+		case "ios-simulator":
+		case "android-emulator":
 			return "EditorSim";
 		default:
 			return "";

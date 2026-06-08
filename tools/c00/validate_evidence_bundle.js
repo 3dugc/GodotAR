@@ -64,7 +64,7 @@ function parseArgs(argv) {
 function usage() {
 	console.error([
 		"Usage:",
-		"  node tools/c00/validate_evidence_bundle.js --gate <rokid|ipad|android-arcore> [--screenshot <file>] [--video <file>] [--manual-media <file>] [--report <file>]",
+		"  node tools/c00/validate_evidence_bundle.js --gate <rokid|ipad|android-arcore|editor|ios-simulator|android-emulator> [--screenshot <file>] [--video <file>] [--manual-media <file>] [--report <file>]",
 		"",
 		"Options:",
 		"  --allow-missing-media   Downgrade missing media evidence from failure to warning.",
@@ -116,9 +116,9 @@ function evaluateEvidence(gate, media, options) {
 		if (!hasAnyGoodMedia()) {
 			recordProblem("iPad gate requires at least one screenshot, screen recording, or manual media artifact.");
 		}
-	} else if (gate === "editor") {
+	} else if (gate === "editor" || gate === "ios-simulator" || gate === "android-emulator") {
 		if (media.length > 0 && !hasAnyGoodMedia()) {
-			recordProblem("Editor simulator media was provided but no valid media artifact was found.");
+			recordProblem(`${gate} media was provided but no valid media artifact was found.`);
 		}
 	} else {
 		recordProblem(`Unknown gate: ${gate}`);

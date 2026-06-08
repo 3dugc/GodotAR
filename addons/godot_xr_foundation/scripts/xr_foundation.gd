@@ -197,12 +197,15 @@ func resolve_platform_hint(explicit_hint: String = "") -> String:
 	if hint != "" and hint != "auto":
 		return hint
 
+	var cmdline_hint := ""
 	for arg in OS.get_cmdline_args():
 		var text := String(arg).strip_edges()
 		if text.begins_with("--xr-platform="):
-			return text.trim_prefix("--xr-platform=").strip_edges().to_lower()
+			cmdline_hint = text.trim_prefix("--xr-platform=").strip_edges().to_lower()
 		if text.begins_with("--xr-backend="):
-			return text.trim_prefix("--xr-backend=").strip_edges().to_lower()
+			cmdline_hint = text.trim_prefix("--xr-backend=").strip_edges().to_lower()
+	if cmdline_hint != "":
+		return cmdline_hint
 
 	var project_hint := String(ProjectSettings.get_setting("godot_xr_foundation/platform_hint", "")).strip_edges().to_lower()
 	if project_hint != "" and project_hint != "auto":

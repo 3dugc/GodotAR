@@ -9,14 +9,14 @@ status=0
 usage() {
 	cat <<EOF
 Usage:
-  tools/c00/preflight.sh [all|editor|rokid|ipad|android-arcore]
+  tools/c00/preflight.sh [all|editor|rokid|ipad|ios-simulator|android-arcore]
 
 Default: all
 EOF
 }
 
 case "$GATE" in
-	all|editor|rokid|ipad|android-arcore)
+	all|editor|rokid|ipad|ios-simulator|android-arcore)
 		;;
 	-h|--help)
 		usage
@@ -33,7 +33,18 @@ needs_android_tools() {
 }
 
 needs_ios_tools() {
-	[ "$GATE" = "all" ] || [ "$GATE" = "ipad" ]
+	[ "$GATE" = "all" ] || [ "$GATE" = "ipad" ] || [ "$GATE" = "ios-simulator" ]
+}
+
+using_existing_ios_app() {
+	{ [ "$GATE" = "ipad" ] || [ "$GATE" = "ios-simulator" ]; } && [ -n "${APP_PATH:-}" ]
+}
+
+needs_godot_binary() {
+	if using_existing_ios_app; then
+		return 1
+	fi
+	return 0
 }
 
 needs_openxr() {
@@ -41,11 +52,21 @@ needs_openxr() {
 }
 
 needs_export_preset() {
-	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ] || [ "$GATE" = "ipad" ] || [ "$GATE" = "android-arcore" ]
+	if using_existing_ios_app; then
+		return 1
+	fi
+	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ] || [ "$GATE" = "ipad" ] || [ "$GATE" = "ios-simulator" ] || [ "$GATE" = "android-arcore" ]
 }
 
 needs_arkit_static_check() {
-	[ "$GATE" = "all" ] || [ "$GATE" = "ipad" ]
+	if using_existing_ios_app; then
+		return 1
+	fi
+	[ "$GATE" = "all" ] || [ "$GATE" = "ipad" ] || [ "$GATE" = "ios-simulator" ]
+}
+
+needs_ios_plugin_artifacts() {
+	needs_ios_tools && ! using_existing_ios_app
 }
 
 check_command() {
@@ -88,10 +109,14 @@ printf "Project: %s\n\n" "$PROJECT_ROOT"
 printf "Gate: %s\n\n" "$GATE"
 
 check_command node "required for tools/c00/validate_smoke_log.js"
-if [ -n "${GODOT_BIN:-}" ] && [ -x "$GODOT_BIN" ]; then
-	printf "OK   %-16s %s\n" "GODOT_BIN" "$GODOT_BIN"
+if needs_godot_binary; then
+	if [ -n "${GODOT_BIN:-}" ] && [ -x "$GODOT_BIN" ]; then
+		printf "OK   %-16s %s\n" "GODOT_BIN" "$GODOT_BIN"
+	else
+		check_command godot "required for command-line export/import validation; set GODOT_BIN if using an app bundle"
+	fi
 else
-	check_command godot "required for command-line export/import validation; set GODOT_BIN if using an app bundle"
+	check_dir "$APP_PATH" "existing .app bundle required for collection-only iOS gate"
 fi
 if needs_android_tools; then
 	check_command adb "required for Rokid/Android log collection"
@@ -109,7 +134,7 @@ if needs_ios_tools; then
 	check_dir "$PROJECT_ROOT/ios/plugins" "required for iOS native plugin placement"
 fi
 
-if needs_ios_tools; then
+if needs_ios_plugin_artifacts; then
 	printf "\nNative plugin artifacts\n"
 	if node "$PROJECT_ROOT/tools/c00/check_ios_plugin_artifacts.js"; then
 		printf "OK   GodotARKit.gdip template/plugin config check\n"
