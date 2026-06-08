@@ -60,13 +60,18 @@ for (const item of gates) {
 	}
 
 	if (item === "rokid") {
-		const presetText = preset.raw.toLowerCase();
-		if (!presetText.includes("openxr") && !presetText.includes("xr_mode")) {
-			warnings.push(`Preset "${requirement.name}" does not visibly mention OpenXR/xr_mode. Confirm XR Mode is OpenXR in Godot's export UI.`);
-		}
 		const extraArgs = getPresetOption(preset, "command_line/extra_args");
 		if (!extraArgs.includes("--xr-platform=rokid")) {
 			failures.push(`Preset "${requirement.name}" must set command_line/extra_args to include --xr-platform=rokid so Android startup selects OpenXR before ARCore.`);
+		}
+		if (!isTruthyOption(preset, "gradle_build/use_gradle_build")) {
+			failures.push(`Preset "${requirement.name}" must enable gradle_build/use_gradle_build so Android OpenXR vendor loaders can be packaged.`);
+		}
+		if (getPresetOption(preset, "xr_features/xr_mode") !== "1") {
+			failures.push(`Preset "${requirement.name}" must set xr_features/xr_mode=1 for OpenXR.`);
+		}
+		if (!isTruthyOption(preset, "architectures/arm64-v8a")) {
+			failures.push(`Preset "${requirement.name}" must enable architectures/arm64-v8a for Rokid/OpenXR devices.`);
 		}
 	}
 
@@ -74,6 +79,9 @@ for (const item of gates) {
 		const extraArgs = getPresetOption(preset, "command_line/extra_args");
 		if (!extraArgs.includes("--xr-platform=arcore")) {
 			failures.push(`Preset "${requirement.name}" must set command_line/extra_args to include --xr-platform=arcore so Android startup selects ARCore explicitly.`);
+		}
+		if (!isTruthyOption(preset, "gradle_build/use_gradle_build")) {
+			failures.push(`Preset "${requirement.name}" must enable gradle_build/use_gradle_build so GodotARCore AAR can be packaged.`);
 		}
 		if (!preset.raw.includes("GodotARCore")) {
 			failures.push(`Preset "${requirement.name}" must enable the GodotARCore Android plugin so the ARCore singleton is exported.`);
@@ -184,4 +192,9 @@ function getPresetOption(preset, optionName) {
 		}
 	}
 	return "";
+}
+
+function isTruthyOption(preset, optionName) {
+	const value = getPresetOption(preset, optionName).toLowerCase();
+	return value === "true" || value === "1" || value === "yes" || value === "on";
 }

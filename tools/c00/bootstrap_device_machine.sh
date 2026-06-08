@@ -189,6 +189,12 @@ else
 	add_row MISS "ARKit Objective-C++ syntax smoke" "Run tools/c00/check_arkit_plugin_static.sh for details."
 fi
 
+if [[ -d "$PROJECT_ROOT/addons/godotopenxrvendors" ]]; then
+	add_row PASS "OpenXR Vendors plugin" "addons/godotopenxrvendors"
+else
+	add_row MISS "OpenXR Vendors plugin" "Install the Godot OpenXR Vendors plugin into addons/godotopenxrvendors before Rokid/OpenXR export."
+fi
+
 if plugin_output="$(run_capture node "$PROJECT_ROOT/tools/c00/check_ios_plugin_artifacts.js")"; then
 	add_row PASS "GodotARKit.gdip plugin config" "$plugin_output"
 else

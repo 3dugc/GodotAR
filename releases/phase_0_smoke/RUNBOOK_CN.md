@@ -119,6 +119,7 @@ C00 不修改 Godot 主干。
 如果出现 `engine patch`，本周期必须附带最小侵入说明，否则不能标记为通过。
 
 C00 Android ARCore 使用 `android/plugins/godot_arcore` + `addons/godot_arcore`。它是 Android plugin v2 / AAR export hook / `GodotARCore` singleton 落点，不需要修改 Godot 主干。
+Rokid/OpenXR 使用 Godot OpenXR interface 加 OpenXR Vendors plugin；设备机必须安装到 `addons/godotopenxrvendors`，再在 Android export preset 里启用目标 vendor。
 
 ## EditorSim / 模拟器
 
@@ -190,6 +191,9 @@ XRFoundation.start_session(XRFoundationTypes.Backend.OPENXR, {
 Rokid Android export preset 必须设置：
 
 ```text
+gradle_build/use_gradle_build=true
+xr_features/xr_mode=1
+architectures/arm64-v8a=true
 command_line/extra_args="--xr-platform=rokid"
 ```
 

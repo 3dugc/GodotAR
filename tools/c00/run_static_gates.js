@@ -49,6 +49,10 @@ const checks = [
 		required: true,
 	},
 	...(needsOpenXR(gate) ? [{
+		name: "Rokid/OpenXR export surface",
+		command: ["node", "tools/c00/check_rokid_openxr_export_surface.js"],
+		required: true,
+	}, {
 		name: "OpenXR/Rokid AR evidence surface",
 		command: ["node", "tools/c00/check_openxr_provider_surface.js"],
 		required: true,

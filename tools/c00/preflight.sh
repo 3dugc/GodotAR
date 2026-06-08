@@ -134,6 +134,9 @@ printf "\nPlugin landing zones\n"
 if needs_android_tools; then
 	check_dir "$PROJECT_ROOT/android/plugins" "required for Android/Rokid native plugin placement"
 fi
+if needs_openxr; then
+	check_dir "$PROJECT_ROOT/addons/godotopenxrvendors" "required for Android OpenXR vendor loaders; install the Godot OpenXR Vendors plugin into res://addons/godotopenxrvendors"
+fi
 if needs_ios_tools; then
 	check_dir "$PROJECT_ROOT/ios/plugins" "required for iOS native plugin placement"
 fi

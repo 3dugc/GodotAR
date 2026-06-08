@@ -43,6 +43,7 @@ Codex implementation status:
 - C00 preflight, export helper, Android/Rokid log collector, iPad log collector, and gate validator created under `tools/c00`.
 - `tools/c00/check_godot_project_static.js` now validates C00 project settings, scene resource references, load steps, required smoke nodes, and critical NodePaths without requiring a Godot binary.
 - `tools/c00/run_static_gates.js` now runs the C00 static gate set in one command and can write a Markdown report for CI/device-machine readiness.
+- `tools/c00/check_rokid_openxr_export_surface.js` now guards Rokid/OpenXR export prerequisites: Gradle build, OpenXR XR mode, arm64, `--xr-platform=rokid`, and device-machine OpenXR Vendors plugin checks.
 - `android/plugins/godot_arcore` and `addons/godot_arcore` now provide a first-party C00 GodotARCore Android plugin v2 landing point with ARCore availability, install request, session lifecycle, Gradle build script, and Godot export hook.
 - `tools/c00/check_android_arcore_plugin_surface.js` now guards the GodotARCore Android plugin surface without requiring Gradle, Godot, or a connected Android device.
 - `tools/c00/check_arcore_gate_surface.js` now guards the Android ARCore evidence surface without requiring Godot or a connected Android device.
@@ -128,6 +129,8 @@ Hardware status:
 | `node tools/c00/check_xri_api_surface.js` | Pass | XRI manager/ray/interactable smoke surface is present |
 | `node --check tools/c00/check_openxr_provider_surface.js` | Pass | OpenXR provider surface checker parses |
 | `node tools/c00/check_openxr_provider_surface.js` | Pass | OpenXR/Rokid AR evidence surface is present |
+| `node --check tools/c00/check_rokid_openxr_export_surface.js` | Pass | Rokid/OpenXR export surface checker parses |
+| `node tools/c00/check_rokid_openxr_export_surface.js` | Pass | Rokid/OpenXR export preset and OpenXR Vendors preflight surface is present |
 | `node --check tools/c00/check_android_arcore_plugin_surface.js` | Pass | GodotARCore Android plugin surface checker parses |
 | `node tools/c00/check_android_arcore_plugin_surface.js` | Pass | GodotARCore Android plugin v2/export singleton surface is present |
 | `node --check tools/c00/check_arcore_gate_surface.js` | Pass | Android ARCore gate surface checker parses |
@@ -184,7 +187,7 @@ Hardware status:
 | ARKit native raycast/plane static check | Pass | `GodotARKit` binds `hit_test` / `get_planes`, calls native `ARRaycastQuery`, and caches `ARPlaneAnchor` evidence |
 | GodotARKit `.gdip` template check | Pass with warning | Plugin config matches Godot iOS plugin format; warns that real `GodotARKit.xcframework` is not built on this host |
 | ARKit plugin Objective-C++ syntax smoke | Pass | `tools/c00/check_arkit_plugin_static.sh` validates plugin sources against the local iOS SDK with Godot stubs |
-| `tools/c00/preflight.sh all` | Blocked by host prerequisites | Missing `godot`, `adb`, `export_presets.cfg`, `GodotARKit.gdip`, and `GodotARKit.xcframework`; ARKit Objective-C++ syntax smoke passes |
+| `tools/c00/preflight.sh all` | Blocked by host prerequisites | Missing `godot`, `adb`, `export_presets.cfg`, `addons/godotopenxrvendors`, `GodotARKit.gdip`, `GodotARKit.xcframework`, and built native Android/iOS plugin artifacts; ARKit Objective-C++ syntax smoke passes |
 
 ## Device Evidence
 

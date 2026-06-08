@@ -42,6 +42,7 @@ tools/c00/preflight.sh android-arcore
 - `xcrun`：iPad 安装和启动。
 - `xcodebuild`：把 Godot iOS 导出的 Xcode project 构建成可安装 `.app`。
 - `android/plugins`、`ios/plugins` 是否存在。
+- Rokid/OpenXR gate 前 `addons/godotopenxrvendors` 是否已安装；这是 Godot OpenXR Vendors plugin 的默认安装路径，用于 Android OpenXR vendor loader 和扩展。
 - `addons/godot_arcore` 和 `android/plugins/godot_arcore` 是否保留 Android plugin v2 / AAR export hook / `GodotARCore` singleton surface。
 - Android ARCore gate 前 `addons/godot_arcore/bin/release/GodotARCore-release.aar` 是否已由 `android/plugins/godot_arcore/build_plugin.sh` 生成。
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` 和 `.gdip` 是否存在。
@@ -57,7 +58,7 @@ tools/c00/preflight.sh android-arcore
 node tools/c00/run_static_gates.js --gate all --report releases/phase_0_smoke/evidence/static-gates.md
 ```
 
-该命令不导出、不安装、不连接设备。它汇总 Node 工具语法、shell 脚本语法、Godot project/scene 静态完整性、ARFoundation API surface、XRI API surface、OpenXR/Rokid provider surface、GodotARCore Android plugin surface、iOS plugin 配置和 ARKit Objective-C++ syntax smoke。缺少 `export_presets.cfg` 会作为 warning 记录，因为真正导出前仍需在设备机 Godot editor 里复核保存。
+该命令不导出、不安装、不连接设备。它汇总 Node 工具语法、shell 脚本语法、Godot project/scene 静态完整性、ARFoundation API surface、XRI API surface、Rokid/OpenXR export surface、OpenXR/Rokid provider surface、GodotARCore Android plugin surface、iOS plugin 配置和 ARKit Objective-C++ syntax smoke。缺少 `export_presets.cfg` 会作为 warning 记录，因为真正导出前仍需在设备机 Godot editor 里复核保存。
 
 iPad/ARKit gate 前先构建插件：
 
@@ -152,6 +153,14 @@ node tools/c00/check_openxr_provider_surface.js
 ```
 
 该检查确认 `OpenXRProvider` 会记录 environment blend、OpenXR Vendors passthrough singleton 方法结果和 `openxr_ar_evidence`，会在 session lifecycle 中尝试 `start_passthrough` / vendor passthrough 启动方法，并确认 Rokid smoke gate 不会只凭一个模糊布尔值通过。
+
+检查 Rokid/OpenXR 导出配置面：
+
+```bash
+node tools/c00/check_rokid_openxr_export_surface.js
+```
+
+该检查确认 C00 starter preset 和 preset checker 会要求 Rokid APK 使用 Gradle build、`xr_features/xr_mode=1`、arm64、`--xr-platform=rokid`，并确认设备机 preflight/readiness 会检查 `addons/godotopenxrvendors`。它不下载或捆绑 OpenXR Vendors 插件。
 
 检查 Android ARCore gate 诊断面：
 
@@ -305,8 +314,19 @@ C00 runner 依赖这些 preset 名称：
 Rokid preset 必须设置：
 
 ```text
+gradle_build/use_gradle_build=true
+xr_features/xr_mode=1
+architectures/arm64-v8a=true
 command_line/extra_args="--xr-platform=rokid"
 ```
+
+Rokid/OpenXR 设备机还必须安装 Godot OpenXR Vendors plugin 到：
+
+```text
+addons/godotopenxrvendors
+```
+
+安装后在 Godot editor 的 Android export preset 里启用目标 vendor，只启用本次目标设备需要的 vendor 配置，然后保存 `export_presets.cfg`。
 
 iPad preset 必须启用 `GodotARKit` iOS plugin。`collect_ios_smoke.sh` 默认通过 devicectl 向应用传入 `--xr-platform=ipad`，可用 `IOS_XR_PLATFORM=iphone` 覆盖。
 

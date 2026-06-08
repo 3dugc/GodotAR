@@ -44,6 +44,7 @@ node tools/c00/write_export_presets_template.js \
 - Use Gradle Build: enabled
 - XR Mode: OpenXR
 - OpenXR / vendor loader: 按 Rokid runtime 或 OpenXR Vendors 插件要求配置
+- Godot OpenXR Vendors plugin: 安装到 `addons/godotopenxrvendors`，在 Godot editor 的 Android export preset 里启用目标 vendor。
 - Extra Args / `command_line/extra_args`: `--xr-platform=rokid`
 - Main scene: `res://demo/00_device_smoke_test.tscn`
 - Package name: 建议 `org.godotengine.godotxrfoundation`
