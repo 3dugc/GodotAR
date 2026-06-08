@@ -64,6 +64,8 @@ if (failures.length === 0) {
 		"commandlinetools-mac-13114758_latest.zip",
 		"Resuming incomplete Android command line tools download",
 		"cmdline-tools/latest/bin/sdkmanager",
+		"run_sdkmanager_with_yes",
+		"PIPESTATUS",
 		"C00_CURL_RETRY",
 		"--speed-limit",
 	]);

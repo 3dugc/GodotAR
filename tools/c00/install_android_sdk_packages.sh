@@ -271,6 +271,14 @@ install_cmdline_tools() {
 	rm -rf "$tmp_dir"
 }
 
+run_sdkmanager_with_yes() {
+	set +o pipefail
+	yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK" "$@"
+	local statuses=("${PIPESTATUS[@]}")
+	set -o pipefail
+	return "${statuses[1]}"
+}
+
 if [[ "$INSTALL_CMDLINE_TOOLS" == "1" ]]; then
 	install_cmdline_tools
 fi
@@ -308,8 +316,8 @@ if [[ "$DRY_RUN" == "1" ]]; then
 fi
 
 if [[ "$YES" == "1" ]]; then
-	yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK" --licenses >/dev/null || true
-	yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK" "${PACKAGES[@]}"
+	run_sdkmanager_with_yes --licenses >/dev/null || true
+	run_sdkmanager_with_yes "${PACKAGES[@]}"
 else
 	"$SDKMANAGER" --sdk_root="$ANDROID_SDK" "${PACKAGES[@]}"
 fi

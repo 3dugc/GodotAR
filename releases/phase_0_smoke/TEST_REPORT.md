@@ -115,6 +115,7 @@ Codex implementation status:
 - `tools/c00/install_android_build_template.sh` now mirrors Godot 4.4's Android build-template install flow by extracting `android_source.zip` into `android/build`, writing `android/.build_version`, and checking for `build.gradle`.
 - `tools/c00/install_openjdk17.sh` now downloads or imports OpenJDK 17 into `.godot/cache/c00/jdk/Contents/Home` so Godot Android export, `sdkmanager`, and debug keystore generation can use a project-local JDK.
 - `tools/c00/install_android_sdk_packages.sh` now installs Android command line tools when `--download-cmdline-tools` / `--cmdline-tools-zip` is provided, then installs the Android SDK packages Godot 4.4 expects for C00 exports: `platform-tools`, `platforms;android-34`, and `build-tools;34.0.0`.
+- `tools/c00/install_android_sdk_packages.sh` now isolates the `yes | sdkmanager` pipe from shell `pipefail`, so a successful `sdkmanager` run is not reported as failed just because `yes` exits on SIGPIPE after stdin closes.
 - `tools/c00/configure_android_export_environment.sh` now prepares the Android SDK path, JDK path, debug keystore, Godot Android EditorSettings, and project Android build template before Rokid/OpenXR or Android/ARCore export.
 - `tools/c00/export_with_godot.sh` now auto-runs Android export environment configuration before `.apk` / `.aab` export unless `GODOT_CONFIGURE_ANDROID_EXPORT=0` is set.
 - `tools/c00/preflight.sh` now checks real export prerequisites, including Godot export templates, project Android build template, Android SDK `platform-tools` / `build-tools` / `apksigner`, a working JDK (`java -version` and `keytool -help`), and debug keystore configuration.
@@ -131,8 +132,10 @@ Hardware status:
 - `GodotARKit.gdip` and `GodotARKit.xcframework` are built and pass `check_ios_plugin_artifacts.js --require-binary`.
 - `export_presets.cfg` is now loadable by Godot itself; `preset.0`, `preset.1`, and `preset.2` resolve to Rokid/OpenXR, Android ARCore, and iPad/ARKit respectively.
 - Real iPad export reached Godot's export-configuration gate and is currently blocked by missing official export template `~/Library/Application Support/Godot/export_templates/4.4.1.stable/ios.zip`.
-- Real Rokid export reached Godot's export-configuration gate and is currently blocked by missing official `android_source.zip`, missing project Android build template, missing Android SDK build-tools / `apksigner`, missing real JDK, and missing debug keystore configuration.
-- Attempts to download `Godot_v4.4.1-stable_export_templates.tpz`, Android command line tools, and Temurin OpenJDK 17 on 2026-06-08 reached the official hosts but are too slow/partial in this environment. `tools/c00/install_godot_export_templates.sh --download` resumed the export templates file to 19 MB before being stopped intentionally; rerunning the installer commands will continue from the partial files because they use `curl -L --fail -C -`.
+- Real Rokid export reached Godot's export-configuration gate and is currently blocked by missing official `android_source.zip` and the project Android build template that must be installed from it.
+- Temurin OpenJDK 17 was installed on 2026-06-09 under `.godot/cache/c00/jdk/Contents/Home`; `java`, `keytool`, and `.godot/cache/c00/android/debug.keystore` pass Rokid preflight.
+- Android command line tools, `platforms;android-34`, and `build-tools;34.0.0` were installed on 2026-06-09 under `.godot/cache/c00/android-sdk`; `apksigner` passes Rokid preflight.
+- Attempts to download `Godot_v4.4.1-stable_export_templates.tpz` on 2026-06-08 reached the official hosts but are too slow/partial in this environment. `tools/c00/install_godot_export_templates.sh --download` resumed the export templates file to 19 MB before being stopped intentionally; rerunning the installer command will continue from the partial file because it uses `curl -L --fail -C -`.
 - `brew install openjdk@17` was also attempted on 2026-06-08, but Homebrew auto-update stalled while fetching Homebrew API metadata and was stopped. No system JDK was installed; the project-local JDK installer/offline bundle path remains the preferred device-machine route.
 - `tools/c00/bootstrap_device_machine.sh` now includes a Download Cache section so device-machine reports show partial dependency files and the exact resume command for each installer.
 - Online dependency installers now share `C00_CURL_RETRY`, `C00_CURL_RETRY_DELAY`, `C00_CURL_CONNECT_TIMEOUT`, `C00_CURL_SPEED_LIMIT`, `C00_CURL_SPEED_TIME`, and `C00_CURL_EXTRA_ARGS`, so a device machine can tune retry/low-speed behavior without editing scripts.
@@ -256,7 +259,7 @@ Hardware status:
 | GodotARKit `.gdip` template check | Pass with warning | Plugin config matches Godot iOS plugin format; warns that real `GodotARKit.xcframework` is not built on this host |
 | ARKit plugin Objective-C++ syntax smoke | Pass | `tools/c00/check_arkit_plugin_static.sh` validates plugin sources against the local iOS SDK with Godot stubs |
 | `tools/c00/preflight.sh ipad` | Blocked by export template | Project-local Godot, Xcode tools, Godot source headers, `GodotARKit.gdip`, and `GodotARKit.xcframework` are recognized; still missing official `ios.zip` export template |
-| `tools/c00/preflight.sh rokid` | Blocked by Android export prerequisites | Project-local Godot/ADB, OpenXR Vendors, and C00 export presets are recognized; still missing official `android_source.zip`, Android build-tools/apksigner, real JDK/keytool, debug keystore, and `android/build/build.gradle` |
+| `tools/c00/preflight.sh rokid` | Blocked by export template | Project-local Godot/ADB, OpenXR Vendors, C00 export presets, JDK/keytool, Android debug keystore, Android platform/build-tools, and `apksigner` are recognized; still missing official `android_source.zip` and `android/build/build.gradle` |
 
 ## Device Evidence
 

@@ -65,6 +65,8 @@ if (failures.length === 0) {
 		"build-tools;34.0.0",
 		"sdkmanager",
 		"--licenses",
+		"run_sdkmanager_with_yes",
+		"PIPESTATUS",
 	]);
 
 	requireContains(files.jdkInstaller, [
