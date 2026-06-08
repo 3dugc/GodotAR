@@ -6,6 +6,7 @@ PLUGIN_NAME="GodotARKit"
 BUILD_DIR="$ROOT/.build"
 OUT_XCFRAMEWORK="$ROOT/${PLUGIN_NAME}.xcframework"
 OUT_GDIP="$ROOT/${PLUGIN_NAME}.gdip"
+CLANG_MODULE_CACHE_DIR="${CLANG_MODULE_CACHE_DIR:-$BUILD_DIR/clang-module-cache}"
 
 usage() {
 	cat <<EOF
@@ -105,12 +106,15 @@ compile_library() {
 	sdk_path="$(xcrun --sdk "$sdk_name" --show-sdk-path)"
 
 	local arch_build_dir="$BUILD_DIR/$platform_label/$arch"
+	local module_cache_dir="$CLANG_MODULE_CACHE_DIR/$platform_label/$arch"
 	mkdir -p "$arch_build_dir"
+	mkdir -p "$module_cache_dir"
 
 	local common_flags=(
 		-std=gnu++17
 		-fobjc-arc
 		-fmodules
+		-fmodules-cache-path="$module_cache_dir"
 		-fcxx-modules
 		-fblocks
 		-fvisibility=hidden
@@ -147,12 +151,20 @@ compile_library() {
 	for source in "$ROOT/src/GodotARKitPlugin.mm" "$ROOT/src/GodotARKitSession.mm"; do
 		local object="$arch_build_dir/$(basename "$source").o"
 		echo "Compile $sdk_name $arch $(basename "$source")" >&2
-		xcrun --sdk "$sdk_name" clang++ "${common_flags[@]}" "${build_flags[@]}" -c "$source" -o "$object"
+		xcrun --sdk "$sdk_name" clang++ "${common_flags[@]}" "${build_flags[@]}" -c "$source" -o "$object" || return $?
+		if [[ ! -s "$object" ]]; then
+			echo "ERROR: Missing object after compile: $object" >&2
+			return 1
+		fi
 		objects+=("$object")
 	done
 
 	local library="$BUILD_DIR/lib${PLUGIN_NAME}.${platform_label}.${arch}.${TARGET}.a"
 	libtool -static -o "$library" "${objects[@]}" >&2
+	if [[ ! -s "$library" ]]; then
+		echo "ERROR: Missing library after archive: $library" >&2
+		return 1
+	fi
 	printf "%s\n" "$library"
 }
 
@@ -164,11 +176,11 @@ echo "iOS min: $IOS_MIN_VERSION"
 rm -rf "$BUILD_DIR" "$OUT_XCFRAMEWORK"
 mkdir -p "$BUILD_DIR"
 
-device_library="$(compile_library iphoneos arm64 iphoneos "-miphoneos-version-min=${IOS_MIN_VERSION}" | tail -n 1)"
+device_library="$(compile_library iphoneos arm64 iphoneos "-miphoneos-version-min=${IOS_MIN_VERSION}")"
 
 sim_libraries=()
 for sim_arch in $SIM_ARCHS; do
-	sim_libraries+=("$(compile_library iphonesimulator "$sim_arch" iphonesimulator "-mios-simulator-version-min=${IOS_MIN_VERSION}" | tail -n 1)")
+	sim_libraries+=("$(compile_library iphonesimulator "$sim_arch" iphonesimulator "-mios-simulator-version-min=${IOS_MIN_VERSION}")")
 done
 
 simulator_library="$BUILD_DIR/lib${PLUGIN_NAME}.iphonesimulator.${TARGET}.a"

@@ -93,15 +93,27 @@ Codex implementation status:
 - `OpenXRProvider` now attempts passthrough lifecycle startup through `XRInterface.start_passthrough()` or vendor singleton passthrough methods and reports `openxr_passthrough_started` / `openxr_passthrough_start_report`.
 - `OpenXRProvider` now supplies a clearly marked C00 `openxr_virtual_plane_fallback` / `openxr_plane_source:"virtual_floor_fallback"` raycast and plane fallback when no real OpenXR plane tracker is available, so Rokid can prove the upper ARFoundation manager/raycast chain without pretending to have true environment understanding.
 - `tools/c00/validate_smoke_log.js` and `tools/c00/verify_phase_evidence.js` now require Rokid/OpenXR logs to include non-empty `capabilities.openxr_ar_evidence`.
+- Official Godot OpenXR Vendors 4.2.0 is now vendored under `addons/godotopenxrvendors` for Godot 4.4 Android/OpenXR exports.
+- `ios/plugins/godot_arkit/GodotARKit.xcframework` and `GodotARKit.gdip` are now built locally against Godot 4.4.1 source headers; the archive contains `GodotARKitPlugin.mm.o` and `GodotARKitSession.mm.o` for iOS arm64 plus simulator arm64/x86_64.
+- `tools/c00/prepare_godot_source.sh` now generates the minimum Godot build headers needed by external iOS plugin builds: `version_generated.gen.h`, `disabled_classes.gen.h`, and `gdvirtual.gen.inc`.
+- `export_presets.cfg` and `tools/c00/write_export_presets_template.js` now use Godot-compatible `;` comments. Godot 4.4 `ConfigFile` does not treat `#` as a comment, which made `preset.0` load as an empty section during real export.
+- `tools/c00/export_with_godot.sh` now passes `--xr-mode off` by default so build machines without a desktop OpenXR runtime can still perform command-line exports.
+- `tools/c00/install_godot_export_templates.sh` now installs an official Godot export templates `.tpz` into the Godot templates directory and validates that `ios.zip` and `android_source.zip` exist.
+- `tools/c00/preflight.sh` now checks real export prerequisites, including Godot export templates, Android SDK `platform-tools` / `build-tools` / `apksigner`, Java, and `keytool`.
 - `XRFoundation.resolve_platform_hint()` now reads both Godot command-line args and user args, and smoke/aggregate gates require launch platform evidence for Rokid, iPad, and Android ARCore device gates.
 - `tools/c00/collect_android_smoke.sh` now checks APK `assets/_cl_` for the required Godot Android `command_line/extra_args` (`--xr-platform=rokid` or `--xr-platform=arcore`) before install, and force-stops the package before launch so logs come from a fresh process with the intended XR platform.
 - C00 now includes an XRI-style smoke surface: `XRInteractionManager`, `XRRayInteractor`, `XRGrabInteractable`, hover/select/activate events, and `GXF_SMOKE.xri` runtime evidence from the demo scene.
 
 Hardware status:
 
-- Not fully executed in this Codex environment because a Godot executable is still being prepared, no Rokid/Android device is currently attached through ADB, and the detected `iPad M4` is currently reported by `devicectl` as `unavailable`.
-- Local Rokid preflight now recognizes project-local Android platform-tools through `ADB_BIN`, finds `addons/godotopenxrvendors`, and validates `export_presets.cfg`; it still needs `GODOT_BIN` and an attached Rokid/OpenXR device for a real run.
-- Local iPad preflight validates the iPad export preset and ARKit source surface; it still needs `GODOT_BIN`, Godot source headers, and the built `GodotARKit.gdip` / `GodotARKit.xcframework` before an installable iPad build can be produced.
+- Godot 4.4.1 stable editor is downloaded, ad-hoc signed for this host, and runs successfully outside the Codex sandbox: `4.4.1.stable.official.49a5bc7b6`.
+- Godot source headers for `4.4.1-stable` are prepared under `.godot/cache/c00/godot-source`.
+- `GodotARKit.gdip` and `GodotARKit.xcframework` are built and pass `check_ios_plugin_artifacts.js --require-binary`.
+- `export_presets.cfg` is now loadable by Godot itself; `preset.0`, `preset.1`, and `preset.2` resolve to Rokid/OpenXR, Android ARCore, and iPad/ARKit respectively.
+- Real iPad export reached Godot's export-configuration gate and is currently blocked by missing official export template `~/Library/Application Support/Godot/export_templates/4.4.1.stable/ios.zip`.
+- Real Rokid export reached Godot's export-configuration gate and is currently blocked by missing official `android_source.zip`, missing project Android build template, and missing Android SDK build-tools / Java SDK / debug keystore configuration.
+- Attempts to download `Godot_v4.4.1-stable_export_templates.tpz` from GitHub, SourceForge, and `downloads.godotengine.org` failed in this environment at TLS/EOF before a secure connection was established. Install the `.tpz` manually or retry on a device machine with working access, then run `tools/c00/install_godot_export_templates.sh --tpz <file>`.
+- No Rokid/Android device is currently attached through ADB. The detected `iPad M4` is currently reported by `devicectl` as `unavailable`.
 - Do not mark this report as passed until the device evidence below is filled.
 
 ## Local Verification On 2026-06-08

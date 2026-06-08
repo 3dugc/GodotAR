@@ -74,6 +74,38 @@ needs_ios_plugin_artifacts() {
 	needs_ios_tools && ! using_existing_ios_app
 }
 
+resolve_template_version() {
+	if [ -n "${GODOT_EXPORT_TEMPLATES_VERSION:-}" ]; then
+		printf "%s" "$GODOT_EXPORT_TEMPLATES_VERSION"
+		return
+	fi
+	if [ -n "${GODOT_TAG:-}" ]; then
+		printf "%s" "${GODOT_TAG/-stable/.stable}"
+		return
+	fi
+	printf "4.4.1.stable"
+}
+
+resolve_export_templates_dir() {
+	local version
+	version="$(resolve_template_version)"
+	printf "%s" "${GODOT_EXPORT_TEMPLATES_DIR:-$HOME/Library/Application Support/Godot/export_templates/$version}"
+}
+
+resolve_android_sdk_dir() {
+	if [ -n "${GODOT_ANDROID_SDK_PATH:-}" ]; then
+		printf "%s" "$GODOT_ANDROID_SDK_PATH"
+	elif [ -n "${ANDROID_SDK_ROOT:-}" ]; then
+		printf "%s" "$ANDROID_SDK_ROOT"
+	elif [ -n "${ANDROID_HOME:-}" ]; then
+		printf "%s" "$ANDROID_HOME"
+	elif [ -d "$HOME/Library/Android/sdk" ]; then
+		printf "%s" "$HOME/Library/Android/sdk"
+	else
+		printf "%s" "$PROJECT_ROOT/.godot/cache/c00/android-sdk"
+	fi
+}
+
 check_command() {
 	local name="$1"
 	local purpose="$2"
@@ -212,6 +244,33 @@ if needs_export_preset; then
 		printf "     See tools/c00/EXPORT_PRESETS_CN.md\n"
 		status=1
 	fi
+fi
+
+if needs_export_preset; then
+	printf "\nGodot export templates\n"
+	template_dir="$(resolve_export_templates_dir)"
+	if needs_ios_tools; then
+		check_file "$template_dir/ios.zip" "required for iPad/iOS Simulator export; install Godot 4.4.1 export templates, or run tools/c00/install_godot_export_templates.sh --tpz <Godot_v4.4.1-stable_export_templates.tpz>"
+	fi
+	if needs_android_tools; then
+		check_file "$template_dir/android_source.zip" "required for Android Gradle exports used by Rokid/OpenXR and ARCore; install Godot 4.4.1 export templates"
+	fi
+fi
+
+if needs_android_tools; then
+	printf "\nAndroid export toolchain\n"
+	android_sdk_dir="$(resolve_android_sdk_dir)"
+	check_dir "$android_sdk_dir/platform-tools" "Android SDK platform-tools directory required by Godot export settings"
+	check_dir "$android_sdk_dir/build-tools" "Android SDK build-tools directory required by Godot export settings"
+	if find "$android_sdk_dir/build-tools" -path "*/apksigner" -type f -perm -111 2>/dev/null | head -n 1 | grep -q .; then
+		printf "OK   Android apksigner under %s/build-tools\n" "$android_sdk_dir"
+	else
+		printf "MISS Android apksigner under %s/build-tools\n" "$android_sdk_dir"
+		printf "     Install Android SDK build-tools and point GODOT_ANDROID_SDK_PATH, ANDROID_SDK_ROOT, or ANDROID_HOME at the SDK root.\n"
+		status=1
+	fi
+	check_command java "required by Android Gradle export; set JAVA_HOME/PATH so Godot can find a Java SDK"
+	check_command keytool "required to create or validate the Android debug keystore"
 fi
 
 if needs_arkit_static_check; then

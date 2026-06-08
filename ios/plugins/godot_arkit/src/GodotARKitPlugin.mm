@@ -181,7 +181,7 @@ Dictionary GodotARKitPlugin::get_capabilities() {
 		NSDictionary *native_capabilities = [arkit_session capabilities];
 		capabilities["arkit_supported"] = [native_capabilities[@"arkit_supported"] boolValue];
 		capabilities["arkit_running"] = [native_capabilities[@"arkit_running"] boolValue];
-		capabilities["arkit_tracking_status"] = [native_capabilities[@"arkit_tracking_status"] integerValue];
+		capabilities["arkit_tracking_status"] = (int64_t)[native_capabilities[@"arkit_tracking_status"] integerValue];
 		capabilities["arkit_tracking_state"] = ns_string_to_godot(native_capabilities[@"arkit_tracking_state"]);
 		capabilities["arkit_tracking_reason"] = ns_string_to_godot(native_capabilities[@"arkit_tracking_reason"]);
 	}

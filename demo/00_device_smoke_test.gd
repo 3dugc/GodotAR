@@ -3,7 +3,7 @@ extends Node3D
 const CYCLE_ID := "C00"
 const VERSION := "v0.0.1-c00-device-smoke"
 
-@export_enum("Auto", "Editor Simulation", "OpenXR / Rokid", "ARCore", "ARKit") var requested_backend := XRFoundationTypes.Backend.AUTO
+@export_enum("Auto", "Editor Simulation", "OpenXR / Rokid", "ARCore", "ARKit") var requested_backend: int = XRFoundationTypes.Backend.AUTO
 @export var platform_hint := ""
 @export var fallback_to_editor_sim := true
 

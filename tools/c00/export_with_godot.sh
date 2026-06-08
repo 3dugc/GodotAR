@@ -34,7 +34,13 @@ case "$OUT_PATH" in
 	*) EXPORT_PATH="$PROJECT_ROOT/$OUT_PATH" ;;
 esac
 
+GODOT_XR_MODE="${GODOT_EXPORT_XR_MODE:-off}"
+GODOT_ARGS=(--headless)
+if [ -n "$GODOT_XR_MODE" ]; then
+	GODOT_ARGS+=(--xr-mode "$GODOT_XR_MODE")
+fi
+
 mkdir -p "$(dirname "$EXPORT_PATH")"
 
 echo "Exporting preset '$PRESET' -> $OUT_PATH"
-"$GODOT" --headless --path "$PROJECT_ROOT" --export-debug "$PRESET" "$EXPORT_PATH"
+"$GODOT" "${GODOT_ARGS[@]}" --path "$PROJECT_ROOT" --export-debug "$PRESET" "$EXPORT_PATH"

@@ -1,7 +1,7 @@
 extends Node
 class_name XRSessionManager
 
-@export_enum("Auto", "Editor Simulation", "OpenXR / Rokid", "ARCore", "ARKit") var requested_backend := XRFoundationTypes.Backend.AUTO
+@export_enum("Auto", "Editor Simulation", "OpenXR / Rokid", "ARCore", "ARKit") var requested_backend: int = XRFoundationTypes.Backend.AUTO
 @export var auto_start := true
 @export var platform_hint := ""
 @export var prefer_ar := true

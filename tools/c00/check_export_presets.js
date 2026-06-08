@@ -38,6 +38,15 @@ const gates = gate === "all"
 const failures = [];
 const warnings = [];
 const evidence = [];
+const hashCommentLines = text
+	.split(/\r?\n/)
+	.map((line, index) => ({ line, number: index + 1 }))
+	.filter((item) => item.line.trim().startsWith("#"));
+
+if (hashCommentLines.length > 0) {
+	const lines = hashCommentLines.map((item) => item.number).join(", ");
+	failures.push(`export_presets.cfg uses # comments on line(s) ${lines}; Godot ConfigFile requires ; comments.`);
+}
 
 for (const item of gates) {
 	const requirement = expected[item];

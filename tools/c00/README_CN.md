@@ -47,6 +47,8 @@ tools/c00/preflight.sh android-arcore
 - Android ARCore gate 前 `addons/godot_arcore/bin/release/GodotARCore-release.aar` 是否已由 `android/plugins/godot_arcore/build_plugin.sh` 生成。
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` 和 `.gdip` 是否存在。
 - `export_presets.cfg` 是否包含目标 C00 preset。
+- Godot 官方 export templates 是否已安装到 `~/Library/Application Support/Godot/export_templates/4.4.1.stable`，至少需要 `ios.zip` 和 `android_source.zip`。
+- Android/Rokid 导出所需 Android SDK `platform-tools`、`build-tools/apksigner`、Java SDK 和 `keytool` 是否可用。
 - `project.godot`、C00 主场景、rig 场景、脚本资源和关键 NodePath 是否完整。
 - ARFoundation / XRI / OpenXR provider 静态 surface 是否稳定。
 - C00 smoke scene 是否是 Godot 主场景。
@@ -59,6 +61,21 @@ node tools/c00/run_static_gates.js --gate all --report releases/phase_0_smoke/ev
 ```
 
 该命令不导出、不安装、不连接设备。它汇总 Node 工具语法、shell 脚本语法、Godot project/scene 静态完整性、ARFoundation API surface、XRI API surface、Rokid/OpenXR export surface、OpenXR/Rokid provider surface、GodotARCore Android plugin surface、iPad Godot source 准备 surface、iOS plugin 配置和 ARKit Objective-C++ syntax smoke。缺少 `export_presets.cfg` 会作为 warning 记录，因为真正导出前仍需在设备机 Godot editor 里复核保存。
+
+安装 Godot 官方 export templates：
+
+```bash
+curl -L -o .godot/cache/c00/downloads/Godot_v4.4.1-stable_export_templates.tpz \
+  https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz
+
+tools/c00/install_godot_export_templates.sh \
+  --tpz .godot/cache/c00/downloads/Godot_v4.4.1-stable_export_templates.tpz \
+  --version 4.4.1.stable
+```
+
+如果 GitHub 下载失败，可以从 Godot 官方 4.4.1 archive 页面下载同名 standard export templates `.tpz` 后，把本地文件路径传给 `--tpz`。iPad 导出至少需要 `ios.zip`；Rokid/OpenXR 和 Android ARCore 的 Gradle 导出至少需要 `android_source.zip`。
+
+命令行导出时，`tools/c00/export_with_godot.sh` 默认传入 `--xr-mode off`，避免开发机没有 OpenXR runtime 时阻塞导出流程。这个参数只影响构建机上的 Godot editor 进程，不会移除导出包里的 OpenXR/ARKit/ARCore 启动参数。
 
 iPad/ARKit gate 前先构建插件：
 
