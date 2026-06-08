@@ -39,6 +39,11 @@ const checks = [
 		required: true,
 	},
 	{
+		name: "Device readiness wait surface",
+		command: ["node", "tools/c00/check_device_ready_surface.js"],
+		required: true,
+	},
+	{
 		name: "EditorSim collector surface",
 		command: ["node", "tools/c00/check_editor_smoke_surface.js"],
 		required: true,

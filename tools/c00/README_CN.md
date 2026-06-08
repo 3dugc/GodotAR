@@ -63,6 +63,33 @@ node tools/c00/run_static_gates.js --gate all --report releases/phase_0_smoke/ev
 
 该命令不导出、不安装、不连接设备。它汇总 Node 工具语法、shell 脚本语法、Godot project/scene 静态完整性、ARFoundation API surface、XRI API surface、Rokid/OpenXR export surface、OpenXR/Rokid provider surface、GodotARCore Android plugin surface、iPad Godot source 准备 surface、iOS plugin 配置和 ARKit Objective-C++ syntax smoke。缺少 `export_presets.cfg` 会作为 warning 记录，因为真正导出前仍需在设备机 Godot editor 里复核保存。
 
+## 等待设备就绪
+
+连接 Rokid 或 iPad 后，可以先让脚本持续等待 transport ready：
+
+```bash
+tools/c00/wait_for_device_ready.sh --gate rokid --timeout 300
+```
+
+```bash
+tools/c00/wait_for_device_ready.sh --gate ipad --device "iPad M4" --timeout 300
+```
+
+Rokid/Android readiness 要求 `adb devices -l` 至少有一个 `device` 状态的已授权设备。iPad readiness 会采集 devicectl/xctrace device profile，并要求目标 iPad 不处于 `offline` / `unavailable` 状态；目标 bundle 尚未安装只会作为等待阶段 warning，因为真正安装发生在 device gate 内。
+
+设备 ready 后也可以自动进入 spec gate：
+
+```bash
+tools/c00/wait_for_device_ready.sh --gate ipad --device "iPad M4" --timeout 300 --run-gate
+```
+
+报告会写入：
+
+```text
+releases/phase_0_smoke/evidence/device-ready-<gate>-<timestamp>.md
+releases/phase_0_smoke/evidence/device-ready-<gate>-<timestamp>.json
+```
+
 ## 离线依赖包导入
 
 如果设备机访问 Godot downloads、GitHub 或 Android SDK repository 不稳定，可以先在任意网络可用机器准备一个离线依赖包目录，再在设备机导入。推荐目录内容：

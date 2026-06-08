@@ -91,6 +91,18 @@ node tools/c00/write_export_presets_template.js --output export_presets.cfg
 node tools/c00/check_export_presets.js --gate all --file export_presets.cfg
 ```
 
+连接设备后，可以先等待设备 transport ready，再运行正式 gate：
+
+```bash
+tools/c00/wait_for_device_ready.sh --gate rokid --timeout 300
+```
+
+```bash
+tools/c00/wait_for_device_ready.sh --gate ipad --device "iPad M4" --timeout 300 --run-gate
+```
+
+Rokid/Android ready 条件是 ADB 出现 `device` 状态的已授权设备；iPad ready 条件是 devicectl/xctrace 不再显示 `offline` / `unavailable`。`--run-gate` 会在 ready 后调用 `tools/c00/run_device_cycle.sh`，并继续按本 runbook 的证据规则归档。
+
 ## 一键执行
 
 设备机首选入口：
