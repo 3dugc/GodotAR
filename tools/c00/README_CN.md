@@ -492,7 +492,7 @@ tools/c00/import_device_evidence.sh \
 - `ipad`
 - `android-arcore`
 
-新 C00 日志会包含 `runtime` 字段。`validate_smoke_log.js` 会在报告中追加 `Runtime Metadata` 章节；Rokid/iPad/Android ARCore 真机 gate 还要求 `platform_hint`、`runtime.resolved_platform_hint`、project setting 或 `runtime.cmdline_xr_args` 中至少一个值能证明本次启动选择了目标 XR platform。
+新 C00 日志会包含 `runtime` 和 `trackables` 字段。`validate_smoke_log.js` 会在报告中追加 `Runtime Metadata` 章节；Rokid/iPad/Android ARCore 真机 gate 还要求 `platform_hint`、`runtime.resolved_platform_hint`、project setting 或 `runtime.cmdline_xr_args` 中至少一个值能证明本次启动选择了目标 XR platform。`trackables` 缺失会直接失败，因为它证明当前 app 版本已经经过 ARFoundation manager 层输出 plane/anchor/raycast evidence。
 
 ## 手动媒体证据验证
 

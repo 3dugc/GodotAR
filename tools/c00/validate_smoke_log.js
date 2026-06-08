@@ -145,6 +145,9 @@ function evaluateGate(events, gate, options) {
 		warnings.push("Runtime metadata is missing. New C00 logs should include Godot version, XR command-line args, and rendering/XR project settings.");
 	}
 	validateLaunchPlatformEvidence(evidence, gate, failures);
+	if (!evidence.trackables || typeof evidence.trackables !== "object") {
+		failures.push("Trackables metadata is missing from GXF_SMOKE evidence.");
+	}
 
 	if (!evidence.tracking || evidence.tracking === "None") {
 		warnings.push("Tracking state is missing or None.");

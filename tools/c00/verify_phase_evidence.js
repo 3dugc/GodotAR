@@ -427,6 +427,9 @@ function evaluateSmokeEvents(events, gate) {
 		warnings.push("Runtime metadata is missing.");
 	}
 	validateLaunchPlatformEvidence(evidence, gate, failures);
+	if (!evidence.trackables || typeof evidence.trackables !== "object") {
+		failures.push("Trackables metadata is missing from GXF_SMOKE evidence.");
+	}
 	if (!evidence.tracking || evidence.tracking === "None") {
 		warnings.push("Tracking state is missing or None.");
 	}

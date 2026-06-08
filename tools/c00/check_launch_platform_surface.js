@@ -27,6 +27,7 @@ const checks = [
 			["XR command-line runtime metadata", /"cmdline_xr_args"\s*:\s*_safe_cmdline_args\(\)/],
 			["resolved platform runtime metadata", /"resolved_platform_hint"\s*:\s*XRFoundation\.resolve_platform_hint/],
 			["project platform runtime metadata", /"project_platform_hint"\s*:\s*String\(ProjectSettings\.get_setting\("godot_xr_foundation\/platform_hint"/],
+			["trackables runtime metadata", /"trackables"\s*:\s*_trackables_metadata\(\)/],
 			["XRFoundation command-line facade usage", /XRFoundation\.get_xr_cmdline_args\(\)/],
 		],
 	},
@@ -38,6 +39,7 @@ const checks = [
 			["iPad launch platform aliases", /return\s+\["ipad",\s*"iphone",\s*"ios",\s*"arkit"\]/],
 			["Android ARCore launch platform aliases", /return\s+\["arcore",\s*"handheld",\s*"handheld_ar",\s*"phone",\s*"mobile_ar"\]/],
 			["XR platform arg parsing", /parseXrPlatformArgs/],
+			["trackables evidence requirement", /Trackables metadata is missing from GXF_SMOKE evidence/],
 		],
 	},
 	{
@@ -48,6 +50,7 @@ const checks = [
 			["aggregate iPad launch platform aliases", /return\s+\["ipad",\s*"iphone",\s*"ios",\s*"arkit"\]/],
 			["aggregate Android ARCore launch platform aliases", /return\s+\["arcore",\s*"handheld",\s*"handheld_ar",\s*"phone",\s*"mobile_ar"\]/],
 			["aggregate XR platform arg parsing", /parseXrPlatformArgs/],
+			["aggregate trackables evidence requirement", /Trackables metadata is missing from GXF_SMOKE evidence/],
 		],
 	},
 ];
@@ -91,7 +94,7 @@ function usage() {
 		"Usage:",
 		"  node tools/c00/check_launch_platform_surface.js",
 		"",
-		"Checks that C00 device evidence proves the app was launched with the intended XR platform path.",
+		"Checks that C00 device evidence proves the intended XR launch path and runtime trackables metadata.",
 	].join("\n"));
 }
 

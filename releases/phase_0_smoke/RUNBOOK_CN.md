@@ -162,6 +162,7 @@ tools/c00/collect_ios_simulator_smoke.sh booted org.godotengine.godotxrfoundatio
 - 面板显示 `Backend: OpenXR`。
 - 日志包含 `GXF_SMOKE`，且 JSON 中 `backend` 为 `OpenXR`。
 - 日志包含 `ar_session_state` 和 `not_tracking_reason`，用于对照 Unity ARFoundation 状态。
+- 日志包含 `trackables`，能看到 `planes_count`、`anchors_count` 和 `center_screen_raycast`，用于确认统一 ARFoundation manager/raycast fallback 仍在工作。
 - 日志能看到启动平台证据：`platform_hint`、`runtime.resolved_platform_hint`、project setting 或 `runtime.cmdline_xr_args` 中至少一个值指向 `rokid` / `openxr`；并能看到 Godot 版本、rendering method、OpenXR/XR shader 设置。
 - `capabilities.ar_product_path` 为 `true` 时，才算 AR 产品路径通过。
 - `capabilities.openxr_ar_evidence` 必须说明 AR 路径来自 environment blend mode 或 OpenXR Vendors/Rokid passthrough singleton 方法。
@@ -225,6 +226,7 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - 面板显示 `Backend: ARCore`。
 - 日志包含 `GXF_SMOKE`，且 JSON 中 `backend` 为 `ARCore`。
 - 日志包含 `ar_session_state` 和 `not_tracking_reason`，用于对照 Unity ARFoundation 状态。
+- 日志包含 `trackables`，能看到 `planes_count`、`anchors_count` 和 `center_screen_raycast`。
 - 日志能看到启动平台证据：`platform_hint`、`runtime.resolved_platform_hint`、project setting 或 `runtime.cmdline_xr_args` 中至少一个值指向 `arcore` / `handheld` / `phone`。
 - `capabilities.native_plugin=true`。
 - `capabilities.runtime="ARCore"` 或 `capabilities.arcore_supported=true`。
@@ -258,6 +260,7 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 - 面板显示 `Backend: ARKit`。
 - 日志包含 `GXF_SMOKE`，且 JSON 中 `backend` 为 `ARKit`。
 - 日志包含 `ar_session_state` 和 `not_tracking_reason`，用于对照 Unity ARFoundation 状态。
+- 日志包含 `trackables`，能看到 `planes_count`、`anchors_count` 和 `center_screen_raycast`；当环境中已检测到平面时，该字段应能证明 `GodotARKit.hit_test` / `get_planes` 已被上层 manager 消费。
 - `not_tracking_reason` 会优先使用 ARKit singleton 的 `arkit_tracking_reason` 映射结果，便于直接对照 Unity `ARSession.notTrackingReason`。
 - 日志能看到启动平台证据：`platform_hint`、`runtime.resolved_platform_hint`、project setting 或 `runtime.cmdline_xr_args` 中至少一个值指向 `ipad` / `ios` / `arkit`；并能确认 Godot 版本和 viewport XR 状态。
 - `capabilities.native_plugin=true`。

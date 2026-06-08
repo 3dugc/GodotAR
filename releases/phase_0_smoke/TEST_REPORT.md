@@ -56,6 +56,8 @@ Codex implementation status:
 - `tools/c00/check_ios_plugin_artifacts.js` now validates the `GodotARKit.gdip`/template against Godot iOS plugin requirements, including config fields, xcframework reference, init/deinit symbols, capabilities, frameworks, and plist entries.
 - `tools/c00/check_ios_plugin_artifacts.js` now also validates the ARKit runtime bridge surface: native `start_session`/`stop_session`/tracking methods are bound, `GodotARKitSession` runs `ARWorldTrackingConfiguration`, implements `ARSessionDelegate`, and reports ARKit tracking state/reason.
 - `GodotARKit` now exposes C00-level native ARKit `hit_test` / `get_planes` bridge evidence backed by `ARRaycastQuery` and `ARPlaneAnchor`.
+- `ARPlaneManager` now polls provider planes while the session is running, so runtime ARKit plane anchors can reach the Unity-style manager layer after session start.
+- `GXF_SMOKE` now includes `trackables` metadata with plane/anchor counts and a center-screen `ARRaycastManager` raycast result; smoke and aggregate gates reject logs missing this metadata.
 - `tools/c00/check_ios_export_project.js` now validates the exported iOS Xcode project before `xcodebuild`, checking for `GodotARKit`, `GodotARKit.xcframework`, ARKit/Metal frameworks, camera usage, and required device capabilities.
 - `tools/c00/run_device_cycle.sh` now orchestrates preflight, optional ARKit plugin build, Godot export, device log collection, and gate validation for iPad/ARKit, Rokid/OpenXR, and Android/ARCore.
 - `tools/c00/build_ios_xcode_project.sh` now builds the Godot iOS export zip into `builds/ipad/GodotXRFoundation.app`, and the iPad runner can use it automatically when `APP_PATH` is not set.
@@ -132,8 +134,11 @@ Hardware status:
 | Synthetic bad Android ARCore smoke gate | Fail as expected | `validate_smoke_log.js --gate android-arcore` rejects logs that only expose `native_plugin:true` without `runtime:"ARCore"` or `arcore_supported:true` |
 | Synthetic launch platform smoke gates | Pass | Rokid, iPad, and Android ARCore logs pass when `platform_hint`, `runtime.resolved_platform_hint`, or `runtime.cmdline_xr_args` proves the target launch path |
 | Synthetic bad launch platform smoke gate | Fail as expected | Rokid log with backend/capabilities but no platform launch evidence is rejected |
+| Synthetic trackables smoke gates | Pass | Rokid, iPad, and Android ARCore logs pass when `trackables` contains plane/anchor/raycast metadata |
+| Synthetic bad trackables smoke gate | Fail as expected | Rokid log with backend/capabilities but no `trackables` object is rejected |
 | Synthetic Android ARCore aggregate gate | Pass | `verify_phase_evidence.js --gate android-arcore` accepts ARCore smoke, screenshot, recording, device profile Markdown, and ARCore package JSON evidence |
 | Synthetic launch platform aggregate gate | Pass | `verify_phase_evidence.js --gate rokid` accepts launch evidence and rejects the same log when that evidence is removed |
+| Synthetic trackables aggregate gate | Pass | `verify_phase_evidence.js --gate rokid` accepts trackables evidence and rejects the same log when that evidence is removed |
 | Synthetic Rokid phase profile analysis | Pass | `verify_phase_evidence.js --gate rokid` accepts good Rokid profile analysis when media size is relaxed for synthetic files |
 | Synthetic bad Rokid phase profile analysis | Fail as expected | `verify_phase_evidence.js --gate rokid` rejects profile JSON where ADB and target package evidence are missing |
 | Synthetic iPad device profile smoke | Pass | `collect_ios_device_profile.js` writes Markdown/JSON with a fake devicectl command to verify report generation |

@@ -7,10 +7,13 @@ signal plane_removed(trackable_id: StringName)
 signal planes_changed(added: Array, updated: Array, removed: Array)
 
 @export var create_anchor_nodes := true
+@export var provider_sync_interval := 1.0
 @export var xr_origin_path: NodePath
 
 var planes: Dictionary = {}
 var anchor_nodes: Dictionary = {}
+var provider_plane_ids: Dictionary = {}
+var _provider_sync_elapsed := 0.0
 
 
 func _ready() -> void:
@@ -23,7 +26,19 @@ func _ready() -> void:
 
 	if not XRFoundation.session_started.is_connected(Callable(self, "_on_session_started")):
 		XRFoundation.session_started.connect(_on_session_started)
+	set_process(true)
 	call_deferred("_sync_provider_planes")
+
+
+func _process(delta: float) -> void:
+	if provider_sync_interval <= 0.0:
+		return
+	if XRFoundation.state != XRFoundationTypes.SessionState.RUNNING:
+		return
+	_provider_sync_elapsed += delta
+	if _provider_sync_elapsed >= provider_sync_interval:
+		_provider_sync_elapsed = 0.0
+		_sync_provider_planes()
 
 
 func _exit_tree() -> void:
@@ -54,13 +69,29 @@ func GetTrackables() -> Array[ARPlane]:
 	return get_trackables()
 
 
+func sync_provider_planes() -> void:
+	_sync_provider_planes()
+
+
+func SyncProviderPlanes() -> void:
+	sync_provider_planes()
+
+
 func _on_session_started(_backend: int, _display_name: StringName) -> void:
 	_sync_provider_planes()
 
 
 func _sync_provider_planes() -> void:
+	var current_ids := {}
 	for plane in XRFoundation.get_planes():
+		current_ids[plane.trackable_id] = true
+		provider_plane_ids[plane.trackable_id] = true
 		_add_or_update_plane(plane)
+	for trackable_id in provider_plane_ids.keys():
+		if current_ids.has(trackable_id):
+			continue
+		provider_plane_ids.erase(trackable_id)
+		_remove_plane(trackable_id)
 
 
 func _on_tracker_added(tracker_name: StringName, _type: int) -> void:
@@ -77,11 +108,7 @@ func _on_tracker_added(tracker_name: StringName, _type: int) -> void:
 
 
 func _on_tracker_removed(tracker_name: StringName, _type: int) -> void:
-	if planes.has(tracker_name):
-		var plane: ARPlane = planes[tracker_name]
-		planes.erase(tracker_name)
-		plane_removed.emit(tracker_name)
-		planes_changed.emit([], [], [plane])
+	_remove_plane(tracker_name)
 	if anchor_nodes.has(tracker_name):
 		var node: Node = anchor_nodes[tracker_name]
 		if is_instance_valid(node):
@@ -98,6 +125,14 @@ func _add_or_update_plane(plane: ARPlane) -> void:
 		planes[plane.trackable_id] = plane
 		plane_added.emit(plane)
 		planes_changed.emit([plane], [], [])
+
+
+func _remove_plane(trackable_id: StringName) -> void:
+	if planes.has(trackable_id):
+		var plane: ARPlane = planes[trackable_id]
+		planes.erase(trackable_id)
+		plane_removed.emit(trackable_id)
+		planes_changed.emit([], [], [plane])
 
 
 func _is_plane_tracker(tracker: Object) -> bool:

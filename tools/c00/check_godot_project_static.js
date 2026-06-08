@@ -145,6 +145,9 @@ function checkStartupHintSurface() {
 	addCheck(localEvidence, "all cmdline args helper", /func\s+_all_cmdline_args\s*\(/.test(runtimeText), `${runtimeFile}: missing _all_cmdline_args().`);
 	addCheck(localEvidence, "resolved platform runtime metadata", /"resolved_platform_hint"\s*:\s*XRFoundation\.resolve_platform_hint/.test(demoText), `${demoFile}: smoke runtime metadata should include resolved_platform_hint.`);
 	addCheck(localEvidence, "project platform runtime metadata", /"project_platform_hint"\s*:\s*String\(ProjectSettings\.get_setting\("godot_xr_foundation\/platform_hint"/.test(demoText), `${demoFile}: smoke runtime metadata should include project_platform_hint.`);
+	addCheck(localEvidence, "trackables smoke metadata", /"trackables"\s*:\s*_trackables_metadata\(\)/.test(demoText), `${demoFile}: smoke payload should include trackables metadata.`);
+	addCheck(localEvidence, "trackables metadata helper", /func\s+_trackables_metadata\s*\(\)\s*->\s*Dictionary/.test(demoText), `${demoFile}: missing _trackables_metadata().`);
+	addCheck(localEvidence, "center screen raycast evidence", /func\s+_center_screen_raycast\s*\(\)\s*->\s*Array\[XRHit\]/.test(demoText), `${demoFile}: missing center screen raycast evidence helper.`);
 	evidence.push(localEvidence);
 }
 

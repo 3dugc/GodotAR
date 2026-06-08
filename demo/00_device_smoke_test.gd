@@ -9,7 +9,9 @@ const VERSION := "v0.0.1-c00-device-smoke"
 
 @onready var ar_session: ARSession = $ARSession
 @onready var status_label: Label3D = $XRFoundationRig/XRCamera3D/StatusPanel/StatusLabel
+@onready var xr_camera: Camera3D = $XRFoundationRig/XRCamera3D
 @onready var rotating_cube: MeshInstance3D = $World/RotatingCube
+@onready var raycast_manager: ARRaycastManager = $ARRaycastManager
 @onready var plane_manager: ARPlaneManager = $ARPlaneManager
 @onready var anchor_manager: ARAnchorManager = $ARAnchorManager
 @onready var xri_interaction_manager: XRInteractionManager = $XRInteractionManager
@@ -155,6 +157,7 @@ func _emit_smoke_log(event_name: String, extra: Dictionary) -> void:
 		"tracking": String(XRFoundation.get_tracking_state_name()),
 		"not_tracking_reason": String(XRFoundation.get_not_tracking_reason_name()),
 		"capabilities": XRFoundation.get_capabilities(),
+		"trackables": _trackables_metadata(),
 		"xri": _xri_metadata(),
 		"fps": int(Engine.get_frames_per_second()),
 		"last_error": XRFoundation.get_last_error(),
@@ -194,6 +197,87 @@ func _xri_metadata() -> Dictionary:
 		"active_selection": xri_active_selection,
 		"ray_hit": bool(raycast.get("success", false)),
 	}
+
+
+func _trackables_metadata() -> Dictionary:
+	if plane_manager:
+		plane_manager.sync_provider_planes()
+
+	var planes: Array = []
+	if plane_manager:
+		planes = plane_manager.get_all_planes()
+	var anchors: Array = []
+	if anchor_manager:
+		anchors = anchor_manager.get_all_anchors()
+	var raycast_hits := _center_screen_raycast()
+
+	return {
+		"planes_count": planes.size(),
+		"planes": _plane_summaries(planes, 5),
+		"anchors_count": anchors.size(),
+		"anchors": _anchor_summaries(anchors, 5),
+		"center_screen_raycast": {
+			"hit": not raycast_hits.is_empty(),
+			"count": raycast_hits.size(),
+			"first": _hit_summary(raycast_hits[0]) if not raycast_hits.is_empty() else {},
+		},
+	}
+
+
+func _center_screen_raycast() -> Array[XRHit]:
+	if raycast_manager == null or xr_camera == null:
+		return _empty_xr_hits()
+	var viewport := get_viewport()
+	if viewport == null:
+		return _empty_xr_hits()
+	var center := viewport.get_visible_rect().size * 0.5
+	return raycast_manager.screen_raycast(xr_camera, center, 1, XRFoundationTypes.TrackableType.PLANE)
+
+
+func _empty_xr_hits() -> Array[XRHit]:
+	var hits: Array[XRHit] = []
+	return hits
+
+
+func _plane_summaries(planes: Array, limit: int) -> Array:
+	var result := []
+	for plane in planes.slice(0, min(limit, planes.size())):
+		result.append({
+			"id": String(plane.trackable_id),
+			"alignment": String(plane.alignment),
+			"size": _vector2_array(plane.size),
+			"tracking_state": int(plane.tracking_state),
+		})
+	return result
+
+
+func _anchor_summaries(anchors: Array, limit: int) -> Array:
+	var result := []
+	for anchor in anchors.slice(0, min(limit, anchors.size())):
+		result.append({
+			"id": String(anchor.trackable_id),
+			"persistent_id": String(anchor.persistent_id),
+			"tracking_state": int(anchor.tracking_state),
+		})
+	return result
+
+
+func _hit_summary(hit: XRHit) -> Dictionary:
+	return {
+		"trackable_id": String(hit.trackable_id),
+		"trackable_type": int(hit.trackable_type),
+		"distance": float(hit.distance),
+		"position": _vector3_array(hit.position),
+		"normal": _vector3_array(hit.normal),
+	}
+
+
+func _vector2_array(value: Vector2) -> Array:
+	return [float(value.x), float(value.y)]
+
+
+func _vector3_array(value: Vector3) -> Array:
+	return [float(value.x), float(value.y), float(value.z)]
 
 
 func _on_xri_hover_entered(_interactor: Node, interactable: Node) -> void:
