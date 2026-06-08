@@ -152,7 +152,11 @@ else
 	check_dir "$APP_PATH" "existing .app bundle required for collection-only iOS gate"
 fi
 if needs_android_tools; then
-	check_command adb "required for Rokid/Android log collection"
+	if [ -n "${ADB_BIN:-}" ] && [ -x "$ADB_BIN" ]; then
+		printf "OK   %-16s %s\n" "ADB_BIN" "$ADB_BIN"
+	else
+		check_command adb "required for Rokid/Android log collection; set ADB_BIN if using a project-local Android platform-tools install"
+	fi
 fi
 if needs_ios_tools; then
 	check_command xcrun "required for iPad install/launch through Xcode tools"

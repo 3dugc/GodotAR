@@ -38,7 +38,7 @@ tools/c00/preflight.sh android-arcore
 
 - `node`：运行日志 validator。
 - `godot`：命令行导出/导入校验。
-- `adb`：Rokid/Android 日志采集。
+- `adb` 或 `ADB_BIN=/path/to/adb`：Rokid/Android 日志采集；可使用项目本地 Android platform-tools。
 - `xcrun`：iPad 安装和启动。
 - `xcodebuild`：把 Godot iOS 导出的 Xcode project 构建成可安装 `.app`。
 - `android/plugins`、`ios/plugins` 是否存在。

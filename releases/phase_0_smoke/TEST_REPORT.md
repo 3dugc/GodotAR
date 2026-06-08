@@ -99,8 +99,9 @@ Codex implementation status:
 
 Hardware status:
 
-- Not executed in this Codex environment because Godot executable, Rokid hardware, and iPad hardware are not available here.
-- Local preflight currently reports missing `godot`, `adb`, `export_presets.cfg`, `GodotARKit.gdip`, and `GodotARKit.xcframework`; `node`, `xcrun`, `xcodebuild`, ARFoundation/XRI/OpenXR surface checks, and the ARKit Objective-C++ syntax smoke check are available.
+- Not fully executed in this Codex environment because a Godot executable is still being prepared, no Rokid/Android device is currently attached through ADB, and the detected `iPad M4` is currently reported by `devicectl` as `unavailable`.
+- Local Rokid preflight now recognizes project-local Android platform-tools through `ADB_BIN`, finds `addons/godotopenxrvendors`, and validates `export_presets.cfg`; it still needs `GODOT_BIN` and an attached Rokid/OpenXR device for a real run.
+- Local iPad preflight validates the iPad export preset and ARKit source surface; it still needs `GODOT_BIN`, Godot source headers, and the built `GodotARKit.gdip` / `GodotARKit.xcframework` before an installable iPad build can be produced.
 - Do not mark this report as passed until the device evidence below is filled.
 
 ## Local Verification On 2026-06-08
@@ -117,7 +118,7 @@ Hardware status:
 | `node --check tools/c00/validate_evidence_bundle.js` | Pass | Evidence validator parses |
 | `node --check tools/c00/verify_phase_evidence.js` | Pass | C00 aggregate verifier parses |
 | `node --check tools/c00/run_static_gates.js` | Pass | Static gate runner parses |
-| `node tools/c00/run_static_gates.js --gate all --report /private/tmp/godotar-static-gates.md` | Pass with warning | Static gate report passes; missing `export_presets.cfg` is recorded as warning |
+| `node tools/c00/run_static_gates.js --gate all --report /private/tmp/godotar-static-gates.md` | Pass | Static gate report passes with C00 export presets present |
 | `node --check tools/c00/check_launch_platform_surface.js` | Pass | Launch platform surface checker parses |
 | `node tools/c00/check_launch_platform_surface.js` | Pass | Runtime/platform hint parser, smoke metadata, and device gate launch evidence checks are present |
 | `node --check tools/c00/check_device_collector_diagnostics_surface.js` | Pass | Device collector diagnostics checker parses |
@@ -201,7 +202,8 @@ Hardware status:
 | ARKit native raycast/plane static check | Pass | `GodotARKit` binds `hit_test` / `get_planes`, calls native `ARRaycastQuery`, caches `ARPlaneAnchor` evidence, and preserves native transform matrices |
 | GodotARKit `.gdip` template check | Pass with warning | Plugin config matches Godot iOS plugin format; warns that real `GodotARKit.xcframework` is not built on this host |
 | ARKit plugin Objective-C++ syntax smoke | Pass | `tools/c00/check_arkit_plugin_static.sh` validates plugin sources against the local iOS SDK with Godot stubs |
-| `tools/c00/preflight.sh all` | Blocked by host prerequisites | Missing `godot`, `adb`, `export_presets.cfg`, `addons/godotopenxrvendors`, `GodotARKit.gdip`, `GodotARKit.xcframework`, and built native Android/iOS plugin artifacts; ARKit Objective-C++ syntax smoke passes |
+| `ADB_BIN=.godot/cache/c00/android-sdk/platform-tools/adb tools/c00/preflight.sh rokid` | Blocked by host prerequisites | Project-local ADB, OpenXR Vendors, and C00 export presets are recognized; still missing `GODOT_BIN` and attached Rokid/OpenXR hardware |
+| `tools/c00/preflight.sh ipad` | Blocked by host prerequisites | C00 iPad export preset and ARKit source smoke pass; still missing `GODOT_BIN`, Godot source headers, `GodotARKit.gdip`, and `GodotARKit.xcframework` |
 
 ## Device Evidence
 
