@@ -66,6 +66,8 @@ APP_PATH=builds/ipad/GodotXRFoundation.app \
 tools/c00/run_device_cycle.sh all
 ```
 
+`all` 模式默认会继续执行后续 gate，即使前一个 gate 失败；最后会自动运行 `tools/c00/verify_phase_evidence.js` 并生成 `C00_PHASE_REPORT.md`。如果希望失败即停，设置 `CONTINUE_ON_FAILURE=0`。
+
 ## 插件优先边界
 
 C00 不修改 Godot 主干。

@@ -12,6 +12,9 @@ RUN_EXPORT="${RUN_EXPORT:-1}"
 RUN_COLLECT="${RUN_COLLECT:-1}"
 BUILD_ARKIT_PLUGIN="${BUILD_ARKIT_PLUGIN:-auto}"
 INCLUDE_ANDROID_ARCORE="${INCLUDE_ANDROID_ARCORE:-0}"
+CONTINUE_ON_FAILURE="${CONTINUE_ON_FAILURE:-auto}"
+RUN_PHASE_VERIFY="${RUN_PHASE_VERIFY:-1}"
+PHASE_REPORT="${PHASE_REPORT:-releases/phase_0_smoke/C00_PHASE_REPORT.md}"
 
 ROKID_PRESET="${ROKID_PRESET:-C00 Rokid OpenXR}"
 ROKID_APK_PATH="${ROKID_APK_PATH:-builds/rokid/c00.apk}"
@@ -56,6 +59,9 @@ Rokid / Android:
 
 All:
   Runs ipad then rokid. Set INCLUDE_ANDROID_ARCORE=1 to include Android ARCore.
+  CONTINUE_ON_FAILURE=auto|1|0     Default auto continues in all mode so every device can produce evidence.
+  RUN_PHASE_VERIFY=1               Run verify_phase_evidence.js after all gates.
+  PHASE_REPORT="$PHASE_REPORT"
 EOF
 }
 
@@ -155,19 +161,69 @@ run_gate() {
 	echo
 	echo "== C00 gate: $gate =="
 	if [[ "$gate" == "ipad" ]]; then
-		build_arkit_plugin_if_requested
+		build_arkit_plugin_if_requested || return $?
 	fi
-	run_preflight "$gate"
-	run_export "$gate"
-	run_collect "$gate"
+	run_preflight "$gate" || return $?
+	run_export "$gate" || return $?
+	run_collect "$gate" || return $?
+}
+
+run_gate_for_all() {
+	local gate="$1"
+	set +e
+	run_gate "$gate"
+	local status="$?"
+	set -e
+
+	if [[ "$status" -eq 0 ]]; then
+		echo "== C00 gate passed: $gate =="
+		return 0
+	fi
+
+	ALL_GATE_STATUS=1
+	echo "== C00 gate failed: $gate (exit $status) ==" >&2
+	if [[ "$CONTINUE_ON_FAILURE" == "0" ]]; then
+		return "$status"
+	fi
+	return 0
+}
+
+run_phase_verify() {
+	if [[ "$RUN_PHASE_VERIFY" == "0" ]]; then
+		return 0
+	fi
+
+	echo
+	echo "== C00 phase evidence verify =="
+	node "$PROJECT_ROOT/tools/c00/verify_phase_evidence.js" \
+		--report "$(project_path "$PHASE_REPORT")"
 }
 
 if [[ "$GATE" == "all" ]]; then
-	run_gate ipad
-	run_gate rokid
-	if [[ "$INCLUDE_ANDROID_ARCORE" == "1" ]]; then
-		run_gate android-arcore
+	ALL_GATE_STATUS=0
+	phase_status=0
+	run_gate_for_all ipad || phase_status="$?"
+	if [[ "$phase_status" != "0" && "$CONTINUE_ON_FAILURE" == "0" ]]; then
+		exit "$phase_status"
 	fi
+	run_gate_for_all rokid || phase_status="$?"
+	if [[ "$phase_status" != "0" && "$CONTINUE_ON_FAILURE" == "0" ]]; then
+		exit "$phase_status"
+	fi
+	if [[ "$INCLUDE_ANDROID_ARCORE" == "1" ]]; then
+		run_gate_for_all android-arcore || phase_status="$?"
+		if [[ "$phase_status" != "0" && "$CONTINUE_ON_FAILURE" == "0" ]]; then
+			exit "$phase_status"
+		fi
+	fi
+	if [[ "$phase_status" == "0" ]]; then
+		phase_status="$ALL_GATE_STATUS"
+	fi
+
+	if ! run_phase_verify; then
+		phase_status=1
+	fi
+	exit "$phase_status"
 else
 	run_gate "$GATE"
 fi

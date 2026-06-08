@@ -58,6 +58,8 @@ APP_PATH=builds/ipad/GodotXRFoundation.app \
 tools/c00/run_device_cycle.sh all
 ```
 
+`all` 模式会按 iPad、Rokid 顺序执行。默认即使某个 gate 失败也会继续跑后续 gate，最后自动执行 `verify_phase_evidence.js` 生成 C00 总报告。
+
 常用开关：
 
 - `RUN_EXPORT=0`：跳过 Godot 导出，直接采集已安装应用。
@@ -68,6 +70,9 @@ tools/c00/run_device_cycle.sh all
 - `MANUAL_MEDIA_PATH=/path/to/file`：iPad 自动截图不可用时，提供手动截图或录屏。
 - `ALLOW_MISSING_MEDIA=1`：继续生成报告，但把缺失媒体证据降级为 warning。
 - `INCLUDE_ANDROID_ARCORE=1`：`all` 模式额外跑 Android ARCore gate。
+- `CONTINUE_ON_FAILURE=0`：`all` 模式遇到第一个失败 gate 就停止。
+- `RUN_PHASE_VERIFY=0`：`all` 模式跳过最终 C00 聚合验证。
+- `PHASE_REPORT=releases/phase_0_smoke/C00_PHASE_REPORT.md`：覆盖 C00 总报告输出路径。
 
 ## Export Preset 检查
 
