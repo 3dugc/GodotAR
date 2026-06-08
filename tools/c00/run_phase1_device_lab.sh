@@ -13,6 +13,7 @@ AUDIT_JSON="${AUDIT_JSON:-$PROJECT_ROOT/releases/phase_0_smoke/C00_COMPLETION_AU
 
 RUN_IMPORT="${RUN_IMPORT:-auto}"
 RUN_ONLINE_DEPS="${RUN_ONLINE_DEPS:-0}"
+ONLINE_DEPS="${ONLINE_DEPS:-auto}"
 RUN_READINESS="${RUN_READINESS:-1}"
 RUN_STATIC_GATES="${RUN_STATIC_GATES:-1}"
 RUN_DEVICE_CYCLE="${RUN_DEVICE_CYCLE:-1}"
@@ -31,6 +32,9 @@ Usage:
 Options:
   --bundle <dir>          Import an offline dependency bundle before running gates.
   --online-deps           Install/resume online C00 dependencies before readiness.
+  --online-deps-list <list>
+                          Online dependency subset: auto or comma/space list of templates,jdk,android-sdk,android-export.
+  --online-deps-only      Run online dependency setup only, then exit.
   --env-file <file>       Environment file written/read by bundle importer. Default: $ENV_FILE
   --gate <gate>           Device cycle gate: all, rokid, ipad, android-arcore, editor, ios-simulator. Default: all
   --device <id-or-name>   iPad device id/name forwarded to run_device_cycle.sh.
@@ -49,6 +53,7 @@ Environment:
   DRY_RUN=1
   RUN_IMPORT=auto|1|0
   RUN_ONLINE_DEPS=1|0
+  ONLINE_DEPS=auto|templates,jdk,android-sdk,android-export
   RUN_READINESS=1|0
   RUN_STATIC_GATES=1|0
   RUN_DEVICE_CYCLE=1|0
@@ -69,6 +74,18 @@ while [[ "$#" -gt 0 ]]; do
 			;;
 		--online-deps)
 			RUN_ONLINE_DEPS=1
+			shift
+			;;
+		--online-deps-list)
+			ONLINE_DEPS="$2"
+			shift 2
+			;;
+		--online-deps-only)
+			RUN_ONLINE_DEPS=1
+			RUN_READINESS=0
+			RUN_STATIC_GATES=0
+			RUN_DEVICE_CYCLE=0
+			RUN_COMPLETION_AUDIT=0
 			shift
 			;;
 		--env-file)
@@ -174,6 +191,23 @@ needs_android_dependencies() {
 	[[ "$GATE" == "all" || "$GATE" == "rokid" || "$GATE" == "android-arcore" ]]
 }
 
+online_dep_enabled() {
+	local name="$1"
+	if [[ "$ONLINE_DEPS" == "auto" || "$ONLINE_DEPS" == "all" ]]; then
+		return 0
+	fi
+	local list
+	list="${ONLINE_DEPS//$'\n'/ }"
+	list="${list//,/ }"
+	local item
+	for item in $list; do
+		if [[ "$item" == "$name" ]]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
 resolve_template_version() {
 	if [[ -n "${GODOT_EXPORT_TEMPLATES_VERSION:-}" ]]; then
 		printf "%s" "$GODOT_EXPORT_TEMPLATES_VERSION"
@@ -268,7 +302,7 @@ write_device_env_from_current_machine() {
 run_online_dependency_setup() {
 	local version android_sdk jdk_home online_status=0
 	version="$(resolve_template_version)"
-	if needs_ios_dependencies || needs_android_dependencies; then
+	if online_dep_enabled templates && { needs_ios_dependencies || needs_android_dependencies; }; then
 		run_step "install Godot export templates" \
 			"$PROJECT_ROOT/tools/c00/install_godot_export_templates.sh" \
 			--download \
@@ -277,24 +311,30 @@ run_online_dependency_setup() {
 	if needs_android_dependencies; then
 		android_sdk="$(resolve_android_sdk_dir)"
 		jdk_home="$PROJECT_ROOT/.godot/cache/c00/jdk/Contents/Home"
-		run_step "install OpenJDK 17" \
-			"$PROJECT_ROOT/tools/c00/install_openjdk17.sh" \
-			--download || online_status=$?
+		if online_dep_enabled jdk; then
+			run_step "install OpenJDK 17" \
+				"$PROJECT_ROOT/tools/c00/install_openjdk17.sh" \
+				--download || online_status=$?
+		fi
 		if [[ -x "$jdk_home/bin/java" && -x "$jdk_home/bin/keytool" ]]; then
 			export GODOT_JAVA_SDK_PATH="$jdk_home"
 			export JAVA_HOME="$jdk_home"
 		fi
 		export GODOT_ANDROID_SDK_PATH="$android_sdk"
 		export ANDROID_SDK_ROOT="$android_sdk"
-		run_step "install Android SDK packages" \
-			"$PROJECT_ROOT/tools/c00/install_android_sdk_packages.sh" \
-			--android-sdk "$android_sdk" \
-			--download-cmdline-tools \
-			--yes || online_status=$?
-		run_step "configure Android export environment" \
-			"$PROJECT_ROOT/tools/c00/configure_android_export_environment.sh" \
-			--android-sdk "$android_sdk" \
-			--install-build-template || online_status=$?
+		if online_dep_enabled android-sdk; then
+			run_step "install Android SDK packages" \
+				"$PROJECT_ROOT/tools/c00/install_android_sdk_packages.sh" \
+				--android-sdk "$android_sdk" \
+				--download-cmdline-tools \
+				--yes || online_status=$?
+		fi
+		if online_dep_enabled android-export; then
+			run_step "configure Android export environment" \
+				"$PROJECT_ROOT/tools/c00/configure_android_export_environment.sh" \
+				--android-sdk "$android_sdk" \
+				--install-build-template || online_status=$?
+		fi
 	fi
 	run_step "write device environment" write_device_env_from_current_machine || online_status=$?
 	source_env_if_present

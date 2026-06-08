@@ -127,6 +127,16 @@ tools/c00/run_phase1_device_lab.sh \
   --device <ipad-uuid-or-name>
 ```
 
+慢网络上可以只推进一个依赖子集，完成后重复同一命令会继续续传：
+
+```bash
+ONLINE_DEPS=jdk tools/c00/run_phase1_device_lab.sh --online-deps-only
+ONLINE_DEPS=android-sdk tools/c00/run_phase1_device_lab.sh --online-deps-only --gate rokid
+ONLINE_DEPS=templates tools/c00/run_phase1_device_lab.sh --online-deps-only --gate ipad
+```
+
+`ONLINE_DEPS` 支持 `auto` / `all`，或逗号、空格分隔的 `templates,jdk,android-sdk,android-export`。也可以用 `--online-deps-list templates,jdk` 传入。
+
 它会按顺序执行：
 
 - 可选导入离线依赖包，或用 `--online-deps` 续传/安装 Godot export templates、OpenJDK 17、Android SDK packages，并配置 Android debug keystore / build template。

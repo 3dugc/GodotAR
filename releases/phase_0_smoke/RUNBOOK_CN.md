@@ -109,6 +109,16 @@ tools/c00/run_phase1_device_lab.sh \
   --device <ipad-uuid-or-name>
 ```
 
+网络很慢时先分段推进依赖缓存：
+
+```bash
+ONLINE_DEPS=jdk tools/c00/run_phase1_device_lab.sh --online-deps-only
+ONLINE_DEPS=android-sdk tools/c00/run_phase1_device_lab.sh --online-deps-only --gate rokid
+ONLINE_DEPS=templates tools/c00/run_phase1_device_lab.sh --online-deps-only --gate ipad
+```
+
+`ONLINE_DEPS` 可用 `auto` / `all`，或逗号、空格分隔的 `templates,jdk,android-sdk,android-export`；命令行也可以传 `--online-deps-list templates,jdk`。
+
 这个 wrapper 会按 spec 顺序串起离线依赖导入或在线依赖续传、readiness report、静态 gate、`run_device_cycle.sh all` 和 completion audit。它默认不会把失败吞掉；如果某台设备失败，仍会继续生成后续报告，最后以 `NOT_READY` 退出。
 
 第一次接设备机时先演练：
