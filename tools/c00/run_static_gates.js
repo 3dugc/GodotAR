@@ -49,6 +49,11 @@ const checks = [
 		required: true,
 	},
 	{
+		name: "Phase 1 device lab surface",
+		command: ["node", "tools/c00/check_phase1_device_lab_surface.js"],
+		required: true,
+	},
+	{
 		name: "ARFoundation migration API surface",
 		command: ["node", "tools/c00/check_arfoundation_api_surface.js"],
 		required: true,

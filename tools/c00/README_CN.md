@@ -107,6 +107,31 @@ tools/c00/preflight.sh android-arcore
 
 ## 第一阶段完成审计
 
+设备机推荐用一键入口执行完整顺序：
+
+```bash
+tools/c00/run_phase1_device_lab.sh \
+  --bundle /Volumes/USB/device-bundle \
+  --device <ipad-uuid-or-name>
+```
+
+它会按顺序执行：
+
+- 导入离线依赖包并 source `.godot/cache/c00/device-env.sh`。
+- 生成 device readiness report。
+- 跑 C00 static gates。
+- 调用 `tools/c00/run_device_cycle.sh all` 执行 iPad/ARKit、Rokid/OpenXR、Android/ARCore。
+- 调用 `tools/c00/audit_phase1_completion.js` 生成最终完成审计。
+
+第一次接设备机时先 dry-run：
+
+```bash
+tools/c00/run_phase1_device_lab.sh \
+  --bundle /Volumes/USB/device-bundle \
+  --device <ipad-uuid-or-name> \
+  --dry-run
+```
+
 当设备机依赖和真机证据都准备好后，用 completion audit 做最后确认：
 
 ```bash

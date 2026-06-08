@@ -88,6 +88,7 @@ Codex implementation status:
 - `tools/c00/validate_evidence_bundle.js` now enforces publishable evidence: Rokid/Android require screenshot plus recording; iPad requires at least one screenshot or recording.
 - `tools/c00/verify_phase_evidence.js` now enforces the full C00 publish gate by requiring Rokid/OpenXR, iPad/ARKit, and Android/ARCore evidence in one aggregate report by default.
 - `tools/c00/audit_phase1_completion.js` now performs the Phase 1 completion audit: static gates, Unity ARFoundation/XRI migration surface, ARKit binary artifacts, Rokid/iPad/Android preflight, and final device evidence must all pass before C00 can be reported as ready.
+- `tools/c00/run_phase1_device_lab.sh` now provides the device-machine phase-1 wrapper: optional offline dependency import, readiness report, static gates, `run_device_cycle.sh all`, and completion audit in the spec order, with `--dry-run` support.
 - Native singleton providers can now report tracking status without an `XRInterface`; `GodotARKit` exposes `is_running()` and `get_tracking_status()` for the C00 panel and logs.
 - `GodotARKit.get_tracking_status()` now maps real ARKit state to Godot tracking status: normal tracking, limited/unknown tracking, or not tracking.
 - `OpenXRProvider` now reports Unity OpenXR Feature-style runtime diagnostics: selected blend mode, vendor singletons, feature flags, AR tier, and fallback path.
@@ -156,6 +157,9 @@ Hardware status:
 | `node tools/c00/check_phase1_completion_audit_surface.js` | Pass | Audit script, static gate integration, README, runbook, and TEST_REPORT references are present |
 | `node tools/c00/audit_phase1_completion.js --skip-preflight --skip-evidence --report /private/tmp/c00-audit.md --json /private/tmp/c00-audit.json` | Pass / PARTIAL | Code/API/plugin/provider audit passes when intentionally skipping device-machine and device-evidence gates; it does not mark phase 1 complete |
 | `node tools/c00/audit_phase1_completion.js --report /private/tmp/c00-audit-full.md --json /private/tmp/c00-audit-full.json` | Fail as expected | Full audit outputs `NOT_READY` until Rokid/OpenXR, iPad/ARKit, and Android/ARCore preflight/evidence are present |
+| `bash -n tools/c00/run_phase1_device_lab.sh` | Pass | Device-lab wrapper shell syntax passes |
+| `node tools/c00/check_phase1_device_lab_surface.js` | Pass | Device-lab wrapper, static gate integration, README, runbook, and C00 spec references are present |
+| `tools/c00/run_phase1_device_lab.sh --dry-run --no-import --device ipad-placeholder` | Pass | Dry-run prints readiness, static gates, iPad/Rokid/Android device-cycle steps, phase evidence verify, and completion audit without invoking Godot/Xcode/ADB/devicectl |
 | `node --check tools/c00/check_ios_plugin_artifacts.js` | Pass | iOS plugin artifact checker parses |
 | `node tools/c00/check_ios_plugin_artifacts.js` | Pass with warning | Runtime bridge surface is present; warns that real `GodotARKit.xcframework` is not built on this host |
 | `tools/c00/check_arkit_plugin_static.sh` | Pass | ARKit plugin compiles against the local iPhone Simulator SDK with Godot stubs |

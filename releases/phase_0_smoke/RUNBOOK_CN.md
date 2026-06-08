@@ -79,6 +79,27 @@ node tools/c00/check_export_presets.js --gate all --file export_presets.cfg
 
 ## 一键执行
 
+设备机首选入口：
+
+```bash
+tools/c00/run_phase1_device_lab.sh \
+  --bundle /Volumes/USB/device-bundle \
+  --device <ipad-uuid-or-name>
+```
+
+这个 wrapper 会按 spec 顺序串起离线依赖导入、readiness report、静态 gate、`run_device_cycle.sh all` 和 completion audit。它默认不会把失败吞掉；如果某台设备失败，仍会继续生成后续报告，最后以 `NOT_READY` 退出。
+
+第一次接设备机时先演练：
+
+```bash
+tools/c00/run_phase1_device_lab.sh \
+  --bundle /Volumes/USB/device-bundle \
+  --device <ipad-uuid-or-name> \
+  --dry-run
+```
+
+底层 runner 也可以单独调用：
+
 设备机上优先用 spec runner：
 
 ```bash
