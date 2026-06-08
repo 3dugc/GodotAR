@@ -159,6 +159,7 @@ tools/c00/run_device_cycle.sh rokid
 
 默认会同时采集日志、gate 报告、截图和 15 秒录屏；如设备不支持 `screenrecord`，请手动补录屏。
 Rokid gate 默认要求截图和录屏都存在；临时调试可用 `ALLOW_MISSING_MEDIA=1` 降级为 warning，但不能作为发表通过结果。
+脚本还会生成 `rokid-<timestamp>-device.md/json` 设备画像，记录型号、系统版本、display、target package、XR/OpenXR/ARCore/Rokid 相关包和关键 feature；多台 Android 设备连接时设置 `ADB_SERIAL=<serial>`。
 
 底层脚本：
 
@@ -244,12 +245,15 @@ releases/phase_0_smoke/evidence/
 <gate>-<timestamp>.md
 <gate>-<timestamp>.png
 <gate>-<timestamp>.mp4
+<gate>-<timestamp>-device.md
+<gate>-<timestamp>-device.json
 ```
 
 `.md` 报告会包含两个门禁结果：
 
 - smoke log gate：验证 `GXF_SMOKE`、backend、native plugin、ARKit/OpenXR 证据。
 - evidence bundle gate：验证截图和录屏是否存在并非空文件。
+- Android/Rokid device profile：记录设备属性、target package、XR 相关包和关键 feature。
 
 smoke log gate 还会展示 `Runtime Metadata`，用于确认 Godot 版本、启动参数和 XR/rendering project setting 是否符合设备 gate。
 

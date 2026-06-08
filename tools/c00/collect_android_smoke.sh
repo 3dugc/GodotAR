@@ -16,6 +16,8 @@ LOG_PATH="$OUT_DIR/${GATE}-${STAMP}.log"
 REPORT_PATH="$OUT_DIR/${GATE}-${STAMP}.md"
 SCREENSHOT_PATH="$OUT_DIR/${GATE}-${STAMP}.png"
 VIDEO_PATH="$OUT_DIR/${GATE}-${STAMP}.mp4"
+PROFILE_PATH="$OUT_DIR/${GATE}-${STAMP}-device.md"
+PROFILE_JSON_PATH="$OUT_DIR/${GATE}-${STAMP}-device.json"
 REMOTE_VIDEO="/sdcard/gxf-${GATE}-${STAMP}.mp4"
 
 mkdir -p "$OUT_DIR"
@@ -32,6 +34,15 @@ fi
 
 echo "Connected devices:"
 adb devices
+
+echo "Collecting Android device profile -> $PROFILE_PATH"
+if ! node "$PROJECT_ROOT/tools/c00/collect_android_device_profile.js" \
+	--gate "$GATE" \
+	--package "$PACKAGE" \
+	--report "$PROFILE_PATH" \
+	--json "$PROFILE_JSON_PATH"; then
+	echo "Android device profile collection failed; continuing to smoke collection."
+fi
 
 echo "Clearing logcat..."
 adb logcat -c || true
@@ -78,5 +89,10 @@ fi
 
 echo "Validating evidence bundle"
 node "$PROJECT_ROOT/tools/c00/validate_evidence_bundle.js" "${EVIDENCE_ARGS[@]}"
+
+if [ -f "$PROFILE_PATH" ]; then
+	cat "$PROFILE_PATH" >> "$REPORT_PATH"
+	echo "Device profile: $PROFILE_PATH"
+fi
 
 echo "Report: $REPORT_PATH"

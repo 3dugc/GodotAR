@@ -185,6 +185,21 @@ tools/c00/collect_android_smoke.sh rokid org.godotengine.godotxrfoundation 30
 APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godotengine.godotxrfoundation 30
 ```
 
+采集脚本会同时生成 Android/Rokid 设备画像：
+
+```text
+releases/phase_0_smoke/evidence/rokid-<timestamp>-device.md
+releases/phase_0_smoke/evidence/rokid-<timestamp>-device.json
+```
+
+设备画像会记录 `getprop` 设备型号和系统版本、`wm size/density`、target package 的安装和权限状态、XR/OpenXR/ARCore/Rokid 相关包，以及 camera/Vulkan/XR/VR 相关 feature。多设备连接时可设置 `ADB_SERIAL=<serial>`。
+
+也可以单独采集：
+
+```bash
+node tools/c00/collect_android_device_profile.js --gate rokid --package org.godotengine.godotxrfoundation --report releases/phase_0_smoke/evidence/rokid-device.md
+```
+
 Rokid 默认严格要求：
 
 - `backend:"OpenXR"`
@@ -349,8 +364,10 @@ releases/phase_0_smoke/evidence/<gate>-<timestamp>.log
 releases/phase_0_smoke/evidence/<gate>-<timestamp>.md
 releases/phase_0_smoke/evidence/<gate>-<timestamp>.png
 releases/phase_0_smoke/evidence/<gate>-<timestamp>.mp4
+releases/phase_0_smoke/evidence/<gate>-<timestamp>-device.md
+releases/phase_0_smoke/evidence/<gate>-<timestamp>-device.json
 ```
 
-Android/Rokid 会自动尝试录屏和截图。iOS 会在安装 `idevicescreenshot` 时自动截图，否则脚本会提示手动补截图或 15 秒录屏。
+Android/Rokid 会自动尝试录屏、截图和 device profile。iOS 会在安装 `idevicescreenshot` 时自动截图，否则脚本会提示手动补截图或 15 秒录屏。
 
-采集脚本会把媒体证据验证结果追加到同一个 `.md` 报告的 `Evidence Bundle` 章节。
+采集脚本会把媒体证据验证结果追加到同一个 `.md` 报告的 `Evidence Bundle` 章节；Android/Rokid 还会把 device profile 追加到同一个 gate 报告末尾。
