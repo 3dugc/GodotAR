@@ -101,6 +101,14 @@ XRFoundation.start_session(XRFoundationTypes.Backend.OPENXR, {
 --xr-platform=rokid
 ```
 
+Rokid Android export preset 必须设置：
+
+```text
+command_line/extra_args="--xr-platform=rokid"
+```
+
+这样无论通过 launcher、`monkey` 还是设备桌面启动，Godot 都会优先选择 OpenXR 路径，而不是在 Android 上先尝试 ARCore。
+
 自动采集和验证：
 
 ```bash

@@ -60,6 +60,17 @@ for (const item of gates) {
 		if (!presetText.includes("openxr") && !presetText.includes("xr_mode")) {
 			warnings.push(`Preset "${requirement.name}" does not visibly mention OpenXR/xr_mode. Confirm XR Mode is OpenXR in Godot's export UI.`);
 		}
+		const extraArgs = getPresetOption(preset, "command_line/extra_args");
+		if (!extraArgs.includes("--xr-platform=rokid")) {
+			failures.push(`Preset "${requirement.name}" must set command_line/extra_args to include --xr-platform=rokid so Android startup selects OpenXR before ARCore.`);
+		}
+	}
+
+	if (item === "android-arcore") {
+		const extraArgs = getPresetOption(preset, "command_line/extra_args");
+		if (extraArgs && !extraArgs.includes("--xr-platform=arcore")) {
+			warnings.push(`Preset "${requirement.name}" command_line/extra_args is "${extraArgs}". Expected --xr-platform=arcore for explicit ARCore startup.`);
+		}
 	}
 
 	if (item === "ipad" && !preset.raw.includes("GodotARKit")) {
@@ -72,6 +83,7 @@ for (const item of gates) {
 		name: preset.values.name,
 		platform: preset.values.platform,
 		export_path: exportPath,
+		extra_args: getPresetOption(preset, "command_line/extra_args"),
 	});
 }
 
@@ -148,4 +160,21 @@ function decodeValue(value) {
 		return value.slice(1, -1).replace(/\\"/g, '"');
 	}
 	return value;
+}
+
+function getPresetOption(preset, optionName) {
+	const exact = preset.values[optionName];
+	if (typeof exact === "string") {
+		return exact;
+	}
+	const prefixed = preset.values[`options/${optionName}`];
+	if (typeof prefixed === "string") {
+		return prefixed;
+	}
+	for (const [key, value] of Object.entries(preset.values)) {
+		if (key.endsWith(`/${optionName}`) && typeof value === "string") {
+			return value;
+		}
+	}
+	return "";
 }

@@ -79,6 +79,12 @@ C00 runner 依赖这些 preset 名称：
 - `C00 iPad ARKit`
 - `C00 Android ARCore`
 
+Rokid preset 必须设置：
+
+```text
+command_line/extra_args="--xr-platform=rokid"
+```
+
 ## Rokid / Android 日志采集
 
 导出 preset 请先按：

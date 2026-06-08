@@ -130,6 +130,7 @@ For the C00 Rokid gate:
 
 - Export and deploy `demo/00_device_smoke_test.tscn`.
 - Pass `platform_hint="rokid"` in the `ARSession` node, set `godot_xr_foundation/platform_hint="rokid"`, or launch with `--xr-platform=rokid`.
+- Set Android export `command_line/extra_args` to `--xr-platform=rokid` so launcher/monkey startup uses OpenXR first.
 - The in-device panel must show `Backend: OpenXR`.
 - The device log must include `GXF_SMOKE` with `backend:"OpenXR"` and `session_state:"Running"`.
 - `ar_product_path` should be true for an AR pass. If the runtime only exposes `opaque` blend mode, it is an OpenXR rendering pass but not yet an AR product pass.

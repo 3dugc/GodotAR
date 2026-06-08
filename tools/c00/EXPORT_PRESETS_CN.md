@@ -22,6 +22,7 @@ node tools/c00/check_export_presets.js --gate all --file export_presets.cfg
 - Use Gradle Build: enabled
 - XR Mode: OpenXR
 - OpenXR / vendor loader: 按 Rokid runtime 或 OpenXR Vendors 插件要求配置
+- Extra Args / `command_line/extra_args`: `--xr-platform=rokid`
 - Main scene: `res://demo/00_device_smoke_test.tscn`
 - Package name: 建议 `org.godotengine.godotxrfoundation`
 - Export path: `builds/rokid/c00.apk`
@@ -49,6 +50,7 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - Runnable: enabled
 - Use Gradle Build: enabled if the ARCore plugin needs Gradle/AAR integration
 - Native ARCore plugin enabled in Android plugins
+- Extra Args / `command_line/extra_args`: 建议 `--xr-platform=arcore`
 - Main scene: `res://demo/00_device_smoke_test.tscn`
 - Package name: 建议 `org.godotengine.godotxrfoundation`
 - Export path: `builds/android_arcore/c00.apk`
