@@ -22,7 +22,7 @@ WRITE_EXPORT_PRESETS=0
 FORCE_EXPORT_PRESETS=0
 PACKAGE_ID="${PACKAGE:-org.godotengine.godotxrfoundation}"
 BUNDLE_ID="${BUNDLE_ID:-$PACKAGE_ID}"
-TEAM_ID="${TEAM_ID:-TEAMID}"
+TEAM_ID="${TEAM_ID:-ABCDE12345}"
 
 usage() {
 	cat <<EOF
@@ -350,6 +350,21 @@ if [[ -d "$PROJECT_ROOT/addons/godotopenxrvendors" ]]; then
 	add_row PASS "OpenXR Vendors plugin" "addons/godotopenxrvendors"
 else
 	add_row MISS "OpenXR Vendors plugin" "Run tools/c00/install_openxr_vendors.sh, or install the Godot OpenXR Vendors plugin into addons/godotopenxrvendors before Rokid/OpenXR export."
+fi
+if [[ -f "$PROJECT_ROOT/addons/godot_openxr_vendors_export/plugin.cfg" ]]; then
+	add_row PASS "OpenXR Vendors export adapter" "addons/godot_openxr_vendors_export/plugin.cfg"
+else
+	add_row MISS "OpenXR Vendors export adapter" "Required to expose C00 OpenXR vendor loader options in Android export presets."
+fi
+if [[ -f "$PROJECT_ROOT/addons/godotopenxrvendors/.bin/android/debug/godotopenxr-khronos-debug.aar" ]]; then
+	add_row PASS "Khronos OpenXR debug AAR" "addons/godotopenxrvendors/.bin/android/debug/godotopenxr-khronos-debug.aar"
+else
+	add_row MISS "Khronos OpenXR debug AAR" "Reinstall addons/godotopenxrvendors before exporting the Rokid debug APK."
+fi
+if [[ -f "$PROJECT_ROOT/addons/godotopenxrvendors/.bin/android/release/godotopenxr-khronos-release.aar" ]]; then
+	add_row PASS "Khronos OpenXR release AAR" "addons/godotopenxrvendors/.bin/android/release/godotopenxr-khronos-release.aar"
+else
+	add_row MISS "Khronos OpenXR release AAR" "Reinstall addons/godotopenxrvendors before exporting release OpenXR APKs."
 fi
 
 if plugin_output="$(run_capture node "$PROJECT_ROOT/tools/c00/check_ios_plugin_artifacts.js")"; then

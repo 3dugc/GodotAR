@@ -87,8 +87,8 @@ if (!source) {
 	failures.push(`Missing plugin source for symbol check: ${sourcePath}`);
 } else {
 	for (const symbol of [config.initialization, config.deinitialization].filter(Boolean)) {
-		if (!new RegExp(`extern\\s+"C"\\s+void\\s+${escapeRegExp(symbol)}\\s*\\(`).test(source)) {
-			failures.push(`Source must export extern "C" void ${symbol}(...).`);
+		if (!new RegExp(`(?:^|\\n)\\s*void\\s+${escapeRegExp(symbol)}\\s*\\(`).test(source)) {
+			failures.push(`Source must export C++ linkage void ${symbol}(...), matching Godot's generated iOS dummy.cpp.`);
 		}
 	}
 	if (!source.includes('Engine::get_singleton()->add_singleton(Engine::Singleton("GodotARKit"')) {

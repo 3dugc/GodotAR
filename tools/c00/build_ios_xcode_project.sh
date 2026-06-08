@@ -70,8 +70,23 @@ for tool in xcodebuild xcrun node unzip; do
 done
 
 if [[ ! -e "$EXPORT_INPUT" ]]; then
-	echo "ERROR: iOS export input does not exist: $EXPORT_INPUT" >&2
-	exit 2
+	case "$EXPORT_INPUT" in
+		*.zip)
+			project_only_root="$(dirname "$EXPORT_INPUT")"
+			project_only_name="$(basename "$EXPORT_INPUT" .zip)"
+			if [[ -d "$project_only_root/$project_only_name.xcodeproj" ]]; then
+				echo "iOS export zip not found; using project-only export directory: $project_only_root"
+				EXPORT_INPUT="$project_only_root"
+			else
+				echo "ERROR: iOS export input does not exist: $EXPORT_INPUT" >&2
+				exit 2
+			fi
+			;;
+		*)
+			echo "ERROR: iOS export input does not exist: $EXPORT_INPUT" >&2
+			exit 2
+			;;
+	esac
 fi
 
 SOURCE_DIR="$EXPORT_INPUT"

@@ -15,9 +15,11 @@ const outputArg = args.output || path.join(projectRoot, "export_presets.cfg");
 const output = outputArg === "-" ? "-" : path.resolve(outputArg);
 const packageId = String(args.package || process.env.PACKAGE || "org.godotengine.godotxrfoundation");
 const bundleId = String(args.bundle || process.env.BUNDLE_ID || packageId);
-const teamId = String(args["team-id"] || process.env.TEAM_ID || "");
+const teamId = String(args["team-id"] || process.env.TEAM_ID || "ABCDE12345");
 const force = Boolean(args.force);
 const dryRun = Boolean(args["dry-run"]);
+const excludeFilter = "android/build/*,builds/*,exports/*,releases/*,tools/*";
+const exportFiles = 'PackedStringArray("res://demo/00_device_smoke_test.tscn")';
 
 if (fs.existsSync(output) && !force && !dryRun) {
 	console.error(`Refusing to overwrite existing file: ${output}`);
@@ -67,7 +69,7 @@ function usage() {
 		"Options:",
 		"  --package <id>    Android package id. Default: org.godotengine.godotxrfoundation",
 		"  --bundle <id>     iOS bundle id. Default: same as package id",
-		"  --team-id <id>    Optional Apple team id placeholder.",
+		"  --team-id <id>    Apple Team ID for iOS export. Default: ABCDE12345 placeholder.",
 		"  --dry-run         Print the template without writing.",
 	].join("\n"));
 }
@@ -103,9 +105,10 @@ platform="Android"
 runnable=true
 dedicated_server=false
 custom_features=""
-export_filter="all_resources"
+export_filter="scenes"
 include_filter=""
-exclude_filter=""
+exclude_filter="${excludeFilter}"
+export_files=${exportFiles}
 export_path="builds/rokid/c00.apk"
 encryption_include_filters=""
 encryption_exclude_filters=""
@@ -125,6 +128,12 @@ package/name="GodotXRFoundation"
 version/code=1
 version/name="0.0.1-c00"
 xr_features/xr_mode=1
+xr_features/openxr_vendor_khronos=true
+xr_features/openxr_vendor_meta=false
+xr_features/openxr_vendor_pico=false
+xr_features/openxr_vendor_androidxr=false
+xr_features/openxr_vendor_magicleap=false
+xr_features/openxr_vendor_lynx=false
 screen/immersive_mode=true
 command_line/extra_args="--xr-platform=rokid"
 permissions/camera=true
@@ -136,9 +145,10 @@ platform="Android"
 runnable=true
 dedicated_server=false
 custom_features=""
-export_filter="all_resources"
+export_filter="scenes"
 include_filter=""
-exclude_filter=""
+exclude_filter="${excludeFilter}"
+export_files=${exportFiles}
 export_path="builds/android_arcore/c00.apk"
 encryption_include_filters=""
 encryption_exclude_filters=""
@@ -170,9 +180,10 @@ platform="iOS"
 runnable=true
 dedicated_server=false
 custom_features=""
-export_filter="all_resources"
+export_filter="scenes"
 include_filter=""
-exclude_filter=""
+exclude_filter="${excludeFilter}"
+export_files=${exportFiles}
 export_path="builds/ipad/c00.zip"
 encryption_include_filters=""
 encryption_exclude_filters=""
@@ -188,7 +199,9 @@ architectures/arm64=true
 application/bundle_identifier=${bundleId}
 application/short_version="0.0.1"
 application/version="1"
-application/signature/team_id=${teamId}
+application/app_store_team_id=${teamId}
+icons/icon_1024x1024="res://assets/app_icon.svg"
+application/export_project_only=true
 privacy/camera_usage_description="C00 uses the camera for ARKit tracking."
 capabilities/arkit=true
 plugins/GodotARKit=true

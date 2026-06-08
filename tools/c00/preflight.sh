@@ -330,6 +330,9 @@ if needs_android_tools; then
 fi
 if needs_openxr; then
 	check_dir "$PROJECT_ROOT/addons/godotopenxrvendors" "required for Android OpenXR vendor loaders; install the Godot OpenXR Vendors plugin into res://addons/godotopenxrvendors"
+	check_file "$PROJECT_ROOT/addons/godotopenxrvendors/.bin/android/debug/godotopenxr-khronos-debug.aar" "required for the C00 Rokid/OpenXR debug APK; reinstall the Godot OpenXR Vendors plugin if missing"
+	check_file "$PROJECT_ROOT/addons/godotopenxrvendors/.bin/android/release/godotopenxr-khronos-release.aar" "required for release Rokid/OpenXR APKs; reinstall the Godot OpenXR Vendors plugin if missing"
+	check_file "$PROJECT_ROOT/addons/godot_openxr_vendors_export/plugin.cfg" "required to expose OpenXR vendor-loader export options to Godot presets"
 fi
 if needs_ios_tools; then
 	check_dir "$PROJECT_ROOT/ios/plugins" "required for iOS native plugin placement"

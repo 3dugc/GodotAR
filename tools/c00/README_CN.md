@@ -387,7 +387,7 @@ node tools/c00/check_openxr_provider_surface.js
 node tools/c00/check_rokid_openxr_export_surface.js
 ```
 
-该检查确认 C00 starter preset 和 preset checker 会要求 Rokid APK 使用 Gradle build、`xr_features/xr_mode=1`、arm64、`--xr-platform=rokid`，并确认设备机 preflight/readiness 会检查 `addons/godotopenxrvendors`。它不下载或捆绑 OpenXR Vendors 插件。
+该检查确认 C00 starter preset 和 preset checker 会要求 Rokid APK 使用 Gradle build、`xr_features/xr_mode=1`、arm64、`--xr-platform=rokid`、只启用一个 OpenXR vendor loader，并且 C00 当前 Rokid gate 使用 `xr_features/openxr_vendor_khronos=true`。它还确认设备机 preflight/readiness 会检查 `addons/godotopenxrvendors` 和 Khronos AAR，但不下载插件。
 
 检查 Android ARCore gate 诊断面：
 
@@ -567,9 +567,12 @@ Rokid preset 必须设置：
 ```text
 gradle_build/use_gradle_build=true
 xr_features/xr_mode=1
+xr_features/openxr_vendor_khronos=true
 architectures/arm64-v8a=true
 command_line/extra_args="--xr-platform=rokid"
 ```
+
+同一个 Rokid/OpenXR preset 只能启用一个 OpenXR vendor loader。C00 先用 Khronos loader 覆盖 Rokid；后续 Pico/Quest/Android XR 可新增 preset 并切换对应 `xr_features/openxr_vendor_*` 选项，不在同一个 preset 里混选。
 
 Rokid/OpenXR 设备机还必须安装 Godot OpenXR Vendors plugin 到：
 
@@ -611,6 +614,12 @@ tools/c00/EXPORT_PRESETS_CN.md
 
 ```bash
 tools/c00/export_with_godot.sh "C00 Rokid OpenXR" builds/rokid/c00.apk
+```
+
+导出后可先做 APK 静态检查，确认启动参数和 OpenXR vendor loader 已经打包：
+
+```bash
+node tools/c00/check_android_apk_surface.js --gate rokid --apk builds/rokid/c00.apk
 ```
 
 ```bash

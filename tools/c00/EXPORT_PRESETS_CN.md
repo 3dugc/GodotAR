@@ -43,8 +43,8 @@ node tools/c00/write_export_presets_template.js \
 - Runnable: enabled
 - Use Gradle Build: enabled
 - XR Mode: OpenXR
-- OpenXR / vendor loader: 按 Rokid runtime 或 OpenXR Vendors 插件要求配置
-- Godot OpenXR Vendors plugin: 安装到 `addons/godotopenxrvendors`，在 Godot editor 的 Android export preset 里启用目标 vendor。
+- OpenXR / vendor loader: C00 Rokid gate 当前启用 `xr_features/openxr_vendor_khronos=true`
+- Godot OpenXR Vendors plugin: 安装到 `addons/godotopenxrvendors`；同一个 preset 只启用一个目标 vendor。
 - Extra Args / `command_line/extra_args`: `--xr-platform=rokid`
 - Main scene: `res://demo/00_device_smoke_test.tscn`
 - Package name: 建议 `org.godotengine.godotxrfoundation`
@@ -60,6 +60,12 @@ tools/c00/install_openxr_vendors.sh
 
 ```bash
 tools/c00/export_with_godot.sh "C00 Rokid OpenXR" builds/rokid/c00.apk
+```
+
+导出后检查 APK 是否真的包含 OpenXR loader：
+
+```bash
+node tools/c00/check_android_apk_surface.js --gate rokid --apk builds/rokid/c00.apk
 ```
 
 设备验证：
@@ -110,7 +116,11 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` exists
 - `ios/plugins/godot_arkit/GodotARKit.gdip` exists
 - Bundle Identifier: 建议 `org.godotengine.godotxrfoundation`
-- Team ID / signing: 使用本机 Apple Developer 配置
+- Team ID / signing: `application/app_store_team_id` 必须非空；`ABCDE12345` 只是 starter 占位，真机安装前要替换成本机 Apple Developer Team ID
+- Base icon: `icons/icon_1024x1024="res://assets/app_icon.svg"`，Godot 会用它生成 iOS 所需尺寸
+- `application/export_project_only=true`：Godot 阶段只稳定产出 Xcode project，真机签名/安装交给 `tools/c00/build_ios_xcode_project.sh`
+- `export_filter="scenes"` 且 `export_files=PackedStringArray("res://demo/00_device_smoke_test.tscn")`：只导出 smoke app 依赖，避免 `.godot/` 和历史构建产物进入包
+- `exclude_filter` 至少排除 `android/build/*,builds/*,exports/*,releases/*,tools/*`，作为额外保险
 - Main scene: `res://demo/00_device_smoke_test.tscn`
 - Export path: `builds/ipad/c00.zip`
 

@@ -59,7 +59,7 @@ Codex implementation status:
 - `NativeXRProvider` now detects native provider singletons through `Engine.has_singleton(...)` and merges their availability/capability reports.
 - `NativeXRProvider` now reports backend runtime identity and `arcore_supported` / `arkit_supported` capability flags for native singleton providers.
 - `ios/plugins/godot_arkit` now contains a first-party ARKit iOS plugin skeleton that registers `GodotARKit` as a Godot `Engine` singleton.
-- `GodotARKit` now exports `.gdip` init/deinit functions as C symbols and registers its Object class with `ClassDB` before exposing the singleton.
+- `GodotARKit` now exports `.gdip` init/deinit functions with the C++ linkage Godot's iOS export `dummy.cpp` expects, and registers its Object class with `ClassDB` before exposing the singleton.
 - `GodotARKit` now listens to ARKit `ARSessionDelegate` tracking updates and reports `arkit_tracking_status`, `arkit_tracking_state`, and `arkit_tracking_reason` through `get_capabilities()`.
 - The ARKit singleton tracking reason is now consumed by `XRFoundation.get_not_tracking_reason()` / `ARSession.notTrackingReason()` instead of being only a raw capability diagnostic.
 - `ios/plugins/godot_arkit/build_xcframework.sh` now builds the ARKit iOS plugin artifacts when `GODOT_SOURCE_DIR` points to matching Godot source headers.
@@ -124,6 +124,10 @@ Codex implementation status:
 - `XRFoundation.resolve_platform_hint()` now reads both Godot command-line args and user args, and smoke/aggregate gates require launch platform evidence for Rokid, iPad, and Android ARCore device gates.
 - `tools/c00/collect_android_smoke.sh` now checks APK `assets/_cl_` for the required Godot Android `command_line/extra_args` (`--xr-platform=rokid` or `--xr-platform=arcore`) before install, and force-stops the package before launch so logs come from a fresh process with the intended XR platform.
 - C00 now includes an XRI-style smoke surface: `XRInteractionManager`, `XRRayInteractor`, `XRGrabInteractable`, hover/select/activate events, and `GXF_SMOKE.xri` runtime evidence from the demo scene.
+- `addons/godot_openxr_vendors_export` now provides a project addon export hook for Godot OpenXR Vendors Android AARs, so Rokid/OpenXR can select one vendor loader through export preset options without modifying Godot engine code.
+- `addons/godot_arcore/export_plugin.gd` now gates ARCore AAR/dependency/manifest injection on the Android ARCore preset or `--xr-platform=arcore`, so Rokid/OpenXR exports do not accidentally carry ARCore runtime libraries.
+- `tools/c00/check_android_apk_surface.js` now inspects exported APKs for launch arguments and packaged native libraries, with separate gates for Rokid/OpenXR and Android/ARCore.
+- ARKit plugin init/deinit linkage is now verified against Godot's generated iOS plugin call path; the rebuilt `GodotARKit.xcframework` passes symbol checks and a no-sign Xcode device build.
 
 Hardware status:
 
@@ -131,8 +135,9 @@ Hardware status:
 - Godot source headers for `4.4.1-stable` are prepared under `.godot/cache/c00/godot-source`.
 - `GodotARKit.gdip` and `GodotARKit.xcframework` are built and pass `check_ios_plugin_artifacts.js --require-binary`.
 - `export_presets.cfg` is now loadable by Godot itself; `preset.0`, `preset.1`, and `preset.2` resolve to Rokid/OpenXR, Android ARCore, and iPad/ARKit respectively.
-- Real iPad export reached Godot's export-configuration gate and is currently blocked by missing official export template `~/Library/Application Support/Godot/export_templates/4.4.1.stable/ios.zip`.
-- Real Rokid export reached Godot's export-configuration gate and is currently blocked by missing official `android_source.zip` and the project Android build template that must be installed from it.
+- Real Rokid/OpenXR export now produces `builds/rokid/c00.apk`; APK static inspection confirms `--xr-platform=rokid`, OpenXR loader/vendor libraries, and no ARCore native libraries.
+- Real Android/ARCore export now produces `builds/android_arcore/c00.apk`; APK static inspection confirms `--xr-platform=arcore`, ARCore native libraries, and no OpenXR loader.
+- Real iPad/ARKit export now produces an Xcode project zip, passes `check_ios_export_project.js`, and builds a generic iOS device `.app` with code signing disabled. Real iPad install/run is still blocked by signing/device availability.
 - Temurin OpenJDK 17 was installed on 2026-06-09 under `.godot/cache/c00/jdk/Contents/Home`; `java`, `keytool`, and `.godot/cache/c00/android/debug.keystore` pass Rokid preflight.
 - Android command line tools, `platforms;android-34`, and `build-tools;34.0.0` were installed on 2026-06-09 under `.godot/cache/c00/android-sdk`; `apksigner` passes Rokid preflight.
 - Attempts to download `Godot_v4.4.1-stable_export_templates.tpz` on 2026-06-08 reached the official hosts but are too slow/partial in this environment. `tools/c00/install_godot_export_templates.sh --download` resumed the export templates file to 19 MB before being stopped intentionally; rerunning the installer command will continue from the partial file because it uses `curl -L --fail -C -`.
@@ -144,6 +149,24 @@ Hardware status:
 - Offline device-machine setup is still supported through `tools/c00/import_device_dependency_bundle.sh --bundle <device-bundle-dir>`. Put `Godot_v4.4.1-stable_export_templates.tpz`, Android SDK `platform-tools`/`build-tools`, a real JDK, optional `Godot.app`, and optional `godot-source` into the bundle, then either source `.godot/cache/c00/device-env.sh` manually or let the C00 entry scripts auto-source it.
 - No Rokid/Android device is currently attached through ADB. The detected `iPad M4` is currently reported by `devicectl` as `unavailable`.
 - Do not mark this report as passed until the device evidence below is filled.
+
+## Local Verification On 2026-06-09
+
+| Check | Result | Notes |
+| --- | --- | --- |
+| `node tools/c00/run_static_gates.js --gate all` | Pass | Includes `git diff --check`, ARFoundation/XRI surface checks, export preset checks, ARKit artifact checks, and Android export surface checks |
+| `tools/c00/preflight.sh rokid` | Pass | Godot, Android SDK/JDK, debug keystore, OpenXR Vendors addon, Khronos AAR, and Rokid preset are present |
+| `tools/c00/export_with_godot.sh "C00 Rokid OpenXR" builds/rokid/c00.apk` | Pass | Export completes; nonfatal Godot export warnings remain recorded for later cleanup |
+| `node tools/c00/check_android_apk_surface.js --gate rokid --apk builds/rokid/c00.apk` | Pass | APK contains OpenXR loader/vendor artifacts and does not contain ARCore native libs |
+| `apksigner verify --print-certs builds/rokid/c00.apk` | Pass | Debug-signed with the C00 debug keystore |
+| `tools/c00/preflight.sh android-arcore` | Pass | GodotARCore plugin AARs and Android export prerequisites are present |
+| `tools/c00/export_with_godot.sh "C00 Android ARCore" builds/android_arcore/c00.apk` | Pass | Export completes with GodotARCore enabled only for ARCore preset |
+| `node tools/c00/check_android_apk_surface.js --gate android-arcore --apk builds/android_arcore/c00.apk` | Pass | APK contains ARCore native libs and does not contain the OpenXR loader |
+| `apksigner verify --print-certs builds/android_arcore/c00.apk` | Pass | Debug-signed with the C00 debug keystore |
+| `tools/c00/preflight.sh ipad` | Pass with signing warning | Placeholder Team ID remains in the starter preset and must be replaced before real iPad install |
+| `node tools/c00/check_ios_plugin_artifacts.js --file ios/plugins/godot_arkit/GodotARKit.gdip --require-binary` | Pass | `GodotARKit.xcframework` is present and symbol linkage matches Godot's iOS plugin call path |
+| `node tools/c00/check_ios_export_project.js --input builds/ipad/c00.zip` | Pass | Exported Xcode project references GodotARKit, ARKit/Metal frameworks, camera plist, and required capabilities |
+| `tools/c00/build_ios_xcode_project.sh builds/ipad/c00.zip` with `IOS_BUILD_PLATFORM=ios CODE_SIGNING_ALLOWED=NO` | Pass | Generic iOS device build produces `builds/ipad/GodotXRFoundation-nosign.app` |
 
 ## Local Verification On 2026-06-08
 
@@ -253,13 +276,13 @@ Hardware status:
 | `tools/c00/run_device_cycle.sh all` control flow | Pass | With export/collect disabled, records failing preflights and exits nonzero instead of silently passing |
 | `APP_PATH=/private/tmp/missing.app tools/c00/preflight.sh ios-simulator` | Fail as expected | Collection-only simulator gate skips Godot/export preset checks but requires an existing `.app` |
 | `node --check tools/c00/check_export_presets.js` | Pass | Preset checker parses |
-| ARKit plugin symbol/static check | Pass | `.gdip` init symbols are `extern "C"` and `GodotARKitPlugin` registers with `ClassDB` |
+| ARKit plugin symbol/static check | Pass | `.gdip` init symbols use the C++ linkage Godot's generated iOS plugin caller expects, and `GodotARKitPlugin` registers with `ClassDB` |
 | ARKit tracking state/static check | Pass | `GodotARKitSession` implements `ARSessionDelegate` and exposes ARKit tracking state/reason |
 | ARKit native raycast/plane static check | Pass | `GodotARKit` binds `hit_test` / `get_planes`, calls native `ARRaycastQuery`, caches `ARPlaneAnchor` evidence, and preserves native transform matrices |
-| GodotARKit `.gdip` template check | Pass with warning | Plugin config matches Godot iOS plugin format; warns that real `GodotARKit.xcframework` is not built on this host |
+| GodotARKit `.gdip` template check | Pass | Plugin config matches Godot iOS plugin format and real `GodotARKit.xcframework` artifacts are built on this host |
 | ARKit plugin Objective-C++ syntax smoke | Pass | `tools/c00/check_arkit_plugin_static.sh` validates plugin sources against the local iOS SDK with Godot stubs |
-| `tools/c00/preflight.sh ipad` | Blocked by export template | Project-local Godot, Xcode tools, Godot source headers, `GodotARKit.gdip`, and `GodotARKit.xcframework` are recognized; still missing official `ios.zip` export template |
-| `tools/c00/preflight.sh rokid` | Blocked by export template | Project-local Godot/ADB, OpenXR Vendors, C00 export presets, JDK/keytool, Android debug keystore, Android platform/build-tools, and `apksigner` are recognized; still missing official `android_source.zip` and `android/build/build.gradle` |
+| `tools/c00/preflight.sh ipad` | Superseded on 2026-06-09 | The current host now has the iOS export template and ARKit binary artifacts; see the 2026-06-09 verification table |
+| `tools/c00/preflight.sh rokid` | Superseded on 2026-06-09 | The current host now has Android export templates/build template and OpenXR Vendors artifacts; see the 2026-06-09 verification table |
 
 ## Device Evidence
 

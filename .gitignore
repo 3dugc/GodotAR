@@ -15,6 +15,10 @@ releases/*/evidence/*
 *.xcarchive
 *.dSYM
 ios/plugins/godot_arkit/.build/
+android/.build_version
+android/build/
+android/plugins/godot_arcore/.gradle/
+android/plugins/godot_arcore/godot-arcore/build/
 
 # OS/editor noise
 .DS_Store

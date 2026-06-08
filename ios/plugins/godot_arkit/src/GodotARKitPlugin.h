@@ -42,9 +42,7 @@ public:
 	~GodotARKitPlugin();
 };
 
-extern "C" {
 void init_godot_arkit();
 void deinit_godot_arkit();
-}
 
 #endif // GODOT_XR_FOUNDATION_ARKIT_PLUGIN_H

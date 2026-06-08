@@ -71,6 +71,13 @@ function usage() {
 
 function resolveInput(inputPath) {
 	if (!fs.existsSync(inputPath)) {
+		if (inputPath.toLowerCase().endsWith(".zip")) {
+			const root = path.dirname(inputPath);
+			const basename = path.basename(inputPath, ".zip");
+			if (fs.existsSync(path.join(root, `${basename}.xcodeproj`))) {
+				return { dir: root, cleanup: null };
+			}
+		}
 		throwResult(`Input does not exist: ${inputPath}`);
 	}
 	const stats = fs.statSync(inputPath);

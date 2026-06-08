@@ -12,12 +12,37 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 
 const checks = [
 	{
+		file: "project.godot",
+		requirements: [
+			["OpenXR Vendors export adapter enabled", /res:\/\/addons\/godot_openxr_vendors_export\/plugin\.cfg/],
+		],
+	},
+	{
+		file: "addons/godot_openxr_vendors_export/plugin.cfg",
+		requirements: [
+			["plugin name", /name="GodotOpenXRVendorsExport"/],
+			["export script", /script="export_plugin\.gd"/],
+		],
+	},
+	{
+		file: "addons/godot_openxr_vendors_export/export_plugin.gd",
+		requirements: [
+			["EditorExportPlugin export hook", /extends\s+EditorExportPlugin/],
+			["Android platform support", /platform\s+is\s+EditorExportPlatformAndroid/],
+			["OpenXR Khronos vendor option", /xr_features\/openxr_vendor_khronos/],
+			["single vendor warning", /Select exactly one OpenXR vendor loader per Android export preset/],
+			["AAR library hook", /_get_android_libraries/],
+			["Khronos AAR path", /godotopenxr-%s-%s\.aar/],
+		],
+	},
+	{
 		file: "tools/c00/write_export_presets_template.js",
 		requirements: [
 			["Rokid preset name", /name="C00 Rokid OpenXR"/],
 			["Rokid Gradle build enabled", /gradle_build\/use_gradle_build=true/],
 			["Rokid arm64 enabled", /architectures\/arm64-v8a=true/],
 			["Rokid OpenXR mode", /xr_features\/xr_mode=1/],
+			["Rokid Khronos vendor loader", /xr_features\/openxr_vendor_khronos=true/],
 			["Rokid launch platform arg", /command_line\/extra_args="--xr-platform=rokid"/],
 		],
 	},
@@ -28,6 +53,8 @@ const checks = [
 			["Rokid Gradle build hard failure", /must enable gradle_build\/use_gradle_build so Android OpenXR vendor loaders can be packaged/],
 			["Rokid OpenXR mode hard failure", /must set xr_features\/xr_mode=1 for OpenXR/],
 			["Rokid arm64 hard failure", /must enable architectures\/arm64-v8a for Rokid\/OpenXR devices/],
+			["Rokid single OpenXR vendor hard failure", /must enable exactly one OpenXR vendor loader option/],
+			["Rokid Khronos vendor hard failure", /must enable xr_features\/openxr_vendor_khronos=true/],
 		],
 	},
 	{
@@ -35,6 +62,23 @@ const checks = [
 		requirements: [
 			["OpenXR Vendors plugin preflight check", /addons\/godotopenxrvendors/],
 			["OpenXR Vendors plugin install guidance", /Godot OpenXR Vendors plugin/],
+			["Khronos debug AAR preflight check", /godotopenxr-khronos-debug\.aar/],
+			["Khronos release AAR preflight check", /godotopenxr-khronos-release\.aar/],
+		],
+	},
+	{
+		file: "tools/c00/check_android_apk_surface.js",
+		requirements: [
+			["Rokid launch args", /--xr-platform=rokid/],
+			["OpenXR loader requirement", /lib\/arm64-v8a\/libopenxr_loader\.so/],
+			["OpenXR Vendors library requirement", /lib\/arm64-v8a\/libgodotopenxrvendors\.so/],
+			["ARCore forbidden in Rokid", /Rokid\/OpenXR APK should not include ARCore native libraries/],
+		],
+	},
+	{
+		file: "tools/c00/run_device_cycle.sh",
+		requirements: [
+			["Rokid APK static surface check after export", /check_android_apk_surface\.js" --gate rokid/],
 		],
 	},
 	{
@@ -61,6 +105,7 @@ const checks = [
 		requirements: [
 			["OpenXR Vendors documented", /addons\/godotopenxrvendors/],
 			["Rokid OpenXR preset requirements documented", /xr_features\/xr_mode=1/],
+			["Rokid Khronos vendor documented", /xr_features\/openxr_vendor_khronos=true/],
 		],
 	},
 ];

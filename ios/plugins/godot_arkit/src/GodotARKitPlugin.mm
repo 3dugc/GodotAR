@@ -266,7 +266,7 @@ GodotARKitPlugin::~GodotARKitPlugin() {
 	godot_arkit_singleton = nullptr;
 }
 
-extern "C" void init_godot_arkit() {
+void init_godot_arkit() {
 	if (godot_arkit_engine_singleton != nullptr) {
 		return;
 	}
@@ -276,7 +276,7 @@ extern "C" void init_godot_arkit() {
 	Engine::get_singleton()->add_singleton(Engine::Singleton("GodotARKit", godot_arkit_engine_singleton));
 }
 
-extern "C" void deinit_godot_arkit() {
+void deinit_godot_arkit() {
 	if (godot_arkit_engine_singleton != nullptr) {
 		memdelete(godot_arkit_engine_singleton);
 		godot_arkit_engine_singleton = nullptr;

@@ -18,7 +18,7 @@ C00 只要求 iPad 能证明 ARKit provider 可用：
 
 完整 plane classification、mesh、persistent anchor 和跨平台 trackable 行为进入 C04；C00 先保证 iPad gate 有最小 native ARKit raycast/plane evidence。
 
-`.gdip` 中的 `initialization` / `deinitialization` 函数以 `extern "C"` 导出，避免 C++ name mangling 导致 Godot 找不到符号。`GodotARKitPlugin` 会在初始化时通过 `ClassDB::register_class` 注册，确保 GDScript 可以调用 singleton 方法。
+`.gdip` 中的 `initialization` / `deinitialization` 函数使用 C++ linkage 导出，匹配 Godot iOS exporter 生成的 `dummy.cpp` 中的 `extern void init_godot_arkit();` / `extern void deinit_godot_arkit();`。`GodotARKitPlugin` 会在初始化时通过 `ClassDB::register_class` 注册，确保 GDScript 可以调用 singleton 方法。
 
 ## 文件说明
 

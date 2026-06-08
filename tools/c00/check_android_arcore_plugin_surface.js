@@ -35,6 +35,8 @@ const checks = [
 			["Google Maven repository", /https:\/\/dl\.google\.com\/dl\/android\/maven2\//],
 			["camera permission manifest injection", /android\.permission\.CAMERA/],
 			["ARCore optional manifest metadata", /android:name=\\"com\.google\.ar\.core\\"[\s\S]*android:value=\\"optional\\"/],
+			["ARCore preset gating", /_is_enabled_for_preset/],
+			["ARCore launch platform gating", /--xr-platform=arcore/],
 		],
 	},
 	{
@@ -72,9 +74,22 @@ const checks = [
 		],
 	},
 	{
+		file: "android/plugins/godot_arcore/build.gradle",
+		requirements: [
+			["Android library plugin version aligned with C00 cache", /id\s+"com\.android\.library"\s+version\s+"8\.2\.0"\s+apply\s+false/],
+		],
+	},
+	{
+		file: "android/plugins/godot_arcore/gradle.properties",
+		requirements: [
+			["AndroidX enabled for ARCore dependencies", /android\.useAndroidX=true/],
+		],
+	},
+	{
 		file: "android/plugins/godot_arcore/godot-arcore/build.gradle",
 		requirements: [
 			["Android library module", /id\s+"com\.android\.library"/],
+			["C00 compile SDK", /compileSdk\s+34/],
 			["minimum ARCore SDK", /minSdk\s+24/],
 			["Godot Android compileOnly dependency", /compileOnly\s+"org\.godotengine:godot:\$\{godotAndroidVersion\}"/],
 			["ARCore dependency", /implementation\s+"com\.google\.ar:core:\$\{arcoreVersion\}"/],
@@ -99,6 +114,20 @@ const checks = [
 		file: "tools/c00/check_export_presets.js",
 		requirements: [
 			["Android ARCore preset requires plugin", /must enable the GodotARCore Android plugin/],
+		],
+	},
+	{
+		file: "tools/c00/check_android_apk_surface.js",
+		requirements: [
+			["Android ARCore launch args", /--xr-platform=arcore/],
+			["Android ARCore native library requirement", /lib\/arm64-v8a\/libarcore_sdk_c\.so/],
+			["OpenXR loader forbidden in Android ARCore", /Android ARCore APK should not include an OpenXR vendor loader/],
+		],
+	},
+	{
+		file: "tools/c00/run_device_cycle.sh",
+		requirements: [
+			["Android ARCore APK static surface check after export", /check_android_apk_surface\.js" --gate android-arcore/],
 		],
 	},
 ];

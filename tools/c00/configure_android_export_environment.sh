@@ -220,7 +220,7 @@ if [[ "$CONFIGURE_GODOT_SETTINGS" == "1" ]]; then
 		echo "MISS Godot editor binary: set GODOT_BIN or pass --godot." >&2
 		status=1
 	elif [[ "$DRY_RUN" == "1" ]]; then
-		echo "DRY RUN: would write Godot EditorSettings using $GODOT"
+		echo "DRY RUN: would write Godot Android EditorSettings for $GODOT"
 	else
 		echo "Writing Godot Android EditorSettings..."
 		GODOT_ANDROID_SDK_PATH="$ANDROID_SDK" \
@@ -228,7 +228,8 @@ if [[ "$CONFIGURE_GODOT_SETTINGS" == "1" ]]; then
 		GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$DEBUG_KEYSTORE" \
 		GODOT_ANDROID_KEYSTORE_DEBUG_USER="$DEBUG_KEYSTORE_USER" \
 		GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="$DEBUG_KEYSTORE_PASS" \
-			"$GODOT" --headless --xr-mode off --path "$PROJECT_ROOT" --script "$PROJECT_ROOT/tools/c00/configure_android_editor_settings.gd" || status=1
+		GODOT_EXPORT_TEMPLATES_VERSION="${GODOT_EXPORT_TEMPLATES_VERSION:-4.4.1.stable}" \
+			node "$PROJECT_ROOT/tools/c00/write_godot_android_editor_settings.js" || status=1
 	fi
 fi
 

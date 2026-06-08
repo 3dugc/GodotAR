@@ -12,6 +12,15 @@ const expected = {
 	"android-arcore": { name: "C00 Android ARCore", platform: "Android", path: "builds/android_arcore/c00.apk" },
 	ipad: { name: "C00 iPad ARKit", platform: "iOS", path: "builds/ipad/c00.zip" },
 };
+const mainScene = "res://demo/00_device_smoke_test.tscn";
+const openXrVendorOptions = [
+	"xr_features/openxr_vendor_khronos",
+	"xr_features/openxr_vendor_meta",
+	"xr_features/openxr_vendor_pico",
+	"xr_features/openxr_vendor_androidxr",
+	"xr_features/openxr_vendor_magicleap",
+	"xr_features/openxr_vendor_lynx",
+];
 
 if (args.help || args.h) {
 	usage();
@@ -59,6 +68,12 @@ for (const item of gates) {
 	if (preset.values.platform !== requirement.platform) {
 		failures.push(`Preset "${requirement.name}" platform should be ${requirement.platform}, observed ${preset.values.platform || "empty"}.`);
 	}
+	if (preset.values.export_filter !== "scenes") {
+		failures.push(`Preset "${requirement.name}" export_filter must be "scenes" so generated folders and tooling are not packed into the app.`);
+	}
+	if (!String(preset.values.export_files || "").includes(mainScene)) {
+		failures.push(`Preset "${requirement.name}" export_files must include ${mainScene}.`);
+	}
 
 	const exportPath = preset.values.export_path || preset.values.custom_template_debug || "";
 	if (exportPath && exportPath !== requirement.path) {
@@ -66,6 +81,13 @@ for (const item of gates) {
 	}
 	if (!exportPath) {
 		warnings.push(`Preset "${requirement.name}" has no export_path set. The runner passes an explicit output path, but editor one-click deploy may need it.`);
+	}
+
+	const excludeFilter = preset.values.exclude_filter || "";
+	for (const requiredExclude of ["android/build/*", "builds/*", "exports/*", "releases/*", "tools/*"]) {
+		if (!excludeFilter.includes(requiredExclude)) {
+			failures.push(`Preset "${requirement.name}" exclude_filter must include ${requiredExclude} to keep generated tooling/build outputs out of exported apps.`);
+		}
 	}
 
 	if (item === "rokid") {
@@ -82,6 +104,13 @@ for (const item of gates) {
 		if (!isTruthyOption(preset, "architectures/arm64-v8a")) {
 			failures.push(`Preset "${requirement.name}" must enable architectures/arm64-v8a for Rokid/OpenXR devices.`);
 		}
+		const selectedVendors = openXrVendorOptions.filter((option) => isTruthyOption(preset, option));
+		if (selectedVendors.length !== 1) {
+			failures.push(`Preset "${requirement.name}" must enable exactly one OpenXR vendor loader option. Selected: ${selectedVendors.join(", ") || "none"}.`);
+		}
+		if (!selectedVendors.includes("xr_features/openxr_vendor_khronos")) {
+			failures.push(`Preset "${requirement.name}" must enable xr_features/openxr_vendor_khronos=true for the C00 Rokid/OpenXR gate.`);
+		}
 	}
 
 	if (item === "android-arcore") {
@@ -97,8 +126,29 @@ for (const item of gates) {
 		}
 	}
 
-	if (item === "ipad" && !preset.raw.includes("GodotARKit")) {
-		failures.push(`Preset "${requirement.name}" must enable the GodotARKit iOS plugin so the ARKit singleton is exported.`);
+	if (item === "ipad") {
+		if (!preset.raw.includes("GodotARKit")) {
+			failures.push(`Preset "${requirement.name}" must enable the GodotARKit iOS plugin so the ARKit singleton is exported.`);
+		}
+		const teamId = getPresetOption(preset, "application/app_store_team_id").trim();
+		if (!teamId) {
+			failures.push(`Preset "${requirement.name}" must set application/app_store_team_id. Use a real Apple Developer Team ID on device machines; ABCDE12345 is only a starter placeholder.`);
+		}
+		if (teamId === "ABCDE12345") {
+			warnings.push(`Preset "${requirement.name}" still uses placeholder application/app_store_team_id=ABCDE12345; replace it with a real Apple Developer Team ID before installing to iPad.`);
+		}
+		const iconPath = getPresetOption(preset, "icons/icon_1024x1024").trim();
+		if (!iconPath) {
+			failures.push(`Preset "${requirement.name}" must set icons/icon_1024x1024 so Godot can generate the required iOS icon sizes.`);
+		} else if (iconPath.startsWith("res://")) {
+			const iconFile = path.join(path.dirname(file), iconPath.slice("res://".length));
+			if (!fs.existsSync(iconFile)) {
+				failures.push(`Preset "${requirement.name}" icons/icon_1024x1024 points to missing file: ${iconPath}.`);
+			}
+		}
+		if (!isTruthyOption(preset, "application/export_project_only")) {
+			failures.push(`Preset "${requirement.name}" must set application/export_project_only=true so Godot exports a reproducible Xcode project before device signing.`);
+		}
 	}
 
 	evidence.push({
@@ -107,7 +157,11 @@ for (const item of gates) {
 		name: preset.values.name,
 		platform: preset.values.platform,
 		export_path: exportPath,
+		exclude_filter: excludeFilter,
 		extra_args: getPresetOption(preset, "command_line/extra_args"),
+		openxr_vendors: item === "rokid" ? Object.fromEntries(openXrVendorOptions.map((option) => [option, isTruthyOption(preset, option)])) : undefined,
+		app_store_team_id: item === "ipad" ? getPresetOption(preset, "application/app_store_team_id") : undefined,
+		icon_1024x1024: item === "ipad" ? getPresetOption(preset, "icons/icon_1024x1024") : undefined,
 	});
 }
 

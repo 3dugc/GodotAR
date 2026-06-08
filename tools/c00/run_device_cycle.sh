@@ -328,9 +328,11 @@ run_export() {
 	case "$gate" in
 		rokid)
 			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$ROKID_PRESET" "${APK_PATH:-$ROKID_APK_PATH}"
+			node "$PROJECT_ROOT/tools/c00/check_android_apk_surface.js" --gate rokid --apk "$(project_path "${APK_PATH:-$ROKID_APK_PATH}")"
 			;;
 		android-arcore)
 			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$ANDROID_ARCORE_PRESET" "${APK_PATH:-$ANDROID_ARCORE_APK_PATH}"
+			node "$PROJECT_ROOT/tools/c00/check_android_apk_surface.js" --gate android-arcore --apk "$(project_path "${APK_PATH:-$ANDROID_ARCORE_APK_PATH}")"
 			;;
 		ipad)
 			if [[ -n "${APP_PATH:-}" ]]; then

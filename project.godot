@@ -5,6 +5,7 @@ config_version=5
 config/name="Godot XR Foundation Demo"
 run/main_scene="res://demo/00_device_smoke_test.tscn"
 config/features=PackedStringArray("4.3", "Mobile")
+config/icon="res://assets/app_icon.svg"
 
 [godot_xr_foundation]
 
@@ -16,11 +17,12 @@ XRFoundation="*res://addons/godot_xr_foundation/scripts/xr_foundation.gd"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/godot_xr_foundation/plugin.cfg", "res://addons/godot_arcore/plugin.cfg")
+enabled=PackedStringArray("res://addons/godot_xr_foundation/plugin.cfg", "res://addons/godot_arcore/plugin.cfg", "res://addons/godot_openxr_vendors_export/plugin.cfg")
 
 [rendering]
 
 renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
 
 [xr]
 

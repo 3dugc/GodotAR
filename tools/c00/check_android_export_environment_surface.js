@@ -9,6 +9,7 @@ const failures = [];
 const files = {
 	configureShell: "tools/c00/configure_android_export_environment.sh",
 	configureGd: "tools/c00/configure_android_editor_settings.gd",
+	editorSettingsWriter: "tools/c00/write_godot_android_editor_settings.js",
 	templateInstaller: "tools/c00/install_android_build_template.sh",
 	sdkInstaller: "tools/c00/install_android_sdk_packages.sh",
 	jdkInstaller: "tools/c00/install_openjdk17.sh",
@@ -32,18 +33,23 @@ if (failures.length === 0) {
 		".godot/cache/c00/jdk/Contents/Home",
 		"KEYTOOL",
 		"-genkeypair",
-		"configure_android_editor_settings.gd",
+		"write_godot_android_editor_settings.js",
 		"install_android_build_template.sh",
 	]);
 
 	requireContains(files.configureGd, [
-		"EditorSettings.get_singleton()",
+		"Godot --script cannot access EditorInterface editor settings",
+		"write_godot_android_editor_settings.js",
+	]);
+
+	requireContains(files.editorSettingsWriter, [
+		"editor_settings-",
 		"export/android/android_sdk_path",
 		"export/android/java_sdk_path",
 		"export/android/debug_keystore",
 		"export/android/debug_keystore_user",
 		"export/android/debug_keystore_pass",
-		"settings.save()",
+		"quoteGodotString",
 	]);
 
 	requireContains(files.templateInstaller, [

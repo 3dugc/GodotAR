@@ -95,17 +95,22 @@ function checkProjectSettings() {
 	}
 
 	requireText(text, 'run/main_scene="res://demo/00_device_smoke_test.tscn"', `${file}: main_scene must be ${MAIN_SCENE}.`, localEvidence);
+	requireText(text, 'config/icon="res://assets/app_icon.svg"', `${file}: C00 app icon should be set for iOS export.`, localEvidence);
 	requireText(text, 'XRFoundation="*res://addons/godot_xr_foundation/scripts/xr_foundation.gd"', `${file}: XRFoundation autoload is missing.`, localEvidence);
 	requireText(text, "res://addons/godot_xr_foundation/plugin.cfg", `${file}: XR Foundation addon plugin should be enabled.`, localEvidence);
 	requireText(text, "res://addons/godot_arcore/plugin.cfg", `${file}: GodotARCore export addon plugin should be enabled.`, localEvidence);
+	requireText(text, "res://addons/godot_openxr_vendors_export/plugin.cfg", `${file}: OpenXR Vendors export adapter plugin should be enabled.`, localEvidence);
+	requireText(text, "textures/vram_compression/import_etc2_astc=true", `${file}: ETC2/ASTC import must be enabled for Android/iOS mobile export.`, localEvidence);
 	requireText(text, "openxr/enabled=true", `${file}: OpenXR should be enabled for Rokid/OpenXR C00.`, localEvidence);
 	requireText(text, "shaders/enabled=true", `${file}: XR shaders should be enabled.`, localEvidence);
 
 	for (const resPath of [
 		"res://demo/00_device_smoke_test.tscn",
+		"res://assets/app_icon.svg",
 		"res://addons/godot_xr_foundation/scripts/xr_foundation.gd",
 		"res://addons/godot_xr_foundation/plugin.cfg",
 		"res://addons/godot_arcore/plugin.cfg",
+		"res://addons/godot_openxr_vendors_export/plugin.cfg",
 	]) {
 		checkResPathExists(resPath, localEvidence);
 	}
