@@ -35,6 +35,7 @@ Codex implementation status:
 - `GodotARKit` now exports `.gdip` init/deinit functions as C symbols and registers its Object class with `ClassDB` before exposing the singleton.
 - `GodotARKit` now listens to ARKit `ARSessionDelegate` tracking updates and reports `arkit_tracking_status`, `arkit_tracking_state`, and `arkit_tracking_reason` through `get_capabilities()`.
 - `ios/plugins/godot_arkit/build_xcframework.sh` now builds the ARKit iOS plugin artifacts when `GODOT_SOURCE_DIR` points to matching Godot source headers.
+- `tools/c00/check_arkit_plugin_static.sh` now performs an iOS SDK Objective-C++ syntax smoke check for the ARKit plugin before the full Godot-header xcframework build.
 - `tools/c00/run_device_cycle.sh` now orchestrates preflight, optional ARKit plugin build, Godot export, device log collection, and gate validation for iPad/ARKit and Rokid/OpenXR.
 - `tools/c00/run_device_cycle.sh all` now continues across iPad/Rokid gate failures and runs the aggregate C00 phase verifier at the end.
 - `tools/c00/check_export_presets.js` now validates that `export_presets.cfg` contains the required C00 preset names before export, requires Rokid exports to include `--xr-platform=rokid`, and requires the iPad preset to enable `GodotARKit`.
@@ -51,7 +52,7 @@ Codex implementation status:
 Hardware status:
 
 - Not executed in this Codex environment because Godot executable, Rokid hardware, and iPad hardware are not available here.
-- Local preflight currently reports missing `godot`, `adb`, `GodotARKit.gdip`, and `GodotARKit.xcframework`, with `node` and `xcrun` available.
+- Local preflight currently reports missing `godot`, `adb`, `export_presets.cfg`, `GodotARKit.gdip`, and `GodotARKit.xcframework`; `node`, `xcrun`, and the ARKit Objective-C++ syntax smoke check are available.
 - Do not mark this report as passed until the device evidence below is filled.
 
 ## Local Verification On 2026-06-08
@@ -79,7 +80,8 @@ Hardware status:
 | `node --check tools/c00/check_export_presets.js` | Pass | Preset checker parses |
 | ARKit plugin symbol/static check | Pass | `.gdip` init symbols are `extern "C"` and `GodotARKitPlugin` registers with `ClassDB` |
 | ARKit tracking state/static check | Pass | `GodotARKitSession` implements `ARSessionDelegate` and exposes ARKit tracking state/reason |
-| `tools/c00/preflight.sh` | Blocked by host prerequisites | Missing `godot`, `adb`, `export_presets.cfg`, `GodotARKit.gdip`, and `GodotARKit.xcframework`; `node` and `xcrun` available |
+| ARKit plugin Objective-C++ syntax smoke | Pass | `tools/c00/check_arkit_plugin_static.sh` validates plugin sources against the local iOS SDK with Godot stubs |
+| `tools/c00/preflight.sh all` | Blocked by host prerequisites | Missing `godot`, `adb`, `export_presets.cfg`, `GodotARKit.gdip`, and `GodotARKit.xcframework`; ARKit Objective-C++ syntax smoke passes |
 
 ## Device Evidence
 

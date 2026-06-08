@@ -34,6 +34,14 @@ iPad/ARKit gate 前先构建插件：
 GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh
 ```
 
+如果当前机器还没有 Godot source headers，可以先跑语法级 smoke check，提前发现 ARKit / Objective-C++ bridge 的明显编译问题：
+
+```bash
+tools/c00/check_arkit_plugin_static.sh
+```
+
+这个检查使用临时 Godot stub headers 和本机 iOS SDK，不会生成 `.xcframework`，也不能替代真实 `build_xcframework.sh`。
+
 ## 一键执行 Gate
 
 设备机上优先使用：

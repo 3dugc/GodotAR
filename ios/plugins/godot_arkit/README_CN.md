@@ -68,6 +68,14 @@ get_planes() -> Array[Dictionary]
 GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh
 ```
 
+没有 Godot source headers 时，可以先做 Objective-C++ 静态语法检查：
+
+```bash
+tools/c00/check_arkit_plugin_static.sh
+```
+
+这个检查只证明插件源码能和本机 iOS SDK、最小 Godot stub headers 对齐；iPad gate 仍然必须构建真实 `GodotARKit.xcframework`。
+
 3. 确认生成：
 
 ```text
