@@ -203,7 +203,7 @@ function validateDeviceProfile(gate, markdownPath, jsonPath) {
 		try {
 			const parsed = JSON.parse(fs.readFileSync(summary.json.path, "utf8"));
 			summary.jsonPreview = summarizeDeviceProfileJson(parsed);
-			if (["rokid", "android-arcore"].includes(gate)) {
+			if (["rokid", "android-arcore", "ipad"].includes(gate)) {
 				summary.analysis = analyzeDeviceProfileJson(parsed, gate);
 				failures.push(...summary.analysis.failures);
 				warnings.push(...summary.analysis.warnings);
@@ -240,6 +240,9 @@ function analyzeDeviceProfileJson(parsed, gate) {
 	const warnings = [];
 	if (!parsed || typeof parsed !== "object") {
 		return { failures, warnings, evidence: {} };
+	}
+	if (gate === "ipad") {
+		return analyzeIosDeviceProfileJson(parsed);
 	}
 	if (!["rokid", "android-arcore"].includes(gate)) {
 		return { failures, warnings, evidence: {} };
@@ -306,6 +309,86 @@ function analyzeDeviceProfileJson(parsed, gate) {
 			display,
 		},
 	};
+}
+
+
+function analyzeIosDeviceProfileJson(parsed) {
+	const failures = [];
+	const warnings = [];
+	const selectedDevice = parsed.selected_device || null;
+	const targetApp = parsed.target_app || null;
+	const displays = Array.isArray(parsed.display_summary) ? parsed.display_summary : [];
+	const commands = parsed.commands || {};
+	const lockState = detectIosLockState(commands.lock_state);
+
+	if (!selectedDevice) {
+		failures.push(`Device profile analysis: no selected iPad device was found in devicectl output for ${parsed.device || "unknown device"}.`);
+	}
+	if (!targetApp) {
+		failures.push(`Device profile analysis: target bundle was not installed: ${parsed.bundle_id || "unknown bundle"}.`);
+	}
+	if (displays.length === 0) {
+		warnings.push("Device profile analysis: no iPad display summary was found.");
+	}
+	if (!commands.lock_state || commands.lock_state.ok !== true) {
+		warnings.push("Device profile analysis: devicectl lockState command did not complete successfully; confirm the iPad is unlocked before launch.");
+	}
+	if (lockState === "locked") {
+		failures.push("Device profile analysis: iPad appears to be locked; unlock the device before running the ARKit gate.");
+	}
+
+	return {
+		failures,
+		warnings,
+		evidence: {
+			device: summarizeIosDevice(selectedDevice),
+			target_bundle_installed: Boolean(targetApp),
+			target_bundle: parsed.bundle_id || "",
+			lock_state: lockState || "unknown",
+			displays,
+		},
+	};
+}
+
+
+function detectIosLockState(commandResult) {
+	if (!commandResult || typeof commandResult !== "object") {
+		return "";
+	}
+	const text = [
+		JSON.stringify(commandResult.json || {}),
+		commandResult.stdout || "",
+		commandResult.stderr || "",
+		commandResult.log || "",
+	].join("\n").toLowerCase();
+	if (/"?(islocked|locked)"?\s*:\s*false/.test(text)) {
+		return "unlocked";
+	}
+	if (/"?(islocked|locked)"?\s*:\s*true/.test(text)) {
+		return "locked";
+	}
+	if (/\bunlocked\b|\bunlockedstate\b|\bpasscodeunlocked\b/.test(text)) {
+		return "unlocked";
+	}
+	if (/\blocked\b|\bdevice.?locked\b|\bpasscode.?locked\b/.test(text)) {
+		return "locked";
+	}
+	return "";
+}
+
+
+function summarizeIosDevice(device) {
+	if (!device || typeof device !== "object") {
+		return "unknown";
+	}
+	return [
+		device.name,
+		device.identifier,
+		device.udid,
+		device.serialNumber,
+		device.serial_number,
+		device.model,
+	].filter(Boolean).join(" / ") || "unknown";
 }
 
 

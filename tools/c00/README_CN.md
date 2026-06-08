@@ -127,6 +127,14 @@ node tools/c00/check_launch_platform_surface.js
 
 该检查确认运行时会同时解析 Godot 普通 command-line args 和 user args，`GXF_SMOKE.runtime` 会输出 `resolved_platform_hint`，并确认 Rokid/iPad/Android ARCore 的 smoke/aggregate gate 会拒绝缺少目标启动平台证据的日志。
 
+检查 iPad 设备画像分析链：
+
+```bash
+node tools/c00/check_ios_device_profile_surface.js
+```
+
+该检查确认 iPad collector 会先安装 `.app` 再采集 devicectl device profile，并确认 profile analysis 会检查选中设备、目标 bundle 安装状态、display 和 lock state。
+
 检查 OpenXR/Rokid provider 诊断面：
 
 ```bash
@@ -446,6 +454,7 @@ iPad gate 要求：
 - `capabilities.runtime:"ARKit"` 或 `capabilities.arkit_supported:true`
 - `capabilities.arkit_tracking_state` / `capabilities.arkit_tracking_reason` 必须存在，用于区分正常跟踪、初始化、重定位、运动过快或特征不足。
 - `runtime` metadata 能看到 Godot 版本、`--xr-platform=ipad`、rendering/OpenXR 设置和 viewport XR 状态。
+- device profile analysis 能确认已选中目标 iPad、目标 bundle 已安装，且设备没有锁屏。
 
 ## 手动日志验证
 
@@ -576,4 +585,4 @@ releases/phase_0_smoke/evidence/<gate>-<timestamp>-device.json
 
 Android/Rokid 会自动尝试录屏、截图和 device profile。iOS 会自动采集 devicectl device profile，并在安装 `idevicescreenshot` 时自动截图，否则脚本会提示手动补截图或 15 秒录屏。
 
-采集脚本会把媒体证据验证结果追加到同一个 `.md` 报告的 `Evidence Bundle` 章节；Android/Rokid、Android ARCore 和 iPad 都会把 device profile 追加到同一个 gate 报告末尾。
+采集脚本会把媒体证据验证结果追加到同一个 `.md` 报告的 `Evidence Bundle` 章节；Android/Rokid、Android ARCore 和 iPad 都会把 device profile 追加到同一个 gate 报告末尾。iPad 还会追加 `ipad-*-device-analysis.md`，用于快速看到目标 bundle 和锁屏状态风险。

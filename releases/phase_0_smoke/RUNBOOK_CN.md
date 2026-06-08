@@ -301,7 +301,7 @@ APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <devic
 ```
 
 `collect_ios_smoke.sh` 默认传入 `--xr-platform=ipad`；如需改成 iPhone 验证，可设置 `IOS_XR_PLATFORM=iphone`。
-脚本会生成 `ipad-<timestamp>-device.md/json` 设备画像，使用 `devicectl --json-output` 记录 device details、display、lock state、目标 bundle 安装状态和原始 JSON。
+当 `APP_PATH` 指向本次 `.app` 时，脚本会先安装 app，再采集 `ipad-<timestamp>-device.md/json`，确保目标 bundle 安装状态反映本次构建。随后会生成 `ipad-<timestamp>-device-analysis.md`，分析选中设备、目标 bundle 安装状态、display 和 lock state；目标 bundle 缺失或设备锁屏不能作为 iPad/ARKit gate 通过。
 如果本机安装了 `idevicescreenshot`，脚本会自动截图；否则请手动补一张截图或 15 秒录屏。
 手动素材可以通过 `MANUAL_MEDIA_PATH=/path/to/ipad.mov` 传给采集脚本；没有任何媒体素材时，iPad gate 默认失败。
 
@@ -357,7 +357,7 @@ releases/phase_0_smoke/evidence/
 - smoke log gate：验证 `GXF_SMOKE`、backend、Unity-style session state、native plugin、ARKit/OpenXR 证据。
 - evidence bundle gate：验证截图和录屏是否存在并非空文件。
 - Android/Rokid device profile：记录设备属性、target package、XR 相关包和关键 feature。
-- iPad device profile：记录 devicectl details、display、lock state、目标 bundle 安装状态和原始 JSON。
+- iPad device profile：记录 devicectl details、display、lock state、目标 bundle 安装状态和原始 JSON；profile analysis 会检查目标 bundle 是否安装、设备是否锁屏。
 
 smoke log gate 还会展示 `Runtime Metadata`，用于确认 Godot 版本、启动参数和 XR/rendering project setting 是否符合设备 gate。
 
@@ -376,7 +376,7 @@ releases/phase_0_smoke/C00_PHASE_REPORT.md
 ```
 
 只有这个总报告显示 `PASS`，C00 才能作为可发表结果。单台设备 gate 通过但其他必需设备缺证据时，C00 仍然不能标记完成。
-总报告默认还要求 Rokid、iPad 和 Android ARCore 都有 `*-device.md` 与 `*-device.json` device profile；Rokid/Android JSON 会被分析 ADB、target package、XR/OpenXR/ARCore runtime 包、camera/Vulkan/XR feature 和设备匹配风险。临时调试可用 `--allow-missing-device-profile` 降级为 warning，但不能作为 C00 可发表结果。
+总报告默认还要求 Rokid、iPad 和 Android ARCore 都有 `*-device.md` 与 `*-device.json` device profile；Rokid/Android JSON 会被分析 ADB、target package、XR/OpenXR/ARCore runtime 包、camera/Vulkan/XR feature 和设备匹配风险，iPad JSON 会被分析选中设备、目标 bundle 安装状态、display 和 lock state。临时调试可用 `--allow-missing-device-profile` 降级为 warning，但不能作为 C00 可发表结果。
 
 ## 参考原则
 
