@@ -119,9 +119,18 @@ tools/c00/run_phase1_device_lab.sh \
   --device <ipad-uuid-or-name>
 ```
 
+如果设备机能访问外网，但下载容易中断，可以不用离线包，直接让一键入口按 spec 顺序续传并安装依赖：
+
+```bash
+tools/c00/run_phase1_device_lab.sh \
+  --online-deps \
+  --device <ipad-uuid-or-name>
+```
+
 它会按顺序执行：
 
-- 导入离线依赖包并 source `.godot/cache/c00/device-env.sh`。
+- 可选导入离线依赖包，或用 `--online-deps` 续传/安装 Godot export templates、OpenJDK 17、Android SDK packages，并配置 Android debug keystore / build template。
+- 写出并读取 `.godot/cache/c00/device-env.sh`。
 - 生成 device readiness report。
 - 跑 C00 static gates。
 - 调用 `tools/c00/run_device_cycle.sh all` 执行 iPad/ARKit、Rokid/OpenXR、Android/ARCore。

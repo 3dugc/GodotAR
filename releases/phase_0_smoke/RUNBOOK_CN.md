@@ -101,7 +101,15 @@ tools/c00/run_phase1_device_lab.sh \
   --device <ipad-uuid-or-name>
 ```
 
-这个 wrapper 会按 spec 顺序串起离线依赖导入、readiness report、静态 gate、`run_device_cycle.sh all` 和 completion audit。它默认不会把失败吞掉；如果某台设备失败，仍会继续生成后续报告，最后以 `NOT_READY` 退出。
+如果没有离线包但网络可用，使用在线依赖续传入口：
+
+```bash
+tools/c00/run_phase1_device_lab.sh \
+  --online-deps \
+  --device <ipad-uuid-or-name>
+```
+
+这个 wrapper 会按 spec 顺序串起离线依赖导入或在线依赖续传、readiness report、静态 gate、`run_device_cycle.sh all` 和 completion audit。它默认不会把失败吞掉；如果某台设备失败，仍会继续生成后续报告，最后以 `NOT_READY` 退出。
 
 第一次接设备机时先演练：
 

@@ -91,6 +91,7 @@ Codex implementation status:
 - `tools/c00/verify_phase_evidence.js` now enforces the full C00 publish gate by requiring Rokid/OpenXR, iPad/ARKit, and Android/ARCore evidence in one aggregate report by default.
 - `tools/c00/audit_phase1_completion.js` now performs the Phase 1 completion audit: static gates, Unity ARFoundation/XRI migration surface, ARKit binary artifacts, Rokid/iPad/Android preflight, and final device evidence must all pass before C00 can be reported as ready.
 - `tools/c00/run_phase1_device_lab.sh` now provides the device-machine phase-1 wrapper: optional offline dependency import, readiness report, static gates, `run_device_cycle.sh all`, and completion audit in the spec order, with `--dry-run` support.
+- `tools/c00/run_phase1_device_lab.sh --online-deps` now provides the matching online dependency path: resumable Godot export template install, OpenJDK 17 install, Android SDK package install, Android export environment/build-template configuration, and `.godot/cache/c00/device-env.sh` refresh before readiness/preflight.
 - Native singleton providers can now report tracking status without an `XRInterface`; `GodotARKit` exposes `is_running()` and `get_tracking_status()` for the C00 panel and logs.
 - `GodotARKit.get_tracking_status()` now maps real ARKit state to Godot tracking status: normal tracking, limited/unknown tracking, or not tracking.
 - `OpenXRProvider` now reports Unity OpenXR Feature-style runtime diagnostics: selected blend mode, vendor singletons, feature flags, AR tier, and fallback path.

@@ -23,10 +23,17 @@ for (const [label, file] of Object.entries(files)) {
 if (failures.length === 0) {
 	requireContains(files.lab, [
 		"import_device_dependency_bundle.sh",
+		"install_godot_export_templates.sh",
+		"install_openjdk17.sh",
+		"install_android_sdk_packages.sh",
+		"configure_android_export_environment.sh",
 		"bootstrap_device_machine.sh",
 		"run_static_gates.js",
 		"run_device_cycle.sh",
 		"audit_phase1_completion.js",
+		"--online-deps",
+		"RUN_ONLINE_DEPS",
+		"write_device_env_from_current_machine",
 		"DRY_RUN",
 		"CONTINUE_AFTER_CYCLE",
 		"source_env_if_present",
