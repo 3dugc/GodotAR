@@ -5,10 +5,12 @@
 
 # Exported builds
 exports/
-builds/
+builds/*
+!builds/.gdignore
 releases/*/packages/
 releases/*/evidence/*
 !releases/*/evidence/.gitkeep
+!releases/*/evidence/.gdignore
 *.apk
 *.aab
 *.ipa

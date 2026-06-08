@@ -10,6 +10,7 @@ EXTRA_VALIDATE_ARGS="${EXTRA_VALIDATE_ARGS:-}"
 IOS_SIM_XR_PLATFORM="${IOS_SIM_XR_PLATFORM:-simulator}"
 CAPTURE_MEDIA="${CAPTURE_MEDIA:-1}"
 ALLOW_MISSING_MEDIA="${ALLOW_MISSING_MEDIA:-0}"
+SIMULATOR_REQUIRED_ARCHS="${SIMULATOR_REQUIRED_ARCHS:-auto}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="$PROJECT_ROOT/releases/phase_0_smoke/evidence"
 LOG_PATH="$OUT_DIR/ios-simulator-${STAMP}.log"
@@ -27,6 +28,7 @@ Environment:
   IOS_SIM_XR_PLATFORM=simulator
   CAPTURE_MEDIA=1
   ALLOW_MISSING_MEDIA=0
+  SIMULATOR_REQUIRED_ARCHS=auto | arm64 | x86_64 | "arm64 x86_64"
 
 This is a development gate. It validates iOS export/startup/log flow through
 EditorSim on iOS Simulator. It does not satisfy the iPad/ARKit C00 publish gate.
@@ -49,6 +51,91 @@ if [[ -z "$APP_PATH" || ! -d "$APP_PATH" ]]; then
 	echo "Simulator .app bundle is missing: $APP_PATH" >&2
 	echo "Build it with IOS_BUILD_PLATFORM=simulator tools/c00/build_ios_xcode_project.sh <ios-export.zip>." >&2
 	exit 2
+fi
+
+app_executable_path() {
+	local executable="" candidate=""
+	if [[ -f "$APP_PATH/Info.plist" && -x /usr/libexec/PlistBuddy ]]; then
+		executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP_PATH/Info.plist" 2>/dev/null || true)"
+	fi
+	if [[ -n "$executable" && -f "$APP_PATH/$executable" ]]; then
+		printf "%s" "$APP_PATH/$executable"
+		return 0
+	fi
+	for candidate in "$APP_PATH"/*; do
+		if [[ -f "$candidate" && -x "$candidate" ]]; then
+			printf "%s" "$candidate"
+			return 0
+		fi
+	done
+	return 1
+}
+
+simulator_required_archs() {
+	if [[ "$SIMULATOR_REQUIRED_ARCHS" != "auto" ]]; then
+		printf "%s" "$SIMULATOR_REQUIRED_ARCHS"
+		return 0
+	fi
+	case "$(uname -m)" in
+		arm64) printf "arm64" ;;
+		x86_64) printf "x86_64" ;;
+		*) uname -m ;;
+	esac
+}
+
+write_simulator_arch_failure_report() {
+	local executable="$1" required_archs="$2" actual_archs="$3"
+	{
+		echo "GXF_SMOKE_SIMULATOR_ARCH_CHECK pass=false"
+		echo "reason=missing_simulator_arch"
+		echo "app_path=$APP_PATH"
+		echo "executable=$executable"
+		echo "required_archs=$required_archs"
+		echo "actual_archs=$actual_archs"
+		echo "host_arch=$(uname -m)"
+	} > "$LOG_PATH"
+	{
+		echo "# iOS Simulator Development Gate"
+		echo
+		echo "- Result: Fail"
+		echo "- Reason: missing_simulator_arch"
+		echo "- App: \`$APP_PATH\`"
+		echo "- Executable: \`$executable\`"
+		echo "- Required simulator archs: \`$required_archs\`"
+		echo "- App executable archs: \`$actual_archs\`"
+		echo "- Host arch: \`$(uname -m)\`"
+		echo
+		echo "The app cannot be installed on this simulator runtime until the Godot iOS Simulator export template contains a matching architecture slice."
+	} > "$REPORT_PATH"
+}
+
+if ! EXECUTABLE_PATH="$(app_executable_path)"; then
+	echo "Simulator .app executable is missing in: $APP_PATH" >&2
+	exit 2
+fi
+APP_ARCHS="$(lipo -archs "$EXECUTABLE_PATH" 2>/dev/null || true)"
+if [[ -z "$APP_ARCHS" ]]; then
+	echo "Could not inspect simulator app executable architectures: $EXECUTABLE_PATH" >&2
+	exit 2
+fi
+REQUIRED_ARCHS="$(simulator_required_archs)"
+HAS_REQUIRED_ARCH=0
+for required_arch in $REQUIRED_ARCHS; do
+	for app_arch in $APP_ARCHS; do
+		if [[ "$required_arch" == "$app_arch" ]]; then
+			HAS_REQUIRED_ARCH=1
+			break
+		fi
+	done
+done
+if [[ "$HAS_REQUIRED_ARCH" != "1" ]]; then
+	write_simulator_arch_failure_report "$EXECUTABLE_PATH" "$REQUIRED_ARCHS" "$APP_ARCHS"
+	echo "Simulator app executable lacks a required architecture slice." >&2
+	echo "Executable: $EXECUTABLE_PATH" >&2
+	echo "Required simulator archs: $REQUIRED_ARCHS" >&2
+	echo "App executable archs: $APP_ARCHS" >&2
+	echo "Report: $REPORT_PATH" >&2
+	exit 4
 fi
 
 echo "Waiting for iOS Simulator device: $SIMULATOR_DEVICE"

@@ -18,6 +18,7 @@ CODE_SIGN_STYLE="${CODE_SIGN_STYLE:-Automatic}"
 CODE_SIGNING_ALLOWED="${CODE_SIGNING_ALLOWED:-}"
 IOS_BUILD_PLATFORM="${IOS_BUILD_PLATFORM:-ios}"
 IOS_DESTINATION="${IOS_DESTINATION:-}"
+IOS_SIMULATOR_ARCHS="${IOS_SIMULATOR_ARCHS:-auto}"
 
 usage() {
 	cat <<EOF
@@ -37,6 +38,7 @@ Environment:
   CODE_SIGNING_ALLOWED           Optional xcodebuild override, useful as NO for Simulator.
   IOS_BUILD_PLATFORM             ios | simulator. Default: ios.
   IOS_DESTINATION                Optional full xcodebuild destination override.
+  IOS_SIMULATOR_ARCHS            auto | arm64 | x86_64 | "arm64 x86_64". Default: auto.
   ALLOW_PROVISIONING_UPDATES     Pass -allowProvisioningUpdates when 1. Default: 1.
 
 This script builds the Xcode project produced by the Godot iOS export preset and
@@ -117,6 +119,41 @@ if [[ -z "$XCODE_PROJECT" ]]; then
 	exit 1
 fi
 
+patch_simulator_project_if_needed() {
+	if [[ "$IOS_BUILD_PLATFORM" != "simulator" ]]; then
+		return
+	fi
+
+	local simulator_sdk
+	simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+	if [[ -d "$simulator_sdk/System/Library/Frameworks/MetalFX.framework" ]]; then
+		return
+	fi
+
+	local pbxproj="$XCODE_PROJECT/project.pbxproj"
+	if [[ ! -f "$pbxproj" ]]; then
+		return
+	fi
+	if ! grep -q "MetalFX.framework" "$pbxproj"; then
+		return
+	fi
+
+	echo "iOS Simulator SDK does not include MetalFX.framework; removing weak MetalFX reference from exported project."
+	node - "$pbxproj" <<'NODE'
+const fs = require("fs");
+const file = process.argv[2];
+const before = fs.readFileSync(file, "utf8");
+const after = before
+	.split(/\r?\n/)
+	.filter((line) => !line.includes("MetalFX.framework"))
+	.join("\n")
+	.replace(/\n*$/, "\n");
+fs.writeFileSync(file, after, "utf8");
+NODE
+}
+
+patch_simulator_project_if_needed
+
 echo "Checking exported iOS project for ARKit plugin references..."
 node "$PROJECT_ROOT/tools/c00/check_ios_export_project.js" --input "$SOURCE_DIR"
 
@@ -174,6 +211,46 @@ if [[ "$ALLOW_PROVISIONING_UPDATES" == "1" ]]; then
 	XCODE_ARGS+=(-allowProvisioningUpdates)
 fi
 
+detect_simulator_godot_archs() {
+	local xcframework="" lib="" info="" candidate="" library_id=""
+	for candidate in "$SOURCE_DIR"/*.xcframework "$SOURCE_DIR"/*/*.xcframework; do
+		if [[ -d "$candidate" ]]; then
+			if [[ -f "$candidate/ios-arm64/libgodot.a" || -f "$candidate/ios-arm64_x86_64-simulator/libgodot.a" ]]; then
+				xcframework="$candidate"
+				break
+			fi
+		fi
+	done
+	if [[ -z "$xcframework" ]]; then
+		return 1
+	fi
+	for candidate in "$xcframework"/*/libgodot.a; do
+		if [[ ! -f "$candidate" ]]; then
+			continue
+		fi
+		library_id="$(basename "$(dirname "$candidate")")"
+		if [[ "$library_id" == *simulator* ]]; then
+			lib="$candidate"
+			break
+		fi
+	done
+	if [[ -z "$lib" ]]; then
+		return 1
+	fi
+	info="$(lipo -info "$lib" 2>/dev/null || true)"
+	case "$info" in
+		*"are:"*)
+			printf "%s" "${info##*are: }"
+			;;
+		*"architecture:"*)
+			printf "%s" "${info##*architecture: }"
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
 BUILD_SETTINGS=()
 if [[ -n "$TEAM_ID" ]]; then
 	BUILD_SETTINGS+=("DEVELOPMENT_TEAM=$TEAM_ID")
@@ -189,6 +266,14 @@ if [[ -n "$CODE_SIGNING_ALLOWED" ]]; then
 fi
 if [[ "$IOS_BUILD_PLATFORM" == "simulator" ]]; then
 	BUILD_SETTINGS+=("SDKROOT=iphonesimulator")
+	if [[ "$IOS_SIMULATOR_ARCHS" == "auto" ]]; then
+		if simulator_archs="$(detect_simulator_godot_archs)"; then
+			echo "Detected Godot iOS Simulator template architectures: $simulator_archs"
+			BUILD_SETTINGS+=("ARCHS=$simulator_archs" "VALID_ARCHS=$simulator_archs")
+		fi
+	elif [[ -n "$IOS_SIMULATOR_ARCHS" ]]; then
+		BUILD_SETTINGS+=("ARCHS=$IOS_SIMULATOR_ARCHS" "VALID_ARCHS=$IOS_SIMULATOR_ARCHS")
+	fi
 fi
 
 echo "Building iOS app"

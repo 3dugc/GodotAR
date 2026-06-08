@@ -62,6 +62,25 @@ if (failures.length === 0) {
 		"C00_DEVICE_ENV_FILE",
 		"C00_AUTO_SOURCE_DEVICE_ENV",
 		"source_device_env_if_present",
+		"build_ios_xcode_project.sh will try the project-only export fallback",
+		"build_status",
+	]);
+
+	requireContains("tools/c00/build_ios_xcode_project.sh", [
+		"patch_simulator_project_if_needed",
+		"iOS Simulator SDK does not include MetalFX.framework",
+		"MetalFX.framework",
+		"detect_simulator_godot_archs",
+		"IOS_SIMULATOR_ARCHS",
+		"Detected Godot iOS Simulator template architectures",
+	]);
+
+	requireContains("tools/c00/collect_ios_simulator_smoke.sh", [
+		"SIMULATOR_REQUIRED_ARCHS",
+		"app_executable_path",
+		"simulator_required_archs",
+		"missing_simulator_arch",
+		"lipo -archs",
 	]);
 
 	requireContains(files.staticGates, [

@@ -230,21 +230,20 @@ build_ipad_app_if_requested() {
 		export APP_PATH
 		return
 	fi
-	if [[ ! -f "$export_zip" ]]; then
-		if [[ "$BUILD_IPAD_APP" == "1" ]]; then
-			echo "iPad export zip is missing: $export_zip" >&2
-			return 2
-		fi
-		echo "iPad export zip is missing; assuming $PACKAGE is already installed on the device."
-		return
-	fi
 	if [[ "$BUILD_IPAD_APP" == "auto" ]] && ! command -v xcodebuild >/dev/null 2>&1; then
 		echo "xcodebuild not found; assuming $PACKAGE is already installed on the device."
 		return
 	fi
 
 	echo "Building iPad Xcode export into app bundle..."
-	APP_OUTPUT_PATH="$app_output" "$PROJECT_ROOT/tools/c00/build_ios_xcode_project.sh" "$export_zip" "$DEVICE"
+	if [[ ! -f "$export_zip" ]]; then
+		echo "iPad export zip is missing; build_ios_xcode_project.sh will try the project-only export fallback: $export_zip"
+	fi
+	local build_status=0
+	APP_OUTPUT_PATH="$app_output" "$PROJECT_ROOT/tools/c00/build_ios_xcode_project.sh" "$export_zip" "$DEVICE" || build_status=$?
+	if [[ "$build_status" -ne 0 ]]; then
+		return "$build_status"
+	fi
 	APP_PATH="$app_output"
 	export APP_PATH
 }
@@ -265,16 +264,16 @@ build_ios_simulator_app_if_requested() {
 		export APP_PATH
 		return
 	fi
-	if [[ ! -f "$export_zip" ]]; then
-		echo "iOS Simulator export zip is missing: $export_zip" >&2
-		return 2
-	fi
 	if ! command -v xcodebuild >/dev/null 2>&1; then
 		echo "xcodebuild not found; cannot build iOS Simulator app." >&2
 		return 2
 	fi
 
 	echo "Building iOS Simulator Xcode export into app bundle..."
+	if [[ ! -f "$export_zip" ]]; then
+		echo "iOS Simulator export zip is missing; build_ios_xcode_project.sh will try the project-only export fallback: $export_zip"
+	fi
+	local build_status=0
 	IOS_BUILD_PLATFORM=simulator \
 	ALLOW_PROVISIONING_UPDATES=0 \
 	CODE_SIGN_STYLE="" \
@@ -282,7 +281,10 @@ build_ios_simulator_app_if_requested() {
 	BUILD_ROOT="$PROJECT_ROOT/builds/ios_simulator/xcode" \
 	DERIVED_DATA_PATH="$PROJECT_ROOT/builds/ios_simulator/DerivedData" \
 	APP_OUTPUT_PATH="$app_output" \
-		"$PROJECT_ROOT/tools/c00/build_ios_xcode_project.sh" "$export_zip"
+		"$PROJECT_ROOT/tools/c00/build_ios_xcode_project.sh" "$export_zip" || build_status=$?
+	if [[ "$build_status" -ne 0 ]]; then
+		return "$build_status"
+	fi
 	APP_PATH="$app_output"
 	export APP_PATH
 }

@@ -11,7 +11,7 @@ Scene: `res://demo/00_device_smoke_test.tscn`
 | Gate | Required backend | Result | Evidence |
 | --- | --- | --- | --- |
 | Editor smoke | EditorSim | Pass | `releases/phase_0_smoke/evidence/editor-20260608-233913.md` |
-| iOS Simulator development gate | EditorSim | Pending simulator app run | Simulator log/screenshot |
+| iOS Simulator development gate | EditorSim | Build pass / install blocked by Godot simulator template arch | `releases/phase_0_smoke/evidence/ios-simulator-20260609-034114.md` |
 | Rokid AR gate | OpenXR | Pending device run | Screenshot/log |
 | iPad AR gate | ARKit | Pending device run | Screenshot/log |
 | Android ARCore availability | ARCore | Pending device run | Screenshot/log |
@@ -40,6 +40,7 @@ Codex implementation status:
 - `validate_smoke_log.js` and `verify_phase_evidence.js` now reject Godot `SCRIPT ERROR`, parse, compile, and failed script load lines, so a scene with broken migration scripts cannot pass by printing partial `GXF_SMOKE`.
 - iOS Simulator and Android Emulator are documented as auxiliary cycle outputs for export/startup/log validation only; they cannot satisfy the C00 ARKit/OpenXR publish gate.
 - `tools/c00/collect_ios_simulator_smoke.sh` and `tools/c00/run_device_cycle.sh ios-simulator` now provide a runnable iOS Simulator development gate that expects `backend:"EditorSim"` and validates the iOS export/startup/log path before iPad hardware.
+- `tools/c00/collect_ios_simulator_smoke.sh` now checks the simulator `.app` executable architecture before install and writes a clear `missing_simulator_arch` evidence report when the Godot simulator template does not contain a slice accepted by the current simulator runtime.
 - Godot plugin-first boundary documented. No Godot engine patch is used in C00.
 - `tools/c00/bootstrap_device_machine.sh` now generates a C00 readiness report for device machines and can optionally create the export preset starter.
 - `tools/c00/import_device_dependency_bundle.sh` now imports an offline dependency bundle containing Godot export templates, Android SDK, JDK, Godot binary, and Godot source headers, then writes `.godot/cache/c00/device-env.sh` for Rokid/iPad/Android ARCore gates.
@@ -140,6 +141,7 @@ Hardware status:
 - Real Rokid/OpenXR export now produces `builds/rokid/c00.apk`; APK static inspection confirms `--xr-platform=rokid`, OpenXR loader/vendor libraries, and no ARCore native libraries.
 - Real Android/ARCore export now produces `builds/android_arcore/c00.apk`; APK static inspection confirms `--xr-platform=arcore`, ARCore native libraries, and no OpenXR loader.
 - Real iPad/ARKit export now produces an Xcode project zip, passes `check_ios_export_project.js`, and builds a generic iOS device `.app` with code signing disabled. Real iPad install/run is still blocked by signing/device availability.
+- Real iOS Simulator export now builds an unsigned simulator `.app`, but the current Godot 4.4.1 iOS Simulator template on this host produces an `x86_64` executable while the Apple Silicon iPadOS simulator requires `arm64`; this is tracked as a development-gate blocker, not a C00 publish pass.
 - Temurin OpenJDK 17 was installed on 2026-06-09 under `.godot/cache/c00/jdk/Contents/Home`; `java`, `keytool`, and `.godot/cache/c00/android/debug.keystore` pass Rokid preflight.
 - Android command line tools, `platforms;android-34`, and `build-tools;34.0.0` were installed on 2026-06-09 under `.godot/cache/c00/android-sdk`; `apksigner` passes Rokid preflight.
 - Attempts to download `Godot_v4.4.1-stable_export_templates.tpz` on 2026-06-08 reached the official hosts but are too slow/partial in this environment. `tools/c00/install_godot_export_templates.sh --download` resumed the export templates file to 19 MB before being stopped intentionally; rerunning the installer command will continue from the partial file because it uses `curl -L --fail -C -`.
@@ -169,6 +171,8 @@ Hardware status:
 | `node tools/c00/check_ios_plugin_artifacts.js --file ios/plugins/godot_arkit/GodotARKit.gdip --require-binary` | Pass | `GodotARKit.xcframework` is present and symbol linkage matches Godot's iOS plugin call path |
 | `node tools/c00/check_ios_export_project.js --input builds/ipad/c00.zip` | Pass | Exported Xcode project references GodotARKit, ARKit/Metal frameworks, camera plist, and required capabilities |
 | `tools/c00/build_ios_xcode_project.sh builds/ipad/c00.zip` with `IOS_BUILD_PLATFORM=ios CODE_SIGNING_ALLOWED=NO` | Pass | Generic iOS device build produces `builds/ipad/GodotXRFoundation-nosign.app` |
+| `IOS_BUILD_PLATFORM=simulator tools/c00/build_ios_xcode_project.sh builds/ios_simulator/c00.zip` with signing disabled | Pass | Simulator Xcode build succeeds after project-only export fallback, MetalFX simulator patch, and Godot template architecture detection; resulting app executable is `x86_64` |
+| `APP_PATH=builds/ios_simulator/GodotXRFoundation.app tools/c00/collect_ios_simulator_smoke.sh ...` | Fail as expected / diagnostic produced | Current Apple Silicon simulator requires `arm64`, but the app executable is `x86_64`; collector writes `releases/phase_0_smoke/evidence/ios-simulator-20260609-034114.md` before install |
 | `CAPTURE_MEDIA=0 DURATION=1 APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid ...` | Fail as expected / diagnostic produced | Current host has no ADB `device` state; collector writes `has_connected_device:false`, skips install/launch, appends device profile and analysis |
 | `DEVICECTL_TIMEOUT=5 CAPTURE_MEDIA=0 APP_PATH=builds/ipad/GodotXRFoundation-nosign.app tools/c00/collect_ios_smoke.sh "iPad M4" ...` | Fail as expected / diagnostic produced | Current iPad is `unavailable` in devicectl and `Devices Offline` in xctrace; collector preserves install failure, device profile, and profile analysis |
 
