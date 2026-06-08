@@ -93,6 +93,9 @@ Codex implementation status:
 - `OpenXRProvider` now attempts passthrough lifecycle startup through `XRInterface.start_passthrough()` or vendor singleton passthrough methods and reports `openxr_passthrough_started` / `openxr_passthrough_start_report`.
 - `OpenXRProvider` now supplies a clearly marked C00 `openxr_virtual_plane_fallback` / `openxr_plane_source:"virtual_floor_fallback"` raycast and plane fallback when no real OpenXR plane tracker is available, so Rokid can prove the upper ARFoundation manager/raycast chain without pretending to have true environment understanding.
 - `tools/c00/validate_smoke_log.js` and `tools/c00/verify_phase_evidence.js` now require Rokid/OpenXR logs to include non-empty `capabilities.openxr_ar_evidence`.
+- ARFoundation manager facades now expose Unity AR Foundation 6-style `trackablesChanged(changes)` signals with `ARTrackablesChangedEventArgs.added/updated/removed`, while preserving the original Godot-side `planes_changed(added, updated, removed)` and `anchors_changed(added, updated, removed)` signals.
+- `ARPlaneManager` now exposes `requested_detection_mode`, detection-mode string mapping, `GetTrackable(...)`, `TryGetTrackable(...)`, and `TryGetPlane(...)` migration aliases.
+- `ARAnchorManager` now exposes `GetTrackable(...)`, `TryGetTrackable(...)`, and `TryGetAnchor(...)` migration aliases.
 - Official Godot OpenXR Vendors 4.2.0 is now vendored under `addons/godotopenxrvendors` for Godot 4.4 Android/OpenXR exports.
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` and `GodotARKit.gdip` are now built locally against Godot 4.4.1 source headers; the archive contains `GodotARKitPlugin.mm.o` and `GodotARKitSession.mm.o` for iOS arm64 plus simulator arm64/x86_64.
 - `tools/c00/prepare_godot_source.sh` now generates the minimum Godot build headers needed by external iOS plugin builds: `version_generated.gen.h`, `disabled_classes.gen.h`, and `gdvirtual.gen.inc`.

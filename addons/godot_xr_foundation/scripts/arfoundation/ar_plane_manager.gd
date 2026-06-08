@@ -5,10 +5,13 @@ signal plane_added(plane: ARPlane)
 signal plane_updated(plane: ARPlane)
 signal plane_removed(trackable_id: StringName)
 signal planes_changed(added: Array, updated: Array, removed: Array)
+signal trackables_changed(changes: ARTrackablesChangedEventArgs)
+signal trackablesChanged(changes: ARTrackablesChangedEventArgs)
 
 @export var create_anchor_nodes := true
 @export var provider_sync_interval := 1.0
 @export var xr_origin_path: NodePath
+@export var requested_detection_mode: int = XRFoundationTypes.PlaneDetectionMode.EVERYTHING
 
 var planes: Dictionary = {}
 var anchor_nodes: Dictionary = {}
@@ -61,12 +64,64 @@ func get_trackables() -> Array[ARPlane]:
 	return get_all_planes()
 
 
+func get_trackables_changed_event_args(added: Array = [], updated: Array = [], removed: Array = []) -> ARTrackablesChangedEventArgs:
+	return ARTrackablesChangedEventArgs.new(added, updated, removed)
+
+
+func get_trackable(trackable_id: Variant) -> ARPlane:
+	var id := StringName(str(trackable_id))
+	if planes.has(id):
+		return planes[id]
+	return null
+
+
+func try_get_trackable(trackable_id: Variant, result: Array = []) -> bool:
+	var plane := get_trackable(trackable_id)
+	result.clear()
+	if plane == null:
+		return false
+	result.append(plane)
+	return true
+
+
+func get_requested_detection_mode() -> int:
+	return requested_detection_mode
+
+
+func set_requested_detection_mode(value: int) -> void:
+	requested_detection_mode = value
+
+
+func set_requested_detection_mode_name(value: String) -> void:
+	requested_detection_mode = XRFoundationTypes.plane_detection_mode_from_string(value, requested_detection_mode)
+
+
+func get_current_detection_mode() -> int:
+	return requested_detection_mode
+
+
 func GetAllPlanes() -> Array[ARPlane]:
 	return get_all_planes()
 
 
 func GetTrackables() -> Array[ARPlane]:
 	return get_trackables()
+
+
+func GetTrackable(trackable_id: Variant) -> ARPlane:
+	return get_trackable(trackable_id)
+
+
+func TryGetTrackable(trackable_id: Variant, result: Array = []) -> bool:
+	return try_get_trackable(trackable_id, result)
+
+
+func TryGetPlane(trackable_id: Variant, result: Array = []) -> bool:
+	return try_get_trackable(trackable_id, result)
+
+
+func SetRequestedDetectionModeName(value: String) -> void:
+	set_requested_detection_mode_name(value)
 
 
 func sync_provider_planes() -> void:
@@ -120,11 +175,11 @@ func _add_or_update_plane(plane: ARPlane) -> void:
 	if planes.has(plane.trackable_id):
 		planes[plane.trackable_id] = plane
 		plane_updated.emit(plane)
-		planes_changed.emit([], [plane], [])
+		_emit_trackables_changed([], [plane], [])
 	else:
 		planes[plane.trackable_id] = plane
 		plane_added.emit(plane)
-		planes_changed.emit([plane], [], [])
+		_emit_trackables_changed([plane], [], [])
 
 
 func _remove_plane(trackable_id: StringName) -> void:
@@ -132,7 +187,14 @@ func _remove_plane(trackable_id: StringName) -> void:
 		var plane: ARPlane = planes[trackable_id]
 		planes.erase(trackable_id)
 		plane_removed.emit(trackable_id)
-		planes_changed.emit([], [], [plane])
+		_emit_trackables_changed([], [], [plane])
+
+
+func _emit_trackables_changed(added: Array, updated: Array, removed: Array) -> void:
+	planes_changed.emit(added, updated, removed)
+	var changes := ARTrackablesChangedEventArgs.new(added, updated, removed)
+	trackables_changed.emit(changes)
+	trackablesChanged.emit(changes)
 
 
 func _is_plane_tracker(tracker: Object) -> bool:

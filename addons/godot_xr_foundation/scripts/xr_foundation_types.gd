@@ -62,6 +62,14 @@ enum TrackableType {
 	ANCHOR,
 }
 
+enum PlaneDetectionMode {
+	NONE,
+	HORIZONTAL,
+	VERTICAL,
+	NOT_AXIS_ALIGNED,
+	EVERYTHING,
+}
+
 
 static func backend_to_string(backend: int) -> StringName:
 	match backend:
@@ -89,6 +97,22 @@ static func backend_from_string(value: String) -> int:
 			return Backend.ARKIT
 		_:
 			return Backend.AUTO
+
+
+static func plane_detection_mode_from_string(value: String, fallback: int = PlaneDetectionMode.EVERYTHING) -> int:
+	match value.strip_edges().to_lower():
+		"none", "nothing", "disabled", "off":
+			return PlaneDetectionMode.NONE
+		"horizontal", "horizontal_plane", "horizontal_planes":
+			return PlaneDetectionMode.HORIZONTAL
+		"vertical", "vertical_plane", "vertical_planes":
+			return PlaneDetectionMode.VERTICAL
+		"notaxisaligned", "not_axis_aligned", "arbitrary", "any_alignment":
+			return PlaneDetectionMode.NOT_AXIS_ALIGNED
+		"everything", "all", "any":
+			return PlaneDetectionMode.EVERYTHING
+		_:
+			return fallback
 
 
 static func session_state_to_string(session_state: int) -> StringName:

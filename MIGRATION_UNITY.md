@@ -52,10 +52,11 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 | `ARAnchorManager.AddAnchor(...)` | `ARAnchorManager.AddAnchor(...)` or `add_anchor(...)` |
 | `ARAnchorManager.TryAddAnchorAsync(Pose)` | `ARAnchorManager.TryAddAnchorAsync(transform_or_pose_dictionary)` |
 | `ARAnchorManager.TryRemoveAnchor(anchor)` | `ARAnchorManager.TryRemoveAnchor(anchor)` |
-| `ARPlaneManager.trackables` | `ARPlaneManager.GetTrackables()`, `GetAllPlanes()`, or `get_all_planes()` |
-| `ARPlaneManager.planesChanged` | `ARPlaneManager.planes_changed(added, updated, removed)` |
-| `ARAnchorManager.trackables` | `ARAnchorManager.GetTrackables()` or `GetAllAnchors()` |
-| `ARAnchorManager.anchorsChanged` | `ARAnchorManager.anchors_changed(added, updated, removed)` |
+| `ARPlaneManager.trackables` | `ARPlaneManager.GetTrackables()`, `GetTrackable(id)`, `TryGetPlane(id, result)`, `GetAllPlanes()`, or `get_all_planes()` |
+| `ARPlaneManager.trackablesChanged` | `ARPlaneManager.trackablesChanged(changes)` where `changes` is `ARTrackablesChangedEventArgs`; legacy `planes_changed(added, updated, removed)` is also emitted |
+| `ARPlaneManager.requestedDetectionMode` / `currentDetectionMode` | `requested_detection_mode`, `get_requested_detection_mode()`, `set_requested_detection_mode(...)`, `SetRequestedDetectionModeName("Horizontal")`, and `get_current_detection_mode()` |
+| `ARAnchorManager.trackables` | `ARAnchorManager.GetTrackables()`, `GetTrackable(id)`, `TryGetAnchor(id, result)`, or `GetAllAnchors()` |
+| `ARAnchorManager.trackablesChanged` / `anchorsChanged` | `ARAnchorManager.trackablesChanged(changes)` where `changes` is `ARTrackablesChangedEventArgs`; legacy `anchors_changed(added, updated, removed)` is also emitted |
 | `XROrigin.Camera` | `XRDeviceRig.get_camera()` |
 | `XRInteractionManager` | `XRInteractionManager` |
 | `XRRayInteractor` | `XRRayInteractor` |
@@ -68,7 +69,7 @@ C00 keeps the compatibility layer intentionally thin: it copies the Unity naming
 - `ARSession.state()` follows Unity ARFoundation semantics and returns `XRFoundationTypes.ARSessionState`, not the internal `Stopped/Starting/Running/Failed` lifecycle value.
 - `ARSession.foundation_state()` and `XRFoundation.state` expose the internal lifecycle value when gate scripts need to know whether the provider has started or failed.
 - `ARSession.notTrackingReason()` maps the current Godot/XR tracking status to `XRFoundationTypes.NotTrackingReason`.
-- Manager changed events use list payloads like Unity: `planes_changed(added, updated, removed)` and `anchors_changed(added, updated, removed)`.
+- Manager changed events expose Unity AR Foundation 6-style `trackablesChanged(changes)` with `changes.added`, `changes.updated`, and `changes.removed`, while still emitting legacy `planes_changed(added, updated, removed)` and `anchors_changed(added, updated, removed)` for existing Godot-side scripts.
 - Screen-space raycast needs a `Camera3D` argument because Godot does not have Unity's implicit active AR camera.
 - Native ARKit/ARCore singleton bridges can return anchor dictionaries; `NativeXRProvider` preserves `trackable_id`, `persistent_id`, `transform`, and `tracking_state` through `ARAnchor.from_dictionary()`.
 - `match_frame_rate_requested` is surfaced as a migration option now; actual native frame pacing should be implemented in the ARKit/ARCore/OpenXR providers when those SDK bridges expose preferred frame timing.
@@ -188,4 +189,6 @@ The provider layer in this addon is designed so those features can be added per 
 
 - Unity AR Foundation `ARSession`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%404.2/api/UnityEngine.XR.ARFoundation.ARSession.html
 - Unity AR Foundation managers architecture: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%405.0/manual/architecture/managers.html
+- Unity AR Foundation 6 `ARPlaneManager.trackablesChanged`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.0/manual/features/plane-detection/arplanemanager.html
 - Unity AR Foundation `ARRaycastManager`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%405.0/api/UnityEngine.XR.ARFoundation.ARRaycastManager.html
+- Unity XR Interaction Toolkit `XRRayInteractor`: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%402.5/manual/xr-ray-interactor.html

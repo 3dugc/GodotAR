@@ -4,6 +4,8 @@ class_name ARAnchorManager
 signal anchor_added(anchor: ARAnchor)
 signal anchor_removed(anchor: ARAnchor)
 signal anchors_changed(added: Array, updated: Array, removed: Array)
+signal trackables_changed(changes: ARTrackablesChangedEventArgs)
+signal trackablesChanged(changes: ARTrackablesChangedEventArgs)
 
 @export var anchors_parent_path: NodePath
 
@@ -21,6 +23,26 @@ func get_trackables() -> Array[ARAnchor]:
 	return get_all_anchors()
 
 
+func get_trackables_changed_event_args(added: Array = [], updated: Array = [], removed: Array = []) -> ARTrackablesChangedEventArgs:
+	return ARTrackablesChangedEventArgs.new(added, updated, removed)
+
+
+func get_trackable(trackable_id: Variant) -> ARAnchor:
+	var id := StringName(str(trackable_id))
+	if anchors.has(id):
+		return anchors[id]
+	return null
+
+
+func try_get_trackable(trackable_id: Variant, result: Array = []) -> bool:
+	var anchor := get_trackable(trackable_id)
+	result.clear()
+	if anchor == null:
+		return false
+	result.append(anchor)
+	return true
+
+
 func add_anchor(transform: Transform3D, attached_trackable: ARTrackable = null) -> ARAnchor:
 	var anchor := XRFoundation.create_anchor(transform, attached_trackable)
 	var parent := _get_anchor_parent()
@@ -32,7 +54,7 @@ func add_anchor(transform: Transform3D, attached_trackable: ARTrackable = null) 
 		anchor.node = node
 	anchors[anchor.trackable_id] = anchor
 	anchor_added.emit(anchor)
-	anchors_changed.emit([anchor], [], [])
+	_emit_trackables_changed([anchor], [], [])
 	return anchor
 
 
@@ -50,7 +72,7 @@ func remove_anchor(anchor_or_id: Variant) -> void:
 		anchor.node.queue_free()
 	anchors.erase(id)
 	anchor_removed.emit(anchor)
-	anchors_changed.emit([], [], [anchor])
+	_emit_trackables_changed([], [], [anchor])
 
 
 func try_add_anchor(pose: Variant) -> Dictionary:
@@ -76,6 +98,18 @@ func GetAllAnchors() -> Array[ARAnchor]:
 
 func GetTrackables() -> Array[ARAnchor]:
 	return get_trackables()
+
+
+func GetTrackable(trackable_id: Variant) -> ARAnchor:
+	return get_trackable(trackable_id)
+
+
+func TryGetTrackable(trackable_id: Variant, result: Array = []) -> bool:
+	return try_get_trackable(trackable_id, result)
+
+
+func TryGetAnchor(trackable_id: Variant, result: Array = []) -> bool:
+	return try_get_trackable(trackable_id, result)
 
 
 func AddAnchor(transform: Transform3D, attached_trackable: ARTrackable = null) -> ARAnchor:
@@ -146,3 +180,10 @@ func _anchor_result(success: bool, anchor: ARAnchor = null, error: String = "") 
 		"anchor": anchor,
 		"error": error,
 	}
+
+
+func _emit_trackables_changed(added: Array, updated: Array, removed: Array) -> void:
+	anchors_changed.emit(added, updated, removed)
+	var changes := ARTrackablesChangedEventArgs.new(added, updated, removed)
+	trackables_changed.emit(changes)
+	trackablesChanged.emit(changes)
