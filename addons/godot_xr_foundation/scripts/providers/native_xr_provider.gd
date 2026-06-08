@@ -136,6 +136,25 @@ func get_tracking_status() -> int:
 	return super.get_tracking_status()
 
 
+func get_not_tracking_reason() -> int:
+	if xr_interface:
+		return super.get_not_tracking_reason()
+
+	var singleton := plugin_singleton if plugin_singleton else _find_singleton()
+	if singleton:
+		for method in ["get_not_tracking_reason", "get_tracking_reason", "get_arkit_tracking_reason"]:
+			if singleton.has_method(method):
+				return _not_tracking_reason_from_variant(singleton.call(method))
+		if singleton.has_method("get_capabilities"):
+			var raw: Variant = singleton.call("get_capabilities")
+			if raw is Dictionary:
+				for key in ["arkit_tracking_reason", "not_tracking_reason", "tracking_reason", "tracking_state_reason"]:
+					if raw.has(key):
+						return _not_tracking_reason_from_variant(raw.get(key))
+
+	return super.get_not_tracking_reason()
+
+
 func get_planes() -> Array[ARPlane]:
 	if plugin_singleton:
 		for method in ["get_planes", "get_detected_planes"]:
@@ -218,6 +237,12 @@ func _tracking_status_from_variant(value: Variant) -> int:
 			return XRInterface.XR_UNKNOWN_TRACKING
 		_:
 			return XRInterface.XR_UNKNOWN_TRACKING
+
+
+func _not_tracking_reason_from_variant(value: Variant) -> int:
+	if typeof(value) == TYPE_INT:
+		return int(value)
+	return XRFoundationTypes.not_tracking_reason_from_string(String(value))
 
 
 func _convert_hits(raw: Variant) -> Array[XRHit]:

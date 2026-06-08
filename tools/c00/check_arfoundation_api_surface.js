@@ -19,6 +19,7 @@ const checks = [
 			["NotTrackingReason enum", /enum\s+NotTrackingReason\s*\{/],
 			["ARSessionState mapper", /func\s+ar_session_state_from_foundation_state\s*\(/],
 			["NotTrackingReason mapper", /func\s+not_tracking_reason_from_status\s*\(/],
+			["native reason string mapper", /func\s+not_tracking_reason_from_string\s*\(/],
 		],
 	},
 	{
@@ -28,6 +29,14 @@ const checks = [
 			["Unity ARSession state name facade", /func\s+get_ar_session_state_name\s*\(/],
 			["Unity notTrackingReason facade", /func\s+get_not_tracking_reason\s*\(/],
 			["Unity notTrackingReason name facade", /func\s+get_not_tracking_reason_name\s*\(/],
+			["provider notTrackingReason facade", /provider\.get_not_tracking_reason\(\)/],
+		],
+	},
+	{
+		file: "addons/godot_xr_foundation/scripts/providers/xr_provider.gd",
+		requirements: [
+			["provider notTrackingReason method", /func\s+get_not_tracking_reason\s*\(/],
+			["provider notTrackingReason default mapper", /XRFoundationTypes\.not_tracking_reason_from_status\(get_tracking_status\(\)\)/],
 		],
 	},
 	{
@@ -96,6 +105,9 @@ const checks = [
 			["native anchor conversion call", /return\s+_convert_anchor\(raw,\s*transform\)/],
 			["native anchor conversion helper", /func\s+_convert_anchor\s*\(/],
 			["native anchor dictionary preservation", /ARAnchor\.from_dictionary\(data\)/],
+			["native notTrackingReason method", /func\s+get_not_tracking_reason\s*\(/],
+			["ARKit tracking reason passthrough", /arkit_tracking_reason/],
+			["native reason string mapper", /not_tracking_reason_from_string\(String\(value\)\)/],
 		],
 	},
 	{

@@ -218,6 +218,7 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - 面板显示 `Backend: ARKit`。
 - 日志包含 `GXF_SMOKE`，且 JSON 中 `backend` 为 `ARKit`。
 - 日志包含 `ar_session_state` 和 `not_tracking_reason`，用于对照 Unity ARFoundation 状态。
+- `not_tracking_reason` 会优先使用 ARKit singleton 的 `arkit_tracking_reason` 映射结果，便于直接对照 Unity `ARSession.notTrackingReason`。
 - 日志包含 runtime metadata，能确认 Godot 版本、`--xr-platform=ipad` 启动参数和 viewport XR 状态。
 - `capabilities.native_plugin=true`。
 - `capabilities.runtime="ARKit"` 或 `capabilities.arkit_supported=true`。
@@ -228,7 +229,7 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - `Backend: EditorSim`：iOS app 启动了，但 ARKit native plugin 没有被 Godot 识别。
 - `singleton_registered=false` 且 `interface_registered=false`：检查 `.gdip`、`.xcframework`、Xcode linking、iOS plugin singleton 名称。
 - `native_plugin=true` 但 `session_state` 不能进入 `Running`：先跑 `node tools/c00/check_ios_plugin_artifacts.js`，确认 `GodotARKit` singleton 绑定了 `start_session` / `stop_session` / `get_tracking_status`，并确认 `GodotARKitSession` 真实调用 ARKit `runWithConfiguration`。
-- `arkit_tracking_state=limited`：ARKit 已启动但尚未稳定跟踪，保留 `arkit_tracking_reason`，按原因检查光照、纹理、设备运动或重定位。
+- `arkit_tracking_state=limited`：ARKit 已启动但尚未稳定跟踪，保留 `arkit_tracking_reason`；同时检查统一日志里的 `not_tracking_reason` 是否映射为光照、纹理、设备运动或重定位等原因。
 - `export_presets.cfg` 中看不到 `GodotARKit`：iOS preset 没有启用 ARKit plugin，不能算 iPad/ARKit gate。
 
 自动采集和验证：

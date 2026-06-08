@@ -197,6 +197,29 @@ static func not_tracking_reason_from_status(status: int) -> int:
 			return NotTrackingReason.UNKNOWN
 
 
+static func not_tracking_reason_from_string(value: String) -> int:
+	var normalized := value.strip_edges().to_lower().replace(" ", "_").replace("-", "_")
+	match normalized:
+		"", "none", "normal", "tracking", "normal_tracking":
+			return NotTrackingReason.NONE
+		"initializing", "initialization", "limited", "not_running", "stopped", "waiting_for_frame", "unknown_tracking":
+			return NotTrackingReason.INITIALIZING
+		"relocalizing", "relocalization":
+			return NotTrackingReason.RELOCALIZING
+		"excessive_motion", "excessivemotion":
+			return NotTrackingReason.EXCESSIVE_MOTION
+		"insufficient_features", "insufficientfeatures":
+			return NotTrackingReason.INSUFFICIENT_FEATURES
+		"insufficient_light", "insufficientlight":
+			return NotTrackingReason.INSUFFICIENT_LIGHT
+		"unsupported":
+			return NotTrackingReason.UNSUPPORTED
+		"not_available", "notavailable", "unavailable", "unknown":
+			return NotTrackingReason.UNKNOWN
+		_:
+			return NotTrackingReason.UNKNOWN
+
+
 static func not_tracking_reason_to_string(reason: int) -> StringName:
 	match reason:
 		NotTrackingReason.NONE:

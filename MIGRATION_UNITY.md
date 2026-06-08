@@ -42,7 +42,7 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 | `ARSession.Reset()` | `ARSession.Reset()`, `XRFoundation.reset_session(...)`, or `XRDeviceRig.recenter()` |
 | `ARSession.state` | `ARSession.state()`, `ARSession.GetState()`, or `XRFoundation.get_ar_session_state()` |
 | Unity internal/session lifecycle checks | `ARSession.foundation_state()`, `ARSession.GetFoundationState()`, or `XRFoundation.state` |
-| `ARSession.notTrackingReason` | `ARSession.notTrackingReason()`, `ARSession.GetNotTrackingReason()`, or `XRFoundation.get_not_tracking_reason()` |
+| `ARSession.notTrackingReason` | `ARSession.notTrackingReason()`, `ARSession.GetNotTrackingReason()`, or `XRFoundation.get_not_tracking_reason()`; native ARKit `arkit_tracking_reason` is mapped into this facade |
 | `ARSession.requestedTrackingMode` | `ARSession.requested_tracking_mode`, `get_requested_tracking_mode()`, or `set_requested_tracking_mode(...)` |
 | `ARSession.currentTrackingMode` | `ARSession.get_current_tracking_mode()` |
 | `ARSession.matchFrameRate` / `matchFrameRateRequested` | `XRSessionManager.match_frame_rate` / `match_frame_rate_requested`; native providers may ignore this until their frame pacing bridge is implemented |

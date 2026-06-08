@@ -185,6 +185,8 @@ func get_tracking_status() -> int:
 func get_not_tracking_reason() -> int:
 	if state == XRFoundationTypes.SessionState.FAILED:
 		return XRFoundationTypes.NotTrackingReason.UNSUPPORTED
+	if provider:
+		return provider.get_not_tracking_reason()
 	return XRFoundationTypes.not_tracking_reason_from_status(get_tracking_status())
 
 

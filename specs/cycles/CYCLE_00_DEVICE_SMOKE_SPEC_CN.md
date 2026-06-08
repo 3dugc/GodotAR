@@ -106,6 +106,7 @@ demo/00_device_smoke_test.tscn
 - `ARSession.foundation_state()`
 - `XRFoundation.get_ar_session_state()`
 - `XRFoundation.get_not_tracking_reason()`
+- native singleton `arkit_tracking_reason` / `tracking_reason` -> `XRFoundation.get_not_tracking_reason()`
 - `ARRaycastManager.TryRaycast(...)`
 - `ARRaycastManager.RaycastToList(...)`
 - `ARRaycastManager.RaycastFromScreen(...)`

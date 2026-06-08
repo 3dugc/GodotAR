@@ -64,6 +64,10 @@ func get_tracking_state() -> int:
 	return XRFoundationTypes.tracking_status_to_state(get_tracking_status())
 
 
+func get_not_tracking_reason() -> int:
+	return XRFoundationTypes.not_tracking_reason_from_status(get_tracking_status())
+
+
 func get_provider_source() -> StringName:
 	if xr_interface:
 		return &"XRInterface"
