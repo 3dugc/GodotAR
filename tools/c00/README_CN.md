@@ -44,6 +44,7 @@ tools/c00/preflight.sh android-arcore
 - `android/plugins`、`ios/plugins` 是否存在。
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` 和 `.gdip` 是否存在。
 - `export_presets.cfg` 是否包含目标 C00 preset。
+- `project.godot`、C00 主场景、rig 场景、脚本资源和关键 NodePath 是否完整。
 - ARFoundation / XRI / OpenXR provider 静态 surface 是否稳定。
 - C00 smoke scene 是否是 Godot 主场景。
 - `project.godot` 是否开启 OpenXR。
@@ -75,6 +76,14 @@ node tools/c00/check_ios_plugin_artifacts.js --file ios/plugins/godot_arkit/Godo
 ```
 
 该检查会验证 Godot 官方 `.gdip` 必需字段、`GodotARKit.xcframework` 引用、`init_godot_arkit` / `deinit_godot_arkit` 符号、ARKit/Metal capability、系统 framework、plist camera 权限和 required device capabilities。
+
+检查 Godot project 和 C00 场景静态完整性：
+
+```bash
+node tools/c00/check_godot_project_static.js
+```
+
+该检查不需要 Godot binary。它确认 `project.godot` 主场景、XRFoundation autoload、OpenXR 设置、addon plugin、C00 demo/rig 场景的 ext_resource、load_steps、关键节点和 `XRInteractionManager` / AR manager NodePath 引用都能静态解析。
 
 检查 ARFoundation 迁移 API surface：
 

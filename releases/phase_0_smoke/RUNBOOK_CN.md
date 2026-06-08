@@ -32,6 +32,12 @@ tools/c00/bootstrap_device_machine.sh --write-export-presets --package org.examp
 tools/c00/preflight.sh
 ```
 
+如果设备机还没有 Godot binary，也可以先跑不依赖 Godot 的项目/场景完整性检查：
+
+```bash
+node tools/c00/check_godot_project_static.js
+```
+
 如果本机 Godot 不在 PATH，可以设置：
 
 ```bash

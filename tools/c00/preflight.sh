@@ -202,6 +202,14 @@ if needs_openxr; then
 fi
 
 printf "\nGodot project checks\n"
+if node "$PROJECT_ROOT/tools/c00/check_godot_project_static.js" >/dev/null 2>&1; then
+	printf "OK   C00 Godot project/static scene references\n"
+else
+	printf "MISS C00 Godot project/static scene references\n"
+	printf "     Run node tools/c00/check_godot_project_static.js for details.\n"
+	status=1
+fi
+
 if [ -f "$PROJECT_ROOT/project.godot" ]; then
 	printf "OK   project.godot\n"
 else
