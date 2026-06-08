@@ -39,6 +39,10 @@ GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh
 设备机上优先使用：
 
 ```bash
+tools/c00/run_device_cycle.sh editor
+```
+
+```bash
 tools/c00/run_device_cycle.sh rokid
 ```
 
@@ -58,7 +62,7 @@ APP_PATH=builds/ipad/GodotXRFoundation.app \
 tools/c00/run_device_cycle.sh all
 ```
 
-`all` 模式会按 iPad、Rokid 顺序执行。默认即使某个 gate 失败也会继续跑后续 gate，最后自动执行 `verify_phase_evidence.js` 生成 C00 总报告。
+`all` 模式会按 iPad、Rokid 顺序执行。默认即使某个 gate 失败也会继续跑后续 gate，最后自动执行 `verify_phase_evidence.js` 生成 C00 总报告。设置 `INCLUDE_EDITOR_SIM=1` 可在设备 gate 前先跑本地模拟器 gate。
 
 常用开关：
 
@@ -73,6 +77,23 @@ tools/c00/run_device_cycle.sh all
 - `CONTINUE_ON_FAILURE=0`：`all` 模式遇到第一个失败 gate 就停止。
 - `RUN_PHASE_VERIFY=0`：`all` 模式跳过最终 C00 聚合验证。
 - `PHASE_REPORT=releases/phase_0_smoke/C00_PHASE_REPORT.md`：覆盖 C00 总报告输出路径。
+- `INCLUDE_EDITOR_SIM=1`：`all` 模式先跑 EditorSim gate。
+
+## EditorSim / 模拟器
+
+没有设备时可以先跑本地模拟器：
+
+```bash
+tools/c00/run_device_cycle.sh editor
+```
+
+底层采集脚本：
+
+```bash
+tools/c00/collect_editor_smoke.sh 15
+```
+
+它会用 `--xr-platform=simulator` 启动 Godot，并要求日志通过 `backend:"EditorSim"` gate。模拟器 gate 只能证明上层 ARFoundation-style API、raycast、anchor、plane 和日志链路可用，不能替代 Rokid/OpenXR 或 iPad/ARKit 真机 gate。
 
 ## Export Preset 检查
 

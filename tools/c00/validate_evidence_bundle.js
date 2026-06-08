@@ -116,6 +116,10 @@ function evaluateEvidence(gate, media, options) {
 		if (!hasAnyGoodMedia()) {
 			recordProblem("iPad gate requires at least one screenshot, screen recording, or manual media artifact.");
 		}
+	} else if (gate === "editor") {
+		if (media.length > 0 && !hasAnyGoodMedia()) {
+			recordProblem("Editor simulator media was provided but no valid media artifact was found.");
+		}
 	} else {
 		recordProblem(`Unknown gate: ${gate}`);
 	}

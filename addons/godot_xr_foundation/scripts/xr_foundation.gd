@@ -224,6 +224,8 @@ func _candidate_backends(requested_backend: int, options: Dictionary) -> Array[i
 		return requested
 
 	var hint := String(options.get("platform_hint", "")).strip_edges().to_lower()
+	if hint in ["editor", "editorsim", "editor_sim", "simulation", "simulator", "sim"]:
+		return [XRFoundationTypes.Backend.EDITOR_SIM]
 	if hint in ["rokid", "openxr", "androidxr", "android_xr", "headset", "glasses"]:
 		return [XRFoundationTypes.Backend.OPENXR, XRFoundationTypes.Backend.ARCORE, XRFoundationTypes.Backend.EDITOR_SIM]
 	if hint in ["handheld", "handheld_ar", "phone", "mobile_ar", "arcore"]:

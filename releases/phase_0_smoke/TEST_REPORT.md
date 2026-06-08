@@ -25,6 +25,7 @@ Codex implementation status:
 - Provider capability reports created.
 - Unity-style `ARSession` wrapper created.
 - Unity-style migration helpers added for placement workflows: `ARRaycastManager.TryRaycast`, `ARRaycastManager.RaycastToList`, `ARRaycastManager.TryScreenRaycast`, `XRHit.get_pose()`, `ARAnchorManager.TryAddAnchorAsync`, and `ARAnchorManager.TryRemoveAnchor`.
+- EditorSim/simulator gate added for local ARFoundation-style API validation through `--xr-platform=simulator`; it does not replace Rokid/iPad device gates.
 - Godot plugin-first boundary documented. No Godot engine patch is used in C00.
 - C00 preflight, export helper, Android/Rokid log collector, iPad log collector, and gate validator created under `tools/c00`.
 - `NativeXRProvider` now detects native provider singletons through `Engine.has_singleton(...)` and merges their availability/capability reports.
@@ -62,6 +63,7 @@ Hardware status:
 | Synthetic runtime metadata report | Pass | Report includes Godot version and `--xr-platform=rokid` metadata |
 | Synthetic evidence bundle gates | Pass | Rokid requires screenshot + video; iPad accepts manual media |
 | Synthetic C00 phase evidence gate | Pass | Aggregate report passes with Rokid + iPad evidence and fails on empty evidence |
+| Synthetic EditorSim gate | Pass | `backend:"EditorSim"` validates without media evidence |
 | Synthetic Rokid OpenXR-only strict gate | Fail as expected | `ar_product_path:false` is not accepted as AR product pass |
 | `ios/plugins/godot_arkit/build_xcframework.sh --help` | Pass | Documents required Godot source header path and outputs |
 | `tools/c00/run_device_cycle.sh --help` | Pass | Documents iPad/Rokid full gate execution |
@@ -184,6 +186,7 @@ Notes:
 - iPad passes only when `backend:"ARKit"` and `session_state:"Running"` are present in `GXF_SMOKE`.
 - C00 device reports should include runtime metadata so startup arguments, Godot version, rendering method, and XR project settings are visible in the gate report.
 - `EditorSim` is useful evidence that the app starts, but never satisfies a device AR gate.
+- EditorSim/simulator gate validates migrated service code and smoke logging only; C00 publish still requires Rokid/OpenXR and iPad/ARKit evidence.
 - OpenXR with only `opaque` blend mode is an OpenXR rendering pass, not an AR product pass.
 - Rokid/Android publishable results require both screenshot and screen recording artifacts; iPad publishable results require at least one screenshot or recording artifact.
 - C00 publishable results require `tools/c00/verify_phase_evidence.js` to pass for both Rokid/OpenXR and iPad/ARKit.

@@ -47,6 +47,10 @@ node tools/c00/check_export_presets.js --gate all --file export_presets.cfg
 设备机上优先用 spec runner：
 
 ```bash
+tools/c00/run_device_cycle.sh editor
+```
+
+```bash
 tools/c00/run_device_cycle.sh rokid
 ```
 
@@ -67,6 +71,7 @@ tools/c00/run_device_cycle.sh all
 ```
 
 `all` 模式默认会继续执行后续 gate，即使前一个 gate 失败；最后会自动运行 `tools/c00/verify_phase_evidence.js` 并生成 `C00_PHASE_REPORT.md`。如果希望失败即停，设置 `CONTINUE_ON_FAILURE=0`。
+如需在设备 gate 前先跑本地模拟器，设置 `INCLUDE_EDITOR_SIM=1`。
 
 ## 插件优先边界
 
@@ -82,6 +87,22 @@ C00 不修改 Godot 主干。
 - engine patch
 
 如果出现 `engine patch`，本周期必须附带最小侵入说明，否则不能标记为通过。
+
+## EditorSim / 模拟器
+
+模拟器用于没有设备时验证上层接口和 Unity 迁移代码：
+
+```bash
+tools/c00/run_device_cycle.sh editor
+```
+
+或：
+
+```bash
+tools/c00/collect_editor_smoke.sh 15
+```
+
+模拟器会通过 `--xr-platform=simulator` 选择 `EditorSim` backend，提供模拟 floor plane、raycast、anchor 和 tracking。它可以作为开发 gate，但不能替代 Rokid/OpenXR 或 iPad/ARKit 真机通过标准。
 
 ## Rokid / OpenXR
 

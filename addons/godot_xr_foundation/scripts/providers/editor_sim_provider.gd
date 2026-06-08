@@ -32,6 +32,12 @@ func get_capabilities(_options: Dictionary = {}) -> Dictionary:
 	capabilities["anchors"] = true
 	capabilities["input_ray"] = true
 	capabilities["ar_product_path"] = true
+	capabilities["native_plugin"] = false
+	capabilities["runtime"] = "EditorSim"
+	capabilities["provider_source"] = "Editor Simulation"
+	capabilities["device_profile"] = "simulator"
+	capabilities["simulated_floor_height"] = simulated_floor_height
+	capabilities["simulated_plane_size"] = simulated_plane_size
 	capabilities["simulation"] = true
 	return capabilities
 
@@ -67,3 +73,11 @@ func try_raycast(origin: Vector3, direction: Vector3, max_distance: float = 20.0
 	hit.normal = Vector3.UP
 	var hits: Array[XRHit] = [hit]
 	return hits
+
+
+func create_anchor(transform: Transform3D, attached_trackable: ARTrackable = null) -> ARAnchor:
+	var anchor := ARAnchor.new(_make_id(&"sim_anchor"), transform, {
+		"runtime": "EditorSim",
+		"attached_trackable": attached_trackable,
+	})
+	return anchor

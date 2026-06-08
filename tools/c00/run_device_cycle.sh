@@ -11,6 +11,7 @@ RUN_PREFLIGHT="${RUN_PREFLIGHT:-1}"
 RUN_EXPORT="${RUN_EXPORT:-1}"
 RUN_COLLECT="${RUN_COLLECT:-1}"
 BUILD_ARKIT_PLUGIN="${BUILD_ARKIT_PLUGIN:-auto}"
+INCLUDE_EDITOR_SIM="${INCLUDE_EDITOR_SIM:-0}"
 INCLUDE_ANDROID_ARCORE="${INCLUDE_ANDROID_ARCORE:-0}"
 CONTINUE_ON_FAILURE="${CONTINUE_ON_FAILURE:-auto}"
 RUN_PHASE_VERIFY="${RUN_PHASE_VERIFY:-1}"
@@ -26,9 +27,10 @@ IPAD_EXPORT_PATH="${IPAD_EXPORT_PATH:-builds/ipad/c00.zip}"
 usage() {
 	cat <<EOF
 Usage:
-  tools/c00/run_device_cycle.sh <rokid|ipad|android-arcore|all> [ipad-device]
+  tools/c00/run_device_cycle.sh <editor|rokid|ipad|android-arcore|all> [ipad-device]
 
 Examples:
+  tools/c00/run_device_cycle.sh editor
   tools/c00/run_device_cycle.sh rokid
   DEVICE=<ipad-uuid-or-name> APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/run_device_cycle.sh ipad
   GODOT_SOURCE_DIR=/path/to/godot tools/c00/run_device_cycle.sh ipad <ipad-device>
@@ -59,6 +61,7 @@ Rokid / Android:
 
 All:
   Runs ipad then rokid. Set INCLUDE_ANDROID_ARCORE=1 to include Android ARCore.
+  INCLUDE_EDITOR_SIM=1             Run the local EditorSim gate before device gates.
   CONTINUE_ON_FAILURE=auto|1|0     Default auto continues in all mode so every device can produce evidence.
   RUN_PHASE_VERIFY=1               Run verify_phase_evidence.js after all gates.
   PHASE_REPORT="$PHASE_REPORT"
@@ -71,7 +74,7 @@ if [[ "$GATE" == "-h" || "$GATE" == "--help" ]]; then
 fi
 
 case "$GATE" in
-	rokid|ipad|android-arcore|all)
+	editor|rokid|ipad|android-arcore|all)
 		;;
 	*)
 		usage >&2
@@ -125,6 +128,9 @@ run_export() {
 			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$IPAD_PRESET" "$IPAD_EXPORT_PATH"
 			echo "iPad export is usually an Xcode project zip. Build it in Xcode, then rerun with APP_PATH=<built .app> if collection needs installation."
 			;;
+		editor)
+			echo "EditorSim gate does not require export."
+			;;
 	esac
 }
 
@@ -135,6 +141,9 @@ run_collect() {
 	fi
 
 	case "$gate" in
+		editor)
+			"$PROJECT_ROOT/tools/c00/collect_editor_smoke.sh" "$DURATION"
+			;;
 		rokid)
 			local apk_path="${APK_PATH:-$(project_path "$ROKID_APK_PATH")}"
 			APK_PATH="$apk_path" "$PROJECT_ROOT/tools/c00/collect_android_smoke.sh" rokid "$PACKAGE" "$DURATION"
@@ -202,6 +211,12 @@ run_phase_verify() {
 if [[ "$GATE" == "all" ]]; then
 	ALL_GATE_STATUS=0
 	phase_status=0
+	if [[ "$INCLUDE_EDITOR_SIM" == "1" ]]; then
+		run_gate_for_all editor || phase_status="$?"
+		if [[ "$phase_status" != "0" && "$CONTINUE_ON_FAILURE" == "0" ]]; then
+			exit "$phase_status"
+		fi
+	fi
 	run_gate_for_all ipad || phase_status="$?"
 	if [[ "$phase_status" != "0" && "$CONTINUE_ON_FAILURE" == "0" ]]; then
 		exit "$phase_status"
