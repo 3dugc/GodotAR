@@ -190,6 +190,7 @@ function validateDeviceProfile(gate, markdownPath, jsonPath) {
 		markdown: fileEvidence("device-profile", markdownPath),
 		json: fileEvidence("device-profile-json", jsonPath),
 		jsonPreview: null,
+		analysis: null,
 	};
 
 	if (gate === "editor") {
@@ -202,6 +203,11 @@ function validateDeviceProfile(gate, markdownPath, jsonPath) {
 		try {
 			const parsed = JSON.parse(fs.readFileSync(summary.json.path, "utf8"));
 			summary.jsonPreview = summarizeDeviceProfileJson(parsed);
+			if (["rokid", "android-arcore"].includes(gate)) {
+				summary.analysis = analyzeDeviceProfileJson(parsed, gate);
+				failures.push(...summary.analysis.failures);
+				warnings.push(...summary.analysis.warnings);
+			}
 		} catch (error) {
 			recordProblem(`Device profile JSON is not parseable: ${summary.json.path}`);
 		}
@@ -229,6 +235,80 @@ function validateDeviceProfile(gate, markdownPath, jsonPath) {
 }
 
 
+function analyzeDeviceProfileJson(parsed, gate) {
+	const failures = [];
+	const warnings = [];
+	if (!parsed || typeof parsed !== "object") {
+		return { failures, warnings, evidence: {} };
+	}
+	if (!["rokid", "android-arcore"].includes(gate)) {
+		return { failures, warnings, evidence: {} };
+	}
+
+	const properties = parsed.properties || {};
+	const targetPackage = parsed.target_package || {};
+	const xrPackages = Array.isArray(parsed.xr_related_packages) ? parsed.xr_related_packages.map(String) : [];
+	const notableFeatures = Array.isArray(parsed.notable_features) ? parsed.notable_features.map(String) : [];
+	const display = parsed.display || {};
+	const device = [
+		properties["ro.product.manufacturer"],
+		properties["ro.product.brand"],
+		properties["ro.product.model"],
+		properties["ro.product.device"],
+		properties["ro.product.name"],
+		properties["ro.hardware"],
+	].filter(Boolean).join(" ");
+
+	if (!parsed.adb || parsed.adb.available !== true) {
+		failures.push("Device profile analysis: adb was not available during collection.");
+	}
+	if (!targetPackage.installed) {
+		failures.push(`Device profile analysis: target package was not installed: ${parsed.package || "unknown package"}.`);
+	}
+	if (!properties["ro.product.model"]) {
+		warnings.push("Device profile analysis: ro.product.model is missing.");
+	}
+	if (!display.size || !display.density) {
+		warnings.push("Device profile analysis: display size or density is missing.");
+	}
+	if (!hasMatch(notableFeatures, /camera/i)) {
+		warnings.push("Device profile analysis: no camera feature was detected.");
+	}
+	if (!hasMatch(notableFeatures, /vulkan/i)) {
+		warnings.push("Device profile analysis: no Vulkan feature was detected.");
+	}
+
+	if (gate === "rokid") {
+		if (!hasMatch(xrPackages, /openxr|rokid|pico|quest|oculus|meta|lynx|vive|wave/i)) {
+			warnings.push("Device profile analysis: no OpenXR/Rokid/vendor runtime package was detected; final proof depends on smoke log backend/capabilities.");
+		}
+		if (!/rokid/i.test(device)) {
+			warnings.push(`Device profile analysis: Rokid gate expected Rokid hardware, observed "${device || "unknown device"}".`);
+		}
+		if (!hasMatch(notableFeatures, /xr|vr/i)) {
+			warnings.push("Device profile analysis: no XR/VR feature flag was detected.");
+		}
+	}
+
+	if (gate === "android-arcore" && !hasMatch(xrPackages, /google\.ar\.core|arcore/i)) {
+		failures.push("Device profile analysis: no ARCore package was detected.");
+	}
+
+	return {
+		failures,
+		warnings,
+		evidence: {
+			device: device || "unknown",
+			target_package_installed: Boolean(targetPackage.installed),
+			target_package_version: targetPackage.version_name || targetPackage.version_code || "",
+			xr_related_packages: xrPackages,
+			notable_features: notableFeatures,
+			display,
+		},
+	};
+}
+
+
 function summarizeDeviceProfileJson(parsed) {
 	if (!parsed || typeof parsed !== "object") {
 		return parsed;
@@ -243,6 +323,11 @@ function summarizeDeviceProfileJson(parsed) {
 		target_package: parsed.target_package || null,
 		target_app: parsed.target_app || null,
 	};
+}
+
+
+function hasMatch(items, pattern) {
+	return items.some((item) => pattern.test(String(item)));
 }
 
 
@@ -563,6 +648,14 @@ function renderMarkdown(summary) {
 			lines.push("```json");
 			lines.push(JSON.stringify(gateSummary.deviceProfile.jsonPreview || {}, null, 2));
 			lines.push("```");
+			if (gateSummary.deviceProfile.analysis) {
+				lines.push("");
+				lines.push("#### Device Profile Analysis");
+				lines.push("");
+				lines.push("```json");
+				lines.push(JSON.stringify(gateSummary.deviceProfile.analysis.evidence || {}, null, 2));
+				lines.push("```");
+			}
 		} else {
 			lines.push("- None");
 		}

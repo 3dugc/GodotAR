@@ -51,6 +51,8 @@ Codex implementation status:
 - `tools/c00/validate_smoke_log.js` and `tools/c00/verify_phase_evidence.js` now require iPad ARKit logs to include `arkit_tracking_state` and `arkit_tracking_reason`.
 - Device collectors now attempt to save media evidence: Android/Rokid records `.mp4` plus `.png`; iOS captures `.png` when `idevicescreenshot` is available and otherwise asks for manual screenshot/recording.
 - Android/Rokid collection now writes a device profile report and JSON with model, OS, display, target package, XR-related packages, and notable camera/Vulkan/XR features.
+- `tools/c00/analyze_android_device_profile.js` now analyzes Rokid/OpenXR and Android ARCore profile JSON for ADB availability, target package install state, XR/OpenXR runtime packages, camera/Vulkan/XR features, and Rokid hardware match risk.
+- `tools/c00/collect_android_smoke.sh` now appends the Android device profile analysis report to the same C00 gate report.
 - iPad collection now writes a devicectl-backed device profile report and JSON with device details, display, lock state, target bundle status, and raw JSON command evidence.
 - C00 aggregate verification now requires device profile Markdown and JSON evidence for both Rokid/OpenXR and iPad/ARKit; manual evidence import can carry those files into the standard evidence layout.
 - `tools/c00/validate_evidence_bundle.js` now enforces publishable evidence: Rokid/Android require screenshot plus recording; iPad requires at least one screenshot or recording.
@@ -72,6 +74,7 @@ Hardware status:
 | `git diff --check` | Pass | No whitespace errors |
 | `node --check tools/c00/validate_smoke_log.js` | Pass | Validator parses |
 | `node --check tools/c00/collect_android_device_profile.js` | Pass | Android/Rokid profile collector parses |
+| `node --check tools/c00/analyze_android_device_profile.js` | Pass | Android/Rokid profile analyzer parses |
 | `node --check tools/c00/collect_ios_device_profile.js` | Pass | iPad profile collector parses |
 | `node --check tools/c00/validate_evidence_bundle.js` | Pass | Evidence validator parses |
 | `node --check tools/c00/verify_phase_evidence.js` | Pass | C00 aggregate verifier parses |
@@ -81,6 +84,11 @@ Hardware status:
 | `tools/c00/build_ios_xcode_project.sh --help` | Pass | Documents exported Xcode project build path into `builds/ipad/GodotXRFoundation.app` |
 | `tools/c00/bootstrap_device_machine.sh` | Blocked by host prerequisites | Generates readiness report, confirms `xcodebuild`, and records missing `godot`, `adb`, export presets, and ARKit build artifacts on this host |
 | Synthetic Android device profile smoke | Pass | `collect_android_device_profile.js` writes Markdown/JSON with a fake adb command to verify report generation |
+| Synthetic Rokid device profile analysis | Pass | Analyzer accepts a Rokid/OpenXR profile with target app, runtime packages, camera, Vulkan, and XR feature evidence |
+| Synthetic bad Rokid profile analysis | Fail as expected | Analyzer rejects missing ADB and missing target package while warning about missing OpenXR/camera/Vulkan/XR evidence |
+| Synthetic bad ARCore profile analysis | Fail as expected | Analyzer rejects Android ARCore profile JSON with no ARCore package |
+| Synthetic Rokid phase profile analysis | Pass | `verify_phase_evidence.js --gate rokid` accepts good Rokid profile analysis when media size is relaxed for synthetic files |
+| Synthetic bad Rokid phase profile analysis | Fail as expected | `verify_phase_evidence.js --gate rokid` rejects profile JSON where ADB and target package evidence are missing |
 | Synthetic iPad device profile smoke | Pass | `collect_ios_device_profile.js` writes Markdown/JSON with a fake devicectl command to verify report generation |
 | Synthetic manual evidence import | Pass | `tools/c00/import_device_evidence.sh` imports synthetic Rokid/iPad logs and media into a temp evidence directory and runs validators |
 | Synthetic C00 device profile aggregate gate | Pass | `verify_phase_evidence.js` rejects missing profile evidence and accepts Rokid/iPad logs, media, and profile Markdown/JSON |

@@ -18,6 +18,7 @@ SCREENSHOT_PATH="$OUT_DIR/${GATE}-${STAMP}.png"
 VIDEO_PATH="$OUT_DIR/${GATE}-${STAMP}.mp4"
 PROFILE_PATH="$OUT_DIR/${GATE}-${STAMP}-device.md"
 PROFILE_JSON_PATH="$OUT_DIR/${GATE}-${STAMP}-device.json"
+PROFILE_ANALYSIS_PATH="$OUT_DIR/${GATE}-${STAMP}-device-analysis.md"
 REMOTE_VIDEO="/sdcard/gxf-${GATE}-${STAMP}.mp4"
 
 mkdir -p "$OUT_DIR"
@@ -42,6 +43,15 @@ if ! node "$PROJECT_ROOT/tools/c00/collect_android_device_profile.js" \
 	--report "$PROFILE_PATH" \
 	--json "$PROFILE_JSON_PATH"; then
 	echo "Android device profile collection failed; continuing to smoke collection."
+fi
+if [ -f "$PROFILE_JSON_PATH" ]; then
+	echo "Analyzing Android device profile -> $PROFILE_ANALYSIS_PATH"
+	if ! node "$PROJECT_ROOT/tools/c00/analyze_android_device_profile.js" \
+		--gate "$GATE" \
+		--json "$PROFILE_JSON_PATH" \
+		--report "$PROFILE_ANALYSIS_PATH"; then
+		echo "Android device profile analysis reported failures; final gate still depends on smoke log validation."
+	fi
 fi
 
 echo "Clearing logcat..."
@@ -93,6 +103,10 @@ node "$PROJECT_ROOT/tools/c00/validate_evidence_bundle.js" "${EVIDENCE_ARGS[@]}"
 if [ -f "$PROFILE_PATH" ]; then
 	cat "$PROFILE_PATH" >> "$REPORT_PATH"
 	echo "Device profile: $PROFILE_PATH"
+fi
+if [ -f "$PROFILE_ANALYSIS_PATH" ]; then
+	cat "$PROFILE_ANALYSIS_PATH" >> "$REPORT_PATH"
+	echo "Device profile analysis: $PROFILE_ANALYSIS_PATH"
 fi
 
 echo "Report: $REPORT_PATH"

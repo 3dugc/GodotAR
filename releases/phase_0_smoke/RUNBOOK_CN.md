@@ -178,7 +178,7 @@ tools/c00/run_device_cycle.sh rokid
 
 默认会同时采集日志、gate 报告、截图和 15 秒录屏；如设备不支持 `screenrecord`，请手动补录屏。
 Rokid gate 默认要求截图和录屏都存在；临时调试可用 `ALLOW_MISSING_MEDIA=1` 降级为 warning，但不能作为发表通过结果。
-脚本还会生成 `rokid-<timestamp>-device.md/json` 设备画像，记录型号、系统版本、display、target package、XR/OpenXR/ARCore/Rokid 相关包和关键 feature；多台 Android 设备连接时设置 `ADB_SERIAL=<serial>`。
+脚本还会生成 `rokid-<timestamp>-device.md/json` 设备画像，记录型号、系统版本、display、target package、XR/OpenXR/ARCore/Rokid 相关包和关键 feature；并生成 `rokid-<timestamp>-device-analysis.md`，提前标出 ADB、目标包安装、runtime 包、camera/Vulkan/XR feature 和 Rokid 硬件匹配风险。多台 Android 设备连接时设置 `ADB_SERIAL=<serial>`。
 
 底层脚本：
 
@@ -303,7 +303,7 @@ releases/phase_0_smoke/C00_PHASE_REPORT.md
 ```
 
 只有这个总报告显示 `PASS`，C00 才能作为可发表结果。单台设备 gate 通过但另一台缺证据时，C00 仍然不能标记完成。
-总报告默认还要求 Rokid 和 iPad 都有 `*-device.md` 与 `*-device.json` device profile；临时调试可用 `--allow-missing-device-profile` 降级为 warning，但不能作为 C00 可发表结果。
+总报告默认还要求 Rokid 和 iPad 都有 `*-device.md` 与 `*-device.json` device profile；Rokid JSON 会被分析 ADB、target package、XR/OpenXR runtime 包、camera/Vulkan/XR feature 和 Rokid 硬件匹配风险。临时调试可用 `--allow-missing-device-profile` 降级为 warning，但不能作为 C00 可发表结果。
 
 ## 参考原则
 

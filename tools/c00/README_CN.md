@@ -242,15 +242,27 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 ```text
 releases/phase_0_smoke/evidence/rokid-<timestamp>-device.md
 releases/phase_0_smoke/evidence/rokid-<timestamp>-device.json
+releases/phase_0_smoke/evidence/rokid-<timestamp>-device-analysis.md
 ```
 
-设备画像会记录 `getprop` 设备型号和系统版本、`wm size/density`、target package 的安装和权限状态、XR/OpenXR/ARCore/Rokid 相关包，以及 camera/Vulkan/XR/VR 相关 feature。多设备连接时可设置 `ADB_SERIAL=<serial>`。
+设备画像会记录 `getprop` 设备型号和系统版本、`wm size/density`、target package 的安装和权限状态、XR/OpenXR/ARCore/Rokid 相关包，以及 camera/Vulkan/XR/VR 相关 feature。分析报告会把 ADB、目标包安装、runtime 包、camera/Vulkan/XR feature、Rokid 硬件匹配等风险分成 failure/warning。多设备连接时可设置 `ADB_SERIAL=<serial>`。
 
 也可以单独采集：
 
 ```bash
 node tools/c00/collect_android_device_profile.js --gate rokid --package org.godotengine.godotxrfoundation --report releases/phase_0_smoke/evidence/rokid-device.md
 ```
+
+也可以对已有 profile JSON 单独分析：
+
+```bash
+node tools/c00/analyze_android_device_profile.js \
+  --gate rokid \
+  --json releases/phase_0_smoke/evidence/rokid-<timestamp>-device.json \
+  --report releases/phase_0_smoke/evidence/rokid-<timestamp>-device-analysis.md
+```
+
+默认情况下，Rokid/OpenXR runtime 包名未知只会 warning；最终 AR 产品通过仍以 `GXF_SMOKE` 的 `backend:"OpenXR"`、`capabilities.ar_product_path:true` 和 `openxr_ar_tier` 为准。若设备机已经确定 runtime 包名规则，可加 `--strict-runtime-package` 把缺失 runtime 包提升为 failure。
 
 Rokid 默认严格要求：
 
@@ -410,7 +422,7 @@ releases/phase_0_smoke/C00_PHASE_REPORT.md
 
 - 最新 `rokid-*.log` 通过 OpenXR AR gate。
 - 最新 `rokid-*.png` 和 `rokid-*.mp4` 都存在。
-- 最新 `rokid-*-device.md` 和 `rokid-*-device.json` 都存在，且 JSON 可解析。
+- 最新 `rokid-*-device.md` 和 `rokid-*-device.json` 都存在，且 JSON 可解析；聚合 gate 会分析 ADB、target package、XR/OpenXR runtime 包、camera/Vulkan/XR feature 和 Rokid 硬件匹配风险。
 - 最新 `ipad-*.log` 通过 ARKit gate。
 - 最新 `ipad-*.png`、`ipad-*.mp4` 或显式 `--ipad-manual-media` 至少一个存在。
 - 最新 `ipad-*-device.md` 和 `ipad-*-device.json` 都存在，且 JSON 可解析。
