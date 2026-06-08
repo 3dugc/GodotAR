@@ -30,6 +30,30 @@ GODOT_BIN=/Applications/Godot.app/Contents/MacOS/Godot tools/c00/preflight.sh
 tools/c00/EXPORT_PRESETS_CN.md
 ```
 
+## 一键执行
+
+设备机上优先用 spec runner：
+
+```bash
+tools/c00/run_device_cycle.sh rokid
+```
+
+```bash
+GODOT_SOURCE_DIR=/path/to/godot \
+DEVICE=<ipad-uuid-or-name> \
+APP_PATH=builds/ipad/GodotXRFoundation.app \
+tools/c00/run_device_cycle.sh ipad
+```
+
+`all` 会按 iPad/ARKit、Rokid/OpenXR 顺序执行；如需同时跑 Android ARCore，增加 `INCLUDE_ANDROID_ARCORE=1`。
+
+```bash
+GODOT_SOURCE_DIR=/path/to/godot \
+DEVICE=<ipad-uuid-or-name> \
+APP_PATH=builds/ipad/GodotXRFoundation.app \
+tools/c00/run_device_cycle.sh all
+```
+
 ## 插件优先边界
 
 C00 不修改 Godot 主干。
@@ -74,6 +98,12 @@ XRFoundation.start_session(XRFoundationTypes.Backend.OPENXR, {
 自动采集和验证：
 
 ```bash
+tools/c00/run_device_cycle.sh rokid
+```
+
+底层脚本：
+
+```bash
 APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godotengine.godotxrfoundation 30
 ```
 
@@ -99,6 +129,12 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - `singleton_registered=false` 且 `interface_registered=false`：检查 `.gdip`、`.xcframework`、Xcode linking、iOS plugin singleton 名称。
 
 自动采集和验证：
+
+```bash
+GODOT_SOURCE_DIR=/path/to/godot APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/run_device_cycle.sh ipad <device>
+```
+
+底层脚本：
 
 ```bash
 APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <device> org.godotengine.godotxrfoundation 30

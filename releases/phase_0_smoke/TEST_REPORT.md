@@ -28,6 +28,7 @@ Codex implementation status:
 - `NativeXRProvider` now detects native provider singletons through `Engine.has_singleton(...)` and merges their availability/capability reports.
 - `ios/plugins/godot_arkit` now contains a first-party ARKit iOS plugin skeleton that registers `GodotARKit` as a Godot `Engine` singleton.
 - `ios/plugins/godot_arkit/build_xcframework.sh` now builds the ARKit iOS plugin artifacts when `GODOT_SOURCE_DIR` points to matching Godot source headers.
+- `tools/c00/run_device_cycle.sh` now orchestrates preflight, optional ARKit plugin build, Godot export, device log collection, and gate validation for iPad/ARKit and Rokid/OpenXR.
 
 Hardware status:
 
@@ -46,6 +47,7 @@ Hardware status:
 | Synthetic Rokid AR gate | Pass | `backend:"OpenXR"`, `ar_product_path:true` |
 | Synthetic Rokid OpenXR-only strict gate | Fail as expected | `ar_product_path:false` is not accepted as AR product pass |
 | `ios/plugins/godot_arkit/build_xcframework.sh --help` | Pass | Documents required Godot source header path and outputs |
+| `tools/c00/run_device_cycle.sh --help` | Pass | Documents iPad/Rokid full gate execution |
 | `tools/c00/preflight.sh` | Blocked by host prerequisites | Missing `godot`, `adb`, `GodotARKit.gdip`, and `GodotARKit.xcframework`; `node` and `xcrun` available |
 
 ## Device Evidence

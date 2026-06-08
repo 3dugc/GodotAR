@@ -2,8 +2,43 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+GATE="${1:-all}"
 
 status=0
+
+usage() {
+	cat <<EOF
+Usage:
+  tools/c00/preflight.sh [all|editor|rokid|ipad|android-arcore]
+
+Default: all
+EOF
+}
+
+case "$GATE" in
+	all|editor|rokid|ipad|android-arcore)
+		;;
+	-h|--help)
+		usage
+		exit 0
+		;;
+	*)
+		usage >&2
+		exit 2
+		;;
+esac
+
+needs_android_tools() {
+	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ] || [ "$GATE" = "android-arcore" ]
+}
+
+needs_ios_tools() {
+	[ "$GATE" = "all" ] || [ "$GATE" = "ipad" ]
+}
+
+needs_openxr() {
+	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ]
+}
 
 check_command() {
 	local name="$1"
@@ -42,6 +77,7 @@ check_dir() {
 
 printf "C00 device smoke preflight\n"
 printf "Project: %s\n\n" "$PROJECT_ROOT"
+printf "Gate: %s\n\n" "$GATE"
 
 check_command node "required for tools/c00/validate_smoke_log.js"
 if [ -n "${GODOT_BIN:-}" ] && [ -x "$GODOT_BIN" ]; then
@@ -49,22 +85,26 @@ if [ -n "${GODOT_BIN:-}" ] && [ -x "$GODOT_BIN" ]; then
 else
 	check_command godot "required for command-line export/import validation; set GODOT_BIN if using an app bundle"
 fi
-check_command adb "required for Rokid/Android log collection"
-check_command xcrun "required for iPad install/launch through Xcode tools"
+if needs_android_tools; then
+	check_command adb "required for Rokid/Android log collection"
+fi
+if needs_ios_tools; then
+	check_command xcrun "required for iPad install/launch through Xcode tools"
+fi
 
 printf "\nPlugin landing zones\n"
-for dir in "$PROJECT_ROOT/android/plugins" "$PROJECT_ROOT/ios/plugins"; do
-	if [ -d "$dir" ]; then
-		printf "OK   %s\n" "$dir"
-	else
-		printf "MISS %s\n" "$dir"
-		status=1
-	fi
-done
+if needs_android_tools; then
+	check_dir "$PROJECT_ROOT/android/plugins" "required for Android/Rokid native plugin placement"
+fi
+if needs_ios_tools; then
+	check_dir "$PROJECT_ROOT/ios/plugins" "required for iOS native plugin placement"
+fi
 
-printf "\nNative plugin artifacts\n"
-check_file "$PROJECT_ROOT/ios/plugins/godot_arkit/GodotARKit.gdip" "required for the iPad/ARKit gate; run ios/plugins/godot_arkit/build_xcframework.sh"
-check_dir "$PROJECT_ROOT/ios/plugins/godot_arkit/GodotARKit.xcframework" "required for the iPad/ARKit gate; run ios/plugins/godot_arkit/build_xcframework.sh"
+if needs_ios_tools; then
+	printf "\nNative plugin artifacts\n"
+	check_file "$PROJECT_ROOT/ios/plugins/godot_arkit/GodotARKit.gdip" "required for the iPad/ARKit gate; run ios/plugins/godot_arkit/build_xcframework.sh"
+	check_dir "$PROJECT_ROOT/ios/plugins/godot_arkit/GodotARKit.xcframework" "required for the iPad/ARKit gate; run ios/plugins/godot_arkit/build_xcframework.sh"
+fi
 
 printf "\nGodot project checks\n"
 if [ -f "$PROJECT_ROOT/project.godot" ]; then
@@ -81,11 +121,13 @@ else
 	status=1
 fi
 
-if grep -q 'openxr/enabled=true' "$PROJECT_ROOT/project.godot"; then
-	printf "OK   OpenXR is enabled\n"
-else
-	printf "MISS OpenXR is not enabled in project.godot\n"
-	status=1
+if needs_openxr; then
+	if grep -q 'openxr/enabled=true' "$PROJECT_ROOT/project.godot"; then
+		printf "OK   OpenXR is enabled\n"
+	else
+		printf "MISS OpenXR is not enabled in project.godot\n"
+		status=1
+	fi
 fi
 
 printf "\nResult: "

@@ -8,6 +8,14 @@
 tools/c00/preflight.sh
 ```
 
+也可以按 gate 检查：
+
+```bash
+tools/c00/preflight.sh rokid
+tools/c00/preflight.sh ipad
+tools/c00/preflight.sh android-arcore
+```
+
 检查：
 
 - `node`：运行日志 validator。
@@ -24,6 +32,37 @@ iPad/ARKit gate 前先构建插件：
 ```bash
 GODOT_SOURCE_DIR=/path/to/godot ios/plugins/godot_arkit/build_xcframework.sh
 ```
+
+## 一键执行 Gate
+
+设备机上优先使用：
+
+```bash
+tools/c00/run_device_cycle.sh rokid
+```
+
+```bash
+GODOT_SOURCE_DIR=/path/to/godot \
+DEVICE=<ipad-uuid-or-name> \
+APP_PATH=builds/ipad/GodotXRFoundation.app \
+tools/c00/run_device_cycle.sh ipad
+```
+
+完整 C00 主线：
+
+```bash
+GODOT_SOURCE_DIR=/path/to/godot \
+DEVICE=<ipad-uuid-or-name> \
+APP_PATH=builds/ipad/GodotXRFoundation.app \
+tools/c00/run_device_cycle.sh all
+```
+
+常用开关：
+
+- `RUN_EXPORT=0`：跳过 Godot 导出，直接采集已安装应用。
+- `RUN_COLLECT=0`：只做预检和导出。
+- `BUILD_ARKIT_PLUGIN=0`：跳过 ARKit 插件构建。
+- `INCLUDE_ANDROID_ARCORE=1`：`all` 模式额外跑 Android ARCore gate。
 
 ## Rokid / Android 日志采集
 
