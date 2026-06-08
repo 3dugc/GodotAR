@@ -68,6 +68,7 @@ C00 keeps the compatibility layer intentionally thin: it copies the Unity naming
 - `ARSession.notTrackingReason()` maps the current Godot/XR tracking status to `XRFoundationTypes.NotTrackingReason`.
 - Manager changed events use list payloads like Unity: `planes_changed(added, updated, removed)` and `anchors_changed(added, updated, removed)`.
 - Screen-space raycast needs a `Camera3D` argument because Godot does not have Unity's implicit active AR camera.
+- Native ARKit/ARCore singleton bridges can return anchor dictionaries; `NativeXRProvider` preserves `trackable_id`, `persistent_id`, `transform`, and `tracking_state` through `ARAnchor.from_dictionary()`.
 - `match_frame_rate_requested` is surfaced as a migration option now; actual native frame pacing should be implemented in the ARKit/ARCore/OpenXR providers when those SDK bridges expose preferred frame timing.
 
 Static API surface gate:

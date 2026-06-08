@@ -110,6 +110,7 @@ demo/00_device_smoke_test.tscn
 - `XRHit.get_pose()`
 - `ARAnchorManager.TryAddAnchorAsync(...)`
 - `ARAnchorManager.TryRemoveAnchor(...)`
+- `ARAnchor.from_dictionary(...)`
 - `ARAnchorManager.anchors_changed(added, updated, removed)`
 - `ARPlaneManager.planes_changed(added, updated, removed)`
 - `ARPlaneManager.GetTrackables()`
@@ -120,6 +121,7 @@ demo/00_device_smoke_test.tscn
 - `XRFoundation.get_capabilities()`
 - `XRFoundation.get_provider_name()`
 - `XRFoundation.get_tracking_state_name()`
+- `NativeXRProvider` preserves native anchor dictionary ids and persistent ids from ARKit/ARCore singleton bridges.
 - `tools/c00/bootstrap_device_machine.sh`
 - `tools/c00/validate_smoke_log.js`
 - `tools/c00/validate_evidence_bundle.js`

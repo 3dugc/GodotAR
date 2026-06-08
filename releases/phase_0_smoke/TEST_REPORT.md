@@ -32,6 +32,7 @@ Codex implementation status:
 - Unity-style `ARSession.notTrackingReason`, `requestedTrackingMode`, and `matchFrameRateRequested` compatibility surface added.
 - Unity-style migration helpers added for placement workflows: `ARRaycastManager.TryRaycast`, `ARRaycastManager.RaycastToList`, `ARRaycastManager.TryScreenRaycast`, `XRHit.get_pose()`, `ARAnchorManager.TryAddAnchorAsync`, and `ARAnchorManager.TryRemoveAnchor`.
 - `ARPlaneManager.planes_changed` and `ARAnchorManager.anchors_changed` list-style events added for Unity manager migration.
+- `NativeXRProvider` now preserves native anchor dictionary ids and persistent ids from ARKit/ARCore singleton bridges instead of replacing them with generated ids.
 - `tools/c00/check_arfoundation_api_surface.js` now guards the migration API surface without requiring a Godot binary.
 - EditorSim/simulator gate added for local ARFoundation-style API validation through `--xr-platform=simulator`; it does not replace Rokid/iPad device gates.
 - iOS Simulator and Android Emulator are documented as auxiliary cycle outputs for export/startup/log validation only; they cannot satisfy the C00 ARKit/OpenXR publish gate.

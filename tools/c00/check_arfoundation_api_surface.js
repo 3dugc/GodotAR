@@ -83,6 +83,22 @@ const checks = [
 		],
 	},
 	{
+		file: "addons/godot_xr_foundation/scripts/ar_anchor.gd",
+		requirements: [
+			["anchor dictionary conversion", /static\s+func\s+from_dictionary\s*\(/],
+			["anchor persistent id mapping", /persistent_id\s*=\s*StringName\(data\.get\("persistent_id"/],
+			["anchor dictionary export", /func\s+to_dictionary\s*\(\)\s*->\s*Dictionary/],
+		],
+	},
+	{
+		file: "addons/godot_xr_foundation/scripts/providers/native_xr_provider.gd",
+		requirements: [
+			["native anchor conversion call", /return\s+_convert_anchor\(raw,\s*transform\)/],
+			["native anchor conversion helper", /func\s+_convert_anchor\s*\(/],
+			["native anchor dictionary preservation", /ARAnchor\.from_dictionary\(data\)/],
+		],
+	},
+	{
 		file: "MIGRATION_UNITY.md",
 		requirements: [
 			["ARSession.state migration row", /ARSession\.state/],

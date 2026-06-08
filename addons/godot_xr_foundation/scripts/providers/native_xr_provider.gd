@@ -160,8 +160,7 @@ func create_anchor(transform: Transform3D, attached_trackable: ARTrackable = nul
 		for method in ["create_anchor", "add_anchor"]:
 			if plugin_singleton.has_method(method):
 				var raw: Variant = plugin_singleton.call(method, transform, attached_trackable)
-				var anchor := ARAnchor.new(_make_id(&"native_anchor"), transform, raw)
-				return anchor
+				return _convert_anchor(raw, transform)
 	return super.create_anchor(transform, attached_trackable)
 
 
@@ -245,6 +244,19 @@ func _convert_planes(raw: Variant) -> Array[ARPlane]:
 	elif raw is Dictionary:
 		planes.append(_plane_from_dictionary(raw))
 	return planes
+
+
+func _convert_anchor(raw: Variant, fallback_transform: Transform3D) -> ARAnchor:
+	if raw is ARAnchor:
+		return raw
+	if raw is Dictionary:
+		var data: Dictionary = raw.duplicate()
+		if not data.has("trackable_id") and not data.has("id") and not data.has("anchor_id"):
+			data["trackable_id"] = _make_id(&"native_anchor")
+		if not data.has("transform") and not data.has("pose"):
+			data["transform"] = fallback_transform
+		return ARAnchor.from_dictionary(data)
+	return ARAnchor.new(_make_id(&"native_anchor"), fallback_transform, raw)
 
 
 func _plane_from_dictionary(data: Dictionary) -> ARPlane:
