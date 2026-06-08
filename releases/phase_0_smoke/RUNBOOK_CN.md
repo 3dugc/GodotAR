@@ -214,6 +214,7 @@ tools/c00/collect_editor_smoke.sh 15
 ```
 
 模拟器会通过 `--xr-platform=simulator` 选择 `EditorSim` backend，提供模拟 floor plane、raycast、anchor 和 tracking。它可以作为开发 gate，但不能替代 Rokid/OpenXR 或 iPad/ARKit 真机通过标准。
+默认收集脚本会优先使用项目内 `.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot`，并以 `--headless --xr-mode off --xr-platform=simulator` 运行，避免没有本机 OpenXR runtime 时卡在 Godot 原生 XR 初始化。需要 GUI 演示时设置 `EDITOR_HEADLESS=0`。
 C00 demo 同时包含 XRI-style `XRInteractionManager`、camera `XRRayInteractor` 和 `XRGrabInteractable`；`GXF_SMOKE` 的 `xri` 字段用于记录交互层是否被加载、ray 是否命中、hover/select 计数。它证明 Unity XRI 迁移入口可运行，但不替代 ARKit/OpenXR 真机 tracking gate。
 
 iOS Simulator 和 Android Emulator 也可以作为周期内的辅助成果：它们用于验证导出链路、app 启动、日志格式，以及 iOS `.xcframework` 是否包含 simulator slice。它们不能证明真实 ARKit/OpenXR AR tracking，因此不能让 C00 发布门禁通过。

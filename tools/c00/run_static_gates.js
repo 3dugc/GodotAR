@@ -39,6 +39,11 @@ const checks = [
 		required: true,
 	},
 	{
+		name: "EditorSim collector surface",
+		command: ["node", "tools/c00/check_editor_smoke_surface.js"],
+		required: true,
+	},
+	{
 		name: "Device dependency bundle surface",
 		command: ["node", "tools/c00/check_device_dependency_bundle_surface.js"],
 		required: true,

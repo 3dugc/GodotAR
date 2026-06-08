@@ -45,12 +45,12 @@ func on_select_enter(interactor: Node) -> void:
 		return
 	selected_by = interactor
 	_original_parent = get_parent()
+	var preserved_global_transform := global_transform
 	if reparent_on_grab and interactor:
-		var global := global_transform
 		get_parent().remove_child(self)
 		interactor.add_child(self)
 	if keep_global_transform:
-		global_transform = global
+		global_transform = preserved_global_transform
 	select_entered.emit(interactor)
 	selectEntered.emit(interactor)
 	firstSelectEntered.emit(interactor)
@@ -59,12 +59,12 @@ func on_select_enter(interactor: Node) -> void:
 func on_select_exit(interactor: Node) -> void:
 	if selected_by != interactor:
 		return
-	var global := global_transform
+	var preserved_global_transform := global_transform
 	if reparent_on_grab and _original_parent:
 		get_parent().remove_child(self)
 		_original_parent.add_child(self)
 		if keep_global_transform:
-			global_transform = global
+			global_transform = preserved_global_transform
 	selected_by = null
 	_original_parent = null
 	select_exited.emit(interactor)

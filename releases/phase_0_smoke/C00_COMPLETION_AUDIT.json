@@ -1,0 +1,88 @@
+{
+  "pass": true,
+  "phaseReady": false,
+  "status": "PARTIAL",
+  "generatedAt": "2026-06-08T15:44:45.454Z",
+  "projectRoot": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR",
+  "evidenceDir": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/evidence",
+  "reportPath": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/C00_PHASE1_AUDIT_LOCAL.md",
+  "jsonPath": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/C00_COMPLETION_AUDIT.json",
+  "skipPreflight": true,
+  "skipEvidence": true,
+  "failures": [],
+  "warnings": [],
+  "checks": [
+    {
+      "id": "static-gates",
+      "group": "static",
+      "title": "C00 static gates",
+      "required": true,
+      "command": "node tools/c00/run_static_gates.js --gate all --format json",
+      "status": "PASS",
+      "exitCode": 0,
+      "summary": "All code/static/API/export-surface gates pass.",
+      "nextAction": "",
+      "outputPreview": "{\n  \"pass\": true,\n  \"gate\": \"all\",\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"warnings\": [],\n  \"results\": [\n    {\n      \"name\": \"node --check tools/c00/analyze_android_device_profile.js\",\n      \"status\": \"PASS\",\n      \"command\": \"node --check tools/c00/analyze_android_device_profile.js\",\n      \"output\": \"\"\n    },\n    {\n      \"name\": \"node --check tools/c00/analyze_ios_device_profile.js\",\n      \"status\": \"PASS\",\n      \"command\": \"node --check tools/c00/analyze_ios_device_profile.js\",\n      \"output\": \"\"\n    },\n    {\n      \"name\": \"node --check tools/c00/audit_phase1_completion.js\",\n      \"status\": \"PASS\",\n      \"command\": \"node --check tools/c00/audit_phase1_completion.js\",\n      \"output\": \"\"\n    },\n    {\n      \"name\": \"node --check tools/c00/check_android_arcore_plugin_surface.js\",\n      \"status\": \"PASS\",\n... (407 more lines)"
+    },
+    {
+      "id": "arfoundation-api",
+      "group": "unity-migration",
+      "title": "ARFoundation migration API surface",
+      "required": true,
+      "command": "node tools/c00/check_arfoundation_api_surface.js",
+      "status": "PASS",
+      "exitCode": 0,
+      "summary": "Unity-style ARSession, raycast, trackables, and changed-event facades are present.",
+      "nextAction": "",
+      "outputPreview": "{\n  \"pass\": true,\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"evidence\": [\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xr_foundation_types.gd\",\n      \"exists\": true,\n      \"passed\": 9,\n      \"total\": 9\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xr_foundation.gd\",\n      \"exists\": true,\n      \"passed\": 5,\n      \"total\": 5\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/providers/xr_provider.gd\",\n      \"exists\": true,\n      \"passed\": 2,\n      \"total\": 2\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/arfoundation/xr_session_manager.gd\",\n      \"exists\": true,\n      \"passed\": 6,\n      \"total\": 6\n... (57 more lines)"
+    },
+    {
+      "id": "xri-api",
+      "group": "unity-migration",
+      "title": "XRI interaction API surface",
+      "required": true,
+      "command": "node tools/c00/check_xri_api_surface.js",
+      "status": "PASS",
+      "exitCode": 0,
+      "summary": "Unity XRI-style manager/ray/interactable smoke surface is present.",
+      "nextAction": "",
+      "outputPreview": "{\n  \"pass\": true,\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"evidence\": [\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xri/xr_interaction_manager.gd\",\n      \"exists\": true,\n      \"passed\": 14,\n      \"total\": 14\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xri/xr_ray_interactor.gd\",\n      \"exists\": true,\n      \"passed\": 13,\n      \"total\": 13\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xri/xr_grab_interactable.gd\",\n      \"exists\": true,\n      \"passed\": 12,\n      \"total\": 12\n    },\n    {\n      \"file\": \"demo/00_device_smoke_test.tscn\",\n      \"exists\": true,\n      \"passed\": 3,\n      \"total\": 3\n... (9 more lines)"
+    },
+    {
+      "id": "arkit-binary",
+      "group": "ios",
+      "title": "GodotARKit plugin binary artifacts",
+      "required": true,
+      "command": "node tools/c00/check_ios_plugin_artifacts.js --require-binary",
+      "status": "PASS",
+      "exitCode": 0,
+      "summary": "GodotARKit.gdip and GodotARKit.xcframework are built and usable by Godot iOS export.",
+      "nextAction": "",
+      "outputPreview": "{\n  \"pass\": true,\n  \"file\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/ios/plugins/godot_arkit/GodotARKit.gdip\",\n  \"pluginDir\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/ios/plugins/godot_arkit\",\n  \"requireBinary\": true,\n  \"failures\": [],\n  \"warnings\": [],\n  \"config\": {\n    \"name\": \"GodotARKit\",\n    \"binary\": \"GodotARKit.xcframework\",\n    \"initialization\": \"init_godot_arkit\",\n    \"deinitialization\": \"deinit_godot_arkit\"\n  },\n  \"dependencies\": {\n    \"linked\": [],\n    \"embedded\": [],\n    \"system\": [\n      \"Foundation.framework\",\n      \"UIKit.framework\",\n      \"ARKit.framework\",\n      \"CoreMotion.framework\",\n      \"Metal.framework\"\n    ],\n    \"capabilities\": [\n      \"arkit\",\n      \"metal\"\n    ],\n    \"files\": [],\n... (18 more lines)"
+    },
+    {
+      "id": "openxr-surface",
+      "group": "rokid-openxr",
+      "title": "Rokid/OpenXR provider evidence surface",
+      "required": true,
+      "command": "node tools/c00/check_openxr_provider_surface.js",
+      "status": "PASS",
+      "exitCode": 0,
+      "summary": "OpenXR AR evidence, passthrough report, and virtual-plane fallback diagnostics are guarded.",
+      "nextAction": "",
+      "outputPreview": "{\n  \"pass\": true,\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"evidence\": [\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/providers/openxr_provider.gd\",\n      \"exists\": true,\n      \"passed\": 23,\n      \"total\": 23\n    },\n    {\n      \"file\": \"tools/c00/validate_smoke_log.js\",\n      \"exists\": true,\n      \"passed\": 2,\n      \"total\": 2\n    },\n    {\n      \"file\": \"tools/c00/verify_phase_evidence.js\",\n      \"exists\": true,\n      \"passed\": 2,\n      \"total\": 2\n    }\n  ]\n}"
+    },
+    {
+      "id": "arcore-surface",
+      "group": "android-arcore",
+      "title": "Android ARCore plugin and gate surface",
+      "required": true,
+      "command": "node tools/c00/check_arcore_gate_surface.js",
+      "status": "PASS",
+      "exitCode": 0,
+      "summary": "ARCore gate requires explicit native ARCore runtime/capability evidence.",
+      "nextAction": "",
+      "outputPreview": "{\n  \"pass\": true,\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"evidence\": [\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/providers/native_xr_provider.gd\",\n      \"exists\": true,\n      \"passed\": 2,\n      \"total\": 2\n    },\n    {\n      \"file\": \"tools/c00/validate_smoke_log.js\",\n      \"exists\": true,\n      \"passed\": 3,\n      \"total\": 3\n    },\n    {\n      \"file\": \"tools/c00/verify_phase_evidence.js\",\n      \"exists\": true,\n      \"passed\": 3,\n      \"total\": 3\n    },\n    {\n      \"file\": \"tools/c00/run_device_cycle.sh\",\n      \"exists\": true,\n      \"passed\": 3,\n      \"total\": 3\n... (9 more lines)"
+    }
+  ]
+}

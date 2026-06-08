@@ -10,7 +10,7 @@ Scene: `res://demo/00_device_smoke_test.tscn`
 
 | Gate | Required backend | Result | Evidence |
 | --- | --- | --- | --- |
-| Editor smoke | EditorSim | Pending local Godot run | Screenshot/log |
+| Editor smoke | EditorSim | Pass | `releases/phase_0_smoke/evidence/editor-20260608-233913.md` |
 | iOS Simulator development gate | EditorSim | Pending simulator app run | Simulator log/screenshot |
 | Rokid AR gate | OpenXR | Pending device run | Screenshot/log |
 | iPad AR gate | ARKit | Pending device run | Screenshot/log |
@@ -36,6 +36,8 @@ Codex implementation status:
 - `NativeXRProvider` now preserves native anchor dictionary ids and persistent ids from ARKit/ARCore singleton bridges instead of replacing them with generated ids.
 - `tools/c00/check_arfoundation_api_surface.js` now guards the migration API surface without requiring a Godot binary.
 - EditorSim/simulator gate added for local ARFoundation-style API validation through `--xr-platform=simulator`; it does not replace Rokid/iPad/Android ARCore device gates.
+- Local EditorSim now runs through project-local Godot with `--headless --xr-mode off --xr-platform=simulator`, producing clean ARFoundation/XRI smoke evidence even when the macOS machine has no active OpenXR runtime.
+- `validate_smoke_log.js` and `verify_phase_evidence.js` now reject Godot `SCRIPT ERROR`, parse, compile, and failed script load lines, so a scene with broken migration scripts cannot pass by printing partial `GXF_SMOKE`.
 - iOS Simulator and Android Emulator are documented as auxiliary cycle outputs for export/startup/log validation only; they cannot satisfy the C00 ARKit/OpenXR publish gate.
 - `tools/c00/collect_ios_simulator_smoke.sh` and `tools/c00/run_device_cycle.sh ios-simulator` now provide a runnable iOS Simulator development gate that expects `backend:"EditorSim"` and validates the iOS export/startup/log path before iPad hardware.
 - Godot plugin-first boundary documented. No Godot engine patch is used in C00.
@@ -128,7 +130,7 @@ Hardware status:
 - `export_presets.cfg` is now loadable by Godot itself; `preset.0`, `preset.1`, and `preset.2` resolve to Rokid/OpenXR, Android ARCore, and iPad/ARKit respectively.
 - Real iPad export reached Godot's export-configuration gate and is currently blocked by missing official export template `~/Library/Application Support/Godot/export_templates/4.4.1.stable/ios.zip`.
 - Real Rokid export reached Godot's export-configuration gate and is currently blocked by missing official `android_source.zip`, missing project Android build template, missing Android SDK build-tools / `apksigner`, missing real JDK, and missing debug keystore configuration.
-- Attempts to download `Godot_v4.4.1-stable_export_templates.tpz`, Android command line tools, and Temurin OpenJDK 17 on 2026-06-08 reached the official hosts but ended with `curl: (18) Transferred a partial file` in this environment. The installer scripts now use resumable `curl -L --fail -C -`, so rerunning `tools/c00/install_godot_export_templates.sh --download`, `tools/c00/install_openjdk17.sh --download`, and `tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes` can continue on a better network.
+- Attempts to download `Godot_v4.4.1-stable_export_templates.tpz`, Android command line tools, and Temurin OpenJDK 17 on 2026-06-08 reached the official hosts but are too slow/partial in this environment. `tools/c00/install_godot_export_templates.sh --download` resumed the export templates file to 19 MB before being stopped intentionally; rerunning the installer commands will continue from the partial files because they use `curl -L --fail -C -`.
 - Offline device-machine setup is still supported through `tools/c00/import_device_dependency_bundle.sh --bundle <device-bundle-dir>`. Put `Godot_v4.4.1-stable_export_templates.tpz`, Android SDK `platform-tools`/`build-tools`, a real JDK, optional `Godot.app`, and optional `godot-source` into the bundle, then run `source .godot/cache/c00/device-env.sh` before preflight.
 - No Rokid/Android device is currently attached through ADB. The detected `iPad M4` is currently reported by `devicectl` as `unavailable`.
 - Do not mark this report as passed until the device evidence below is filled.
@@ -230,6 +232,8 @@ Hardware status:
 | Synthetic evidence bundle gates | Pass | Rokid requires screenshot + video; iPad accepts manual media |
 | Synthetic C00 phase evidence gate | Pass | Aggregate report passes with Rokid + iPad + Android ARCore evidence and fails on empty evidence |
 | Synthetic EditorSim gate | Pass | `backend:"EditorSim"` validates without media evidence |
+| Local EditorSim collector | Pass | `run_device_cycle.sh editor` produced `releases/phase_0_smoke/evidence/editor-20260608-233913.md` with `scriptErrors: []`, one simulated plane, center raycast hit, and XRI manager/ray/grab evidence |
+| Smoke script-error guard | Pass | `validate_smoke_log.js` rejects the earlier broken EditorSim log when Godot reports `SCRIPT ERROR` / parse / compile failures |
 | Synthetic iOS Simulator gate | Pass | `validate_smoke_log.js --gate ios-simulator` accepts `backend:"EditorSim"` as development evidence |
 | Synthetic iOS Simulator vs iPad boundary | Fail as expected | The same `EditorSim` log fails `--gate ipad` with `Expected backend ARKit` |
 | Synthetic Rokid OpenXR-only strict gate | Fail as expected | `ar_product_path:false` is not accepted as AR product pass |

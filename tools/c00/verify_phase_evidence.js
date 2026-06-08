@@ -428,12 +428,17 @@ function validateSmokeLog(gate, logPath) {
 
 	const events = extractSmokeEvents(text);
 	const result = evaluateSmokeEvents(events, gate);
+	const scriptErrors = extractScriptErrors(text);
+	if (scriptErrors.length > 0) {
+		result.failures.push(`${scriptErrors.length} Godot script/runtime error line(s) found in smoke log.`);
+	}
 	return {
 		failures: result.failures,
 		warnings: result.warnings,
 		summary: {
 			log: logPath,
 			events: events.length,
+			scriptErrors,
 			selectedEvidence: result.evidence,
 			runtimeMetadata: result.evidence && result.evidence.runtime ? result.evidence.runtime : null,
 		},
@@ -460,6 +465,20 @@ function extractSmokeEvents(text) {
 		}
 	}
 	return events;
+}
+
+
+function extractScriptErrors(text) {
+	const patterns = [
+		/SCRIPT ERROR:/,
+		/Parse Error:/,
+		/Compile Error:/,
+		/Compilation failed/,
+		/Failed to load script/,
+	];
+	return text.split(/\r?\n/)
+		.filter((line) => patterns.some((pattern) => pattern.test(line)))
+		.slice(0, 20);
 }
 
 
@@ -828,6 +847,17 @@ function renderMarkdown(summary) {
 			}
 		} else {
 			lines.push("- None");
+		}
+		lines.push("");
+		lines.push("### Script Errors");
+		lines.push("");
+		const scriptErrors = gateSummary.smoke ? gateSummary.smoke.scriptErrors || [] : [];
+		if (scriptErrors.length === 0) {
+			lines.push("- None");
+		} else {
+			for (const errorLine of scriptErrors) {
+				lines.push(`- ${errorLine}`);
+			}
 		}
 		lines.push("");
 		lines.push("### Selected Smoke Evidence");

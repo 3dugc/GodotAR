@@ -40,6 +40,7 @@ const checks = [
 			["Android ARCore launch platform aliases", /return\s+\["arcore",\s*"handheld",\s*"handheld_ar",\s*"phone",\s*"mobile_ar"\]/],
 			["XR platform arg parsing", /parseXrPlatformArgs/],
 			["trackables evidence requirement", /Trackables metadata is missing from GXF_SMOKE evidence/],
+			["script error rejection", /Godot script\/runtime error line\(s\) found in smoke log/],
 		],
 	},
 	{
@@ -51,6 +52,7 @@ const checks = [
 			["aggregate Android ARCore launch platform aliases", /return\s+\["arcore",\s*"handheld",\s*"handheld_ar",\s*"phone",\s*"mobile_ar"\]/],
 			["aggregate XR platform arg parsing", /parseXrPlatformArgs/],
 			["aggregate trackables evidence requirement", /Trackables metadata is missing from GXF_SMOKE evidence/],
+			["aggregate script error rejection", /Godot script\/runtime error line\(s\) found in smoke log/],
 		],
 	},
 	{

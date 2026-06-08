@@ -1,6 +1,8 @@
 extends Node
 class_name ARPlaneManager
 
+const ARTrackablesChangedEventArgs := preload("res://addons/godot_xr_foundation/scripts/ar_trackables_changed_event_args.gd")
+
 signal plane_added(plane: ARPlane)
 signal plane_updated(plane: ARPlane)
 signal plane_removed(trackable_id: StringName)

@@ -1,6 +1,8 @@
 extends Node
 class_name ARAnchorManager
 
+const ARTrackablesChangedEventArgs := preload("res://addons/godot_xr_foundation/scripts/ar_trackables_changed_event_args.gd")
+
 signal anchor_added(anchor: ARAnchor)
 signal anchor_removed(anchor: ARAnchor)
 signal anchors_changed(added: Array, updated: Array, removed: Array)

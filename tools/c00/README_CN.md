@@ -462,6 +462,7 @@ tools/c00/collect_editor_smoke.sh 15
 ```
 
 它会用 `--xr-platform=simulator` 启动 Godot，并要求日志通过 `backend:"EditorSim"` gate。模拟器 gate 只能证明上层 ARFoundation-style API、raycast、anchor、plane 和日志链路可用，不能替代 Rokid/OpenXR 或 iPad/ARKit 真机 gate。
+默认采集脚本会优先使用 `.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot`，并以 `--headless --xr-mode off --xr-platform=simulator` 运行。这样本机没有 OpenXR runtime 时也能稳定跑 EditorSim；需要手动 GUI 演示时可设置 `EDITOR_HEADLESS=0`。
 C00 demo 还包含一个 XRI-style `XRInteractionManager`、camera `XRRayInteractor` 和 `XRGrabInteractable`，日志中的 `xri` 字段会记录 manager/ray/interactable 是否存在以及 hover/select 计数。
 
 iOS Simulator 和 Android Emulator 可以作为补充：用于验证导出链路、app 启动、日志格式、以及 iOS `.xcframework` simulator slice 是否存在。它们不具备真实 ARKit/OpenXR AR tracking 证据，不能作为 C00 发表通过标准。

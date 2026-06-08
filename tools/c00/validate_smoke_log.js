@@ -18,6 +18,12 @@ const reportPath = args.report ? path.resolve(args.report) : "";
 const text = fs.readFileSync(logPath, "utf8");
 const events = extractSmokeEvents(text);
 const result = evaluateGate(events, gate, { allowOpenXRWithoutARBlend });
+const scriptErrors = extractScriptErrors(text);
+if (scriptErrors.length > 0) {
+	result.failures.push(`${scriptErrors.length} Godot script/runtime error line(s) found in smoke log.`);
+	result.scriptErrors = scriptErrors;
+	result.pass = false;
+}
 
 const summary = {
 	gate,
@@ -25,6 +31,7 @@ const summary = {
 	pass: result.pass,
 	failures: result.failures,
 	warnings: result.warnings,
+	scriptErrors,
 	events: events.length,
 	selectedEvidence: result.evidence,
 	runtimeMetadata: result.evidence && result.evidence.runtime ? result.evidence.runtime : null,
@@ -91,6 +98,20 @@ function extractSmokeEvents(text) {
 		}
 	}
 	return events;
+}
+
+
+function extractScriptErrors(text) {
+	const patterns = [
+		/SCRIPT ERROR:/,
+		/Parse Error:/,
+		/Compile Error:/,
+		/Compilation failed/,
+		/Failed to load script/,
+	];
+	return text.split(/\r?\n/)
+		.filter((line) => patterns.some((pattern) => pattern.test(line)))
+		.slice(0, 20);
 }
 
 
@@ -338,6 +359,16 @@ function renderMarkdownReport(summary) {
 	} else {
 		for (const warning of summary.warnings) {
 			lines.push(`- ${warning}`);
+		}
+	}
+	lines.push("");
+	lines.push("## Script Errors");
+	lines.push("");
+	if (!summary.scriptErrors || summary.scriptErrors.length === 0) {
+		lines.push("- None");
+	} else {
+		for (const errorLine of summary.scriptErrors) {
+			lines.push(`- ${errorLine}`);
 		}
 	}
 	lines.push("");
