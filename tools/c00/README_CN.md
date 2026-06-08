@@ -156,6 +156,7 @@ iPad gate 要求：
 - `backend:"ARKit"`
 - `session_state:"Running"`
 - `capabilities.native_plugin:true`
+- `capabilities.runtime:"ARKit"` 或 `capabilities.arkit_supported:true`
 
 ## 手动日志验证
 

@@ -100,6 +100,8 @@ Rokid gate 必须看到 `backend:"OpenXR"`。
 
 iPad gate 必须看到 `backend:"ARKit"`。
 
+iPad gate 还必须看到 `capabilities.native_plugin:true`，以及 `capabilities.runtime:"ARKit"` 或 `capabilities.arkit_supported:true`。
+
 如果看到 `EditorSim`，只能说明应用启动，不算该设备的 AR gate 通过。
 
 ## 检测计划

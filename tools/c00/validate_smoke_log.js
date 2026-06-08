@@ -159,6 +159,16 @@ function evaluateGate(events, gate, options) {
 		}
 	}
 
+	if (gate === "ipad") {
+		const runtime = String(getCapability(evidence, "runtime") || evidence.runtime || "");
+		const hasArkitEvidence = runtime === "ARKit" ||
+			getCapability(evidence, "arkit_supported") === true ||
+			evidence.provider === "ARKit";
+		if (!hasArkitEvidence) {
+			failures.push("iPad gate requires explicit ARKit evidence: capabilities.runtime=\"ARKit\" or capabilities.arkit_supported=true.");
+		}
+	}
+
 	return {
 		pass: failures.length === 0,
 		failures,

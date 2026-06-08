@@ -136,6 +136,7 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - 面板显示 `Backend: ARKit`。
 - 日志包含 `GXF_SMOKE`，且 JSON 中 `backend` 为 `ARKit`。
 - `capabilities.native_plugin=true`。
+- `capabilities.runtime="ARKit"` 或 `capabilities.arkit_supported=true`。
 
 失败判定：
 
