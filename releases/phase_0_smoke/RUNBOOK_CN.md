@@ -200,6 +200,7 @@ tools/c00/collect_ios_simulator_smoke.sh booted org.godotengine.godotxrfoundatio
 - `capabilities.ar_product_path` 为 `true` 时，才算 AR 产品路径通过。
 - `capabilities.openxr_ar_evidence` 必须说明 AR 路径来自 environment blend mode 或 OpenXR Vendors/Rokid passthrough singleton 方法。
 - `capabilities.openxr_passthrough_start_report` 应记录 `XRInterface.start_passthrough` 或 vendor singleton passthrough lifecycle 调用结果。
+- `capabilities.openxr_virtual_plane_fallback` / `capabilities.openxr_plane_source` 应说明 `trackables.center_screen_raycast` 来自真实 OpenXR plane tracker 还是 C00 virtual floor fallback。
 
 建议设置：
 
@@ -252,6 +253,7 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - `openxr_ar_tier=D`：OpenXR runtime 是 VR-only，本周期不能作为 AR 成果发布。
 - `openxr_ar_evidence` 缺失：使用的构建太旧，或 provider 没有读到 blend/vendor passthrough 能力；重新导出并检查 OpenXR Vendors/Rokid 插件。
 - `openxr_passthrough_start_report` 为空：provider 没有找到可调用的 passthrough lifecycle；检查 Godot OpenXR 版本、OpenXR Vendors 插件和 Rokid runtime。
+- `openxr_plane_source=virtual_floor_fallback`：OpenXR session 已提供 C00 上层 raycast/plane smoke，但还没有真实 OpenXR plane tracker；可发表为 C00 fallback 证据，不能宣传为真实平面检测。
 - OpenXR interface unavailable：检查 Godot OpenXR 设置、Android export XR mode、Rokid runtime、OpenXR Vendors 插件。
 
 ## Android / ARCore

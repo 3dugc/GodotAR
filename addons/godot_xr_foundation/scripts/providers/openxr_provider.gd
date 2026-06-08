@@ -49,11 +49,17 @@ const PASSTHROUGH_STOP_METHODS := [
 
 var _passthrough_start_report := {}
 var _passthrough_started_targets: Array[String] = []
+var virtual_plane_fallback_enabled := true
+var virtual_plane_floor_height := 0.0
+var virtual_plane_size := Vector2(5.0, 5.0)
 
 
 func configure(p_owner: Node, p_backend: int, options: Dictionary = {}) -> void:
 	super.configure(p_owner, p_backend, options)
 	display_name = StringName(options.get("openxr_display_name", "OpenXR"))
+	virtual_plane_fallback_enabled = bool(options.get("openxr_virtual_plane_fallback", true))
+	virtual_plane_floor_height = float(options.get("openxr_virtual_plane_height", options.get("simulated_floor_height", 0.0)))
+	virtual_plane_size = _vector2_from_variant(options.get("openxr_virtual_plane_size", Vector2(5.0, 5.0)), Vector2(5.0, 5.0))
 
 
 func is_supported() -> bool:
@@ -86,6 +92,7 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	var has_vendor_passthrough := interface_passthrough_supported or _vendor_report_has_true(vendor_feature_report, PASSTHROUGH_EVIDENCE_METHODS) or _has_vendor_passthrough_singleton(vendor_singletons, vendor_feature_report)
 	var passthrough_started := _passthrough_is_started(xr_iface, vendor_feature_report)
 	var has_planes := _has_openxr_plane_trackers()
+	var has_virtual_plane_fallback := _has_virtual_plane_fallback(has_planes)
 	var has_tracking := xr_iface != null
 	var has_input_ray := xr_iface != null
 	var ar_tier := _classify_ar_tier(has_alpha_blend, has_additive_blend, has_vendor_passthrough, has_planes, has_tracking, has_input_ray)
@@ -96,7 +103,7 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	capabilities["camera_background"] = has_ar_blend or has_vendor_passthrough
 	capabilities["passthrough"] = has_ar_blend or has_vendor_passthrough
 	capabilities["raycast"] = true
-	capabilities["plane_detection"] = has_planes
+	capabilities["plane_detection"] = has_planes or has_virtual_plane_fallback
 	capabilities["anchors"] = true
 	capabilities["input_ray"] = has_input_ray
 	capabilities["hand_tracking"] = xr_iface != null
@@ -114,6 +121,13 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	capabilities["openxr_ar_tier"] = ar_tier
 	capabilities["openxr_ar_evidence"] = ar_evidence
 	capabilities["openxr_fallback"] = _fallback_for_tier(ar_tier, has_planes)
+	capabilities["openxr_virtual_plane_fallback"] = has_virtual_plane_fallback
+	var plane_source := "none"
+	if has_planes:
+		plane_source = "xr_tracker"
+	elif has_virtual_plane_fallback:
+		plane_source = "virtual_floor_fallback"
+	capabilities["openxr_plane_source"] = plane_source
 	capabilities["device_profile"] = _device_profile_from_hint(options)
 	capabilities["runtime"] = "OpenXR"
 	capabilities["openxr_feature_flags"] = _feature_flags(capabilities)
@@ -160,7 +174,17 @@ func get_planes() -> Array[ARPlane]:
 		var tracker_class := tracker.get_class().to_lower()
 		if tracker_class.contains("plane"):
 			planes.append(_plane_from_tracker(tracker_name, tracker))
+	if planes.is_empty() and _has_virtual_plane_fallback(false):
+		planes.append(_virtual_floor_plane())
 	return planes
+
+
+func try_raycast(origin: Vector3, direction: Vector3, max_distance: float = 20.0, mask: int = 0xffffffff) -> Array[XRHit]:
+	if _has_virtual_plane_fallback(_has_openxr_plane_trackers()):
+		var fallback_hits := _virtual_floor_raycast(origin, direction, max_distance)
+		if not fallback_hits.is_empty():
+			return fallback_hits
+	return super.try_raycast(origin, direction, max_distance, mask)
 
 
 func _has_openxr_plane_trackers() -> bool:
@@ -392,6 +416,8 @@ func _feature_flags(capabilities: Dictionary) -> PackedStringArray:
 		flags.append("VENDOR_PASSTHROUGH")
 	if bool(capabilities.get("plane_detection", false)):
 		flags.append("TRACKABLE_PLANES")
+	if bool(capabilities.get("openxr_virtual_plane_fallback", false)):
+		flags.append("VIRTUAL_PLANE_FALLBACK")
 	if bool(capabilities.get("raycast", false)):
 		flags.append("RAYCAST_FALLBACK")
 	if bool(capabilities.get("anchors", false)):
@@ -460,3 +486,55 @@ func _plane_from_tracker(tracker_name: StringName, tracker: Object) -> ARPlane:
 	var plane := ARPlane.new(tracker_name, Transform3D.IDENTITY, size, alignment, tracker)
 	plane.label = label
 	return plane
+
+
+func _has_virtual_plane_fallback(has_real_planes: bool) -> bool:
+	return virtual_plane_fallback_enabled and not has_real_planes
+
+
+func _vector2_from_variant(value: Variant, fallback: Vector2) -> Vector2:
+	if value is Vector2:
+		return value
+	if value is Vector3:
+		return Vector2(value.x, value.z)
+	if value is Array and value.size() >= 2:
+		return Vector2(float(value[0]), float(value[1]))
+	if value is Dictionary and value.has("x") and value.has("y"):
+		return Vector2(float(value["x"]), float(value["y"]))
+	return fallback
+
+
+func _virtual_floor_plane() -> ARPlane:
+	var transform := Transform3D(Basis.IDENTITY, Vector3(0.0, virtual_plane_floor_height, 0.0))
+	var plane := ARPlane.new(&"openxr_virtual_floor", transform, virtual_plane_size, &"horizontal", {
+		"runtime": "OpenXR",
+		"source": "virtual_floor_fallback",
+	})
+	plane.label = &"virtual_floor"
+	return plane
+
+
+func _virtual_floor_raycast(origin: Vector3, direction: Vector3, max_distance: float) -> Array[XRHit]:
+	var ray_direction := direction.normalized()
+	if absf(ray_direction.y) < 0.0001:
+		ray_direction = (ray_direction + Vector3.DOWN * 0.35).normalized()
+
+	var distance_to_floor := (virtual_plane_floor_height - origin.y) / ray_direction.y
+	if distance_to_floor < 0.0 or distance_to_floor > max_distance:
+		var empty_hits: Array[XRHit] = []
+		return empty_hits
+
+	var point := origin + ray_direction * distance_to_floor
+	var hit := XRHit.new(
+		Transform3D(Basis.IDENTITY, point),
+		distance_to_floor,
+		&"openxr_virtual_floor",
+		XRFoundationTypes.TrackableType.PLANE,
+		{
+			"runtime": "OpenXR",
+			"source": "virtual_floor_fallback",
+		}
+	)
+	hit.normal = Vector3.UP
+	var hits: Array[XRHit] = [hit]
+	return hits

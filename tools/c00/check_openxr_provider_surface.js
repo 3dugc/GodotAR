@@ -31,7 +31,12 @@ const checks = [
 			["passthrough started capability output", /capabilities\["openxr_passthrough_started"\]\s*=\s*passthrough_started/],
 			["passthrough start report capability output", /capabilities\["openxr_passthrough_start_report"\]\s*=\s*_passthrough_start_report/],
 			["AR evidence capability output", /capabilities\["openxr_ar_evidence"\]\s*=\s*ar_evidence/],
+			["virtual plane fallback capability", /capabilities\["openxr_virtual_plane_fallback"\]/],
+			["virtual plane source capability", /capabilities\["openxr_plane_source"\]/],
+			["virtual plane raycast fallback", /func\s+_virtual_floor_raycast\s*\(/],
+			["virtual floor plane fallback", /func\s+_virtual_floor_plane\s*\(/],
 			["vendor passthrough feature flag", /VENDOR_PASSTHROUGH/],
+			["virtual plane feature flag", /VIRTUAL_PLANE_FALLBACK/],
 		],
 	},
 	{

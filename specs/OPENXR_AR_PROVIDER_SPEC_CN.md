@@ -78,8 +78,8 @@ var notes: String
 | 缺失能力 | Fallback |
 | --- | --- |
 | passthrough/see-through 缺失 | 标记为 VR-only，不计入 AR 成果 |
-| trackables 缺失 | virtual plane |
-| environment raycast 缺失 | gaze ray + virtual plane |
+| trackables 缺失 | virtual plane，并在 capability 中标记 `openxr_virtual_plane_fallback=true` |
+| environment raycast 缺失 | gaze ray + virtual plane，并在 `openxr_plane_source` 中标记 `virtual_floor_fallback` |
 | anchor 缺失 | local Node3D anchor |
 | hand/controller 缺失 | gaze dwell 或 mouse |
 | depth/occlusion 缺失 | 关闭 occlusion，保留 placement |
@@ -99,6 +99,8 @@ var notes: String
 [OpenXRProvider] passthrough_started=
 [OpenXRProvider] passthrough_start_report=
 [OpenXRProvider] fallback=
+[OpenXRProvider] virtual_plane_fallback=
+[OpenXRProvider] plane_source=xr_tracker|virtual_floor_fallback|none
 [OpenXRProvider] errors=
 ```
 

@@ -172,7 +172,7 @@ node tools/c00/check_ios_device_profile_surface.js
 node tools/c00/check_openxr_provider_surface.js
 ```
 
-该检查确认 `OpenXRProvider` 会记录 environment blend、OpenXR Vendors passthrough singleton 方法结果和 `openxr_ar_evidence`，会在 session lifecycle 中尝试 `start_passthrough` / vendor passthrough 启动方法，并确认 Rokid smoke gate 不会只凭一个模糊布尔值通过。
+该检查确认 `OpenXRProvider` 会记录 environment blend、OpenXR Vendors passthrough singleton 方法结果和 `openxr_ar_evidence`，会在 session lifecycle 中尝试 `start_passthrough` / vendor passthrough 启动方法，会在没有真实 plane tracker 时提供明确标记的 `openxr_virtual_plane_fallback` / `openxr_plane_source`，并确认 Rokid smoke gate 不会只凭一个模糊布尔值通过。
 
 检查 Rokid/OpenXR 导出配置面：
 
@@ -451,6 +451,7 @@ Rokid 默认严格要求：
 - `capabilities.ar_product_path:true`
 - `capabilities.openxr_ar_evidence` 必须存在且非空，用于说明 AR 路径证据来源。
 - `capabilities.openxr_passthrough_start_report` 应记录 passthrough lifecycle 调用结果；为空时先检查 Godot OpenXR 版本和 OpenXR Vendors/Rokid 插件。
+- `capabilities.openxr_virtual_plane_fallback` / `capabilities.openxr_plane_source` 应说明 raycast/plane evidence 来自真实 OpenXR tracker 还是 C00 virtual floor fallback。
 - 新日志应包含 `capabilities.openxr_ar_tier`。`A/B/C` 可作为 AR 路径证据，`D` 是 VR-only，不能算 AR 通过。
 
 如果只想记录 OpenXR 先点亮、但不标记为 AR 通过：
