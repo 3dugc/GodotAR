@@ -40,6 +40,7 @@ Codex implementation status:
 - `tools/c00/collect_ios_simulator_smoke.sh` and `tools/c00/run_device_cycle.sh ios-simulator` now provide a runnable iOS Simulator development gate that expects `backend:"EditorSim"` and validates the iOS export/startup/log path before iPad hardware.
 - Godot plugin-first boundary documented. No Godot engine patch is used in C00.
 - `tools/c00/bootstrap_device_machine.sh` now generates a C00 readiness report for device machines and can optionally create the export preset starter.
+- `tools/c00/import_device_dependency_bundle.sh` now imports an offline dependency bundle containing Godot export templates, Android SDK, JDK, Godot binary, and Godot source headers, then writes `.godot/cache/c00/device-env.sh` for Rokid/iPad/Android ARCore gates.
 - C00 preflight, export helper, Android/Rokid log collector, iPad log collector, and gate validator created under `tools/c00`.
 - `tools/c00/check_godot_project_static.js` now validates C00 project settings, scene resource references, load steps, required smoke nodes, and critical NodePaths without requiring a Godot binary.
 - `tools/c00/run_static_gates.js` now runs the C00 static gate set in one command and can write a Markdown report for CI/device-machine readiness.
@@ -120,6 +121,7 @@ Hardware status:
 - Real iPad export reached Godot's export-configuration gate and is currently blocked by missing official export template `~/Library/Application Support/Godot/export_templates/4.4.1.stable/ios.zip`.
 - Real Rokid export reached Godot's export-configuration gate and is currently blocked by missing official `android_source.zip`, missing project Android build template, missing Android SDK build-tools / `apksigner`, missing real JDK, and missing debug keystore configuration.
 - Attempts to download `Godot_v4.4.1-stable_export_templates.tpz` from GitHub, SourceForge, and `downloads.godotengine.org` failed in this environment at TLS/EOF before a secure connection was established. A retry on 2026-06-08 against GitHub and SourceForge also failed with `SSL_ERROR_SYSCALL`. Install the `.tpz` manually or retry on a device machine with working access, then run `tools/c00/install_godot_export_templates.sh --tpz <file>`.
+- Offline device-machine setup is now supported through `tools/c00/import_device_dependency_bundle.sh --bundle <device-bundle-dir>`. Put `Godot_v4.4.1-stable_export_templates.tpz`, Android SDK `platform-tools`/`build-tools`, a real JDK, optional `Godot.app`, and optional `godot-source` into the bundle, then run `source .godot/cache/c00/device-env.sh` before preflight.
 - No Rokid/Android device is currently attached through ADB. The detected `iPad M4` is currently reported by `devicectl` as `unavailable`.
 - Do not mark this report as passed until the device evidence below is filled.
 
@@ -142,6 +144,9 @@ Hardware status:
 | `node tools/c00/check_launch_platform_surface.js` | Pass | Runtime/platform hint parser, smoke metadata, and device gate launch evidence checks are present |
 | `node --check tools/c00/check_device_collector_diagnostics_surface.js` | Pass | Device collector diagnostics checker parses |
 | `node tools/c00/check_device_collector_diagnostics_surface.js` | Pass | iPad/Rokid/Android collectors preserve media/profile diagnostics after smoke validation failure |
+| `node --check tools/c00/check_device_dependency_bundle_surface.js` | Pass | Offline dependency bundle surface checker parses |
+| `node tools/c00/check_device_dependency_bundle_surface.js` | Pass | Importer, README, bootstrap report, and C00 spec document offline bundle setup |
+| Empty offline dependency bundle smoke | Fail as expected | Importer writes a readable report and env file while reporting missing templates, Android SDK, and JDK |
 | `node --check tools/c00/check_ios_plugin_artifacts.js` | Pass | iOS plugin artifact checker parses |
 | `node tools/c00/check_ios_plugin_artifacts.js` | Pass with warning | Runtime bridge surface is present; warns that real `GodotARKit.xcframework` is not built on this host |
 | `tools/c00/check_arkit_plugin_static.sh` | Pass | ARKit plugin compiles against the local iPhone Simulator SDK with Godot stubs |

@@ -62,6 +62,49 @@ node tools/c00/run_static_gates.js --gate all --report releases/phase_0_smoke/ev
 
 该命令不导出、不安装、不连接设备。它汇总 Node 工具语法、shell 脚本语法、Godot project/scene 静态完整性、ARFoundation API surface、XRI API surface、Rokid/OpenXR export surface、OpenXR/Rokid provider surface、GodotARCore Android plugin surface、iPad Godot source 准备 surface、iOS plugin 配置和 ARKit Objective-C++ syntax smoke。缺少 `export_presets.cfg` 会作为 warning 记录，因为真正导出前仍需在设备机 Godot editor 里复核保存。
 
+## 离线依赖包导入
+
+如果设备机访问 GitHub、SourceForge 或 Android SDK repository 不稳定，可以先在任意网络可用机器准备一个离线依赖包目录，再在设备机导入。推荐目录内容：
+
+```text
+device-bundle/
+  Godot_v4.4.1-stable_export_templates.tpz
+  android-sdk/
+    platform-tools/adb
+    build-tools/<version>/apksigner
+    platforms/android-34/
+  jdk/
+    bin/java
+    bin/keytool
+  Godot.app/
+  godot-source/
+    core/version.h
+    platform/ios/
+```
+
+导入并生成设备机环境文件：
+
+```bash
+tools/c00/import_device_dependency_bundle.sh --bundle /Volumes/USB/device-bundle
+source .godot/cache/c00/device-env.sh
+```
+
+该脚本会安装 Godot export templates 到 `~/Library/Application Support/Godot/export_templates/4.4.1.stable`，自动识别 Android SDK / JDK / Godot / Godot source headers，写出 `.godot/cache/c00/device-env.sh`，并生成 `releases/phase_0_smoke/evidence/dependency-bundle-*.md`。如果需要同时写入 Godot Android EditorSettings，可以加：
+
+```bash
+tools/c00/import_device_dependency_bundle.sh \
+  --bundle /Volumes/USB/device-bundle \
+  --configure-android-export
+```
+
+导入后立即跑三条预检：
+
+```bash
+tools/c00/preflight.sh rokid
+tools/c00/preflight.sh ipad
+tools/c00/preflight.sh android-arcore
+```
+
 安装 Godot 官方 export templates：
 
 ```bash

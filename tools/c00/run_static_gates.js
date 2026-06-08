@@ -39,6 +39,11 @@ const checks = [
 		required: true,
 	},
 	{
+		name: "Device dependency bundle surface",
+		command: ["node", "tools/c00/check_device_dependency_bundle_surface.js"],
+		required: true,
+	},
+	{
 		name: "ARFoundation migration API surface",
 		command: ["node", "tools/c00/check_arfoundation_api_surface.js"],
 		required: true,
