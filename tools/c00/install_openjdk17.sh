@@ -6,6 +6,8 @@ DOWNLOADS_DIR="$PROJECT_ROOT/.godot/cache/c00/downloads"
 DEST="$PROJECT_ROOT/.godot/cache/c00/jdk"
 ARCHIVE=""
 URL=""
+URLS="${OPENJDK17_URLS:-${C00_OPENJDK17_URLS:-}}"
+DOWNLOAD_URLS=()
 DOWNLOAD=0
 FORCE=0
 
@@ -18,6 +20,7 @@ Options:
   --archive <file>  Existing OpenJDK 17 tar.gz archive.
   --download        Download Eclipse Temurin OpenJDK 17 through the Adoptium API when archive is missing.
   --url <url>       Download URL. Defaults to latest Temurin 17 GA for this macOS architecture.
+  --urls "<a> <b>"  Try multiple download URLs in order.
   --dest <dir>      Install destination. Default: .godot/cache/c00/jdk
   --force           Replace an existing destination.
 
@@ -46,9 +49,34 @@ if [[ -z "$URL" ]]; then
 	URL="https://api.adoptium.net/v3/binary/latest/17/ga/mac/$ARCH/jdk/hotspot/normal/eclipse"
 fi
 
+add_download_url() {
+	local candidate="$1"
+	if [[ -n "$candidate" ]]; then
+		DOWNLOAD_URLS+=("$candidate")
+	fi
+}
+
+add_download_urls_from_list() {
+	local list="$1"
+	list="${list//$'\n'/ }"
+	list="${list//,/ }"
+	for candidate in $list; do
+		add_download_url "$candidate"
+	done
+}
+
+configure_download_urls() {
+	DOWNLOAD_URLS=()
+	if [[ -n "$URLS" ]]; then
+		add_download_urls_from_list "$URLS"
+	else
+		add_download_url "$URL"
+	fi
+}
+
 download_with_resume() {
 	local output="$1"
-	local url="$2"
+	shift
 	local curl_retry="${C00_CURL_RETRY:-5}"
 	local curl_retry_delay="${C00_CURL_RETRY_DELAY:-10}"
 	local curl_connect_timeout="${C00_CURL_CONNECT_TIMEOUT:-30}"
@@ -60,7 +88,17 @@ download_with_resume() {
 		local extra_args=($C00_CURL_EXTRA_ARGS)
 		args+=("${extra_args[@]}")
 	fi
-	curl "${args[@]}" -o "$output" "$url"
+	local status=1
+	local url
+	for url in "$@"; do
+		echo "Trying download URL: $url"
+		curl "${args[@]}" -o "$output" "$url" && return 0
+		status=$?
+		if [[ "$status" == "0" ]]; then
+			return 0
+		fi
+	done
+	return "$status"
 }
 
 while [[ "$#" -gt 0 ]]; do
@@ -75,6 +113,11 @@ while [[ "$#" -gt 0 ]]; do
 			;;
 		--url)
 			URL="$2"
+			URLS=""
+			shift 2
+			;;
+		--urls)
+			URLS="$2"
 			shift 2
 			;;
 		--dest)
@@ -96,6 +139,8 @@ while [[ "$#" -gt 0 ]]; do
 	esac
 done
 
+configure_download_urls
+
 mkdir -p "$DOWNLOADS_DIR"
 
 if [[ -z "$ARCHIVE" ]]; then
@@ -113,7 +158,7 @@ if [[ ! -f "$ARCHIVE" ]]; then
 		exit 2
 	fi
 	echo "Downloading OpenJDK 17 -> $ARCHIVE"
-	download_with_resume "$ARCHIVE" "$URL"
+	download_with_resume "$ARCHIVE" "${DOWNLOAD_URLS[@]}"
 fi
 
 for tool in tar; do
@@ -129,7 +174,7 @@ if [[ "$DOWNLOAD" == "1" ]] && ! tar -tzf "$ARCHIVE" >/dev/null 2>&1; then
 		exit 2
 	fi
 	echo "Resuming incomplete OpenJDK 17 download -> $ARCHIVE"
-	download_with_resume "$ARCHIVE" "$URL"
+	download_with_resume "$ARCHIVE" "${DOWNLOAD_URLS[@]}"
 fi
 
 if [[ -d "$DEST/Contents/Home" && "$FORCE" != "1" ]]; then

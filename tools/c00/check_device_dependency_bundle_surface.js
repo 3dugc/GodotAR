@@ -40,6 +40,8 @@ if (failures.length === 0) {
 	requireContains(files.templateInstaller, [
 		"--download",
 		"GODOT_EXPORT_TEMPLATES_URL",
+		"GODOT_EXPORT_TEMPLATES_URLS",
+		"downloads.godotengine.org",
 		"Godot_v%s_export_templates.tpz",
 		"Resuming incomplete Godot export templates download",
 		"C00_CURL_RETRY",
@@ -48,6 +50,7 @@ if (failures.length === 0) {
 
 	requireContains(files.jdkInstaller, [
 		"--download",
+		"--urls",
 		"api.adoptium.net/v3/binary/latest/17/ga/mac",
 		"Resuming incomplete OpenJDK 17 download",
 		".godot/cache/c00/jdk/Contents/Home",
@@ -57,6 +60,7 @@ if (failures.length === 0) {
 
 	requireContains(files.sdkInstaller, [
 		"--download-cmdline-tools",
+		"--cmdline-tools-urls",
 		"commandlinetools-mac-13114758_latest.zip",
 		"Resuming incomplete Android command line tools download",
 		"cmdline-tools/latest/bin/sdkmanager",

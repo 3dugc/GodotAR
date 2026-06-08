@@ -6,6 +6,8 @@ ANDROID_SDK="${GODOT_ANDROID_SDK_PATH:-${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$PROJ
 SDKMANAGER="${SDKMANAGER:-}"
 CMDLINE_TOOLS_ZIP="${CMDLINE_TOOLS_ZIP:-}"
 CMDLINE_TOOLS_URL="${CMDLINE_TOOLS_URL:-https://dl.google.com/android/repository/commandlinetools-mac-13114758_latest.zip}"
+CMDLINE_TOOLS_URLS="${CMDLINE_TOOLS_URLS:-}"
+DOWNLOAD_URLS=()
 PACKAGES=()
 YES=0
 DRY_RUN=0
@@ -25,6 +27,8 @@ Options:
                        Download Android command line tools for macOS when sdkmanager is missing.
   --cmdline-tools-url <url>
                        Download URL for --download-cmdline-tools.
+  --cmdline-tools-urls "<a> <b>"
+                       Try multiple command line tools download URLs in order.
   --yes                Accept Android SDK licenses from stdin.
   --dry-run            Print command without installing.
 
@@ -37,9 +41,34 @@ Download tuning:
 EOF
 }
 
+add_download_url() {
+	local candidate="$1"
+	if [[ -n "$candidate" ]]; then
+		DOWNLOAD_URLS+=("$candidate")
+	fi
+}
+
+add_download_urls_from_list() {
+	local list="$1"
+	list="${list//$'\n'/ }"
+	list="${list//,/ }"
+	for candidate in $list; do
+		add_download_url "$candidate"
+	done
+}
+
+configure_download_urls() {
+	DOWNLOAD_URLS=()
+	if [[ -n "$CMDLINE_TOOLS_URLS" ]]; then
+		add_download_urls_from_list "$CMDLINE_TOOLS_URLS"
+	else
+		add_download_url "$CMDLINE_TOOLS_URL"
+	fi
+}
+
 download_with_resume() {
 	local output="$1"
-	local url="$2"
+	shift
 	local curl_retry="${C00_CURL_RETRY:-5}"
 	local curl_retry_delay="${C00_CURL_RETRY_DELAY:-10}"
 	local curl_connect_timeout="${C00_CURL_CONNECT_TIMEOUT:-30}"
@@ -51,7 +80,17 @@ download_with_resume() {
 		local extra_args=($C00_CURL_EXTRA_ARGS)
 		args+=("${extra_args[@]}")
 	fi
-	curl "${args[@]}" -o "$output" "$url"
+	local status=1
+	local url
+	for url in "$@"; do
+		echo "Trying download URL: $url"
+		curl "${args[@]}" -o "$output" "$url" && return 0
+		status=$?
+		if [[ "$status" == "0" ]]; then
+			return 0
+		fi
+	done
+	return "$status"
 }
 
 while [[ "$#" -gt 0 ]]; do
@@ -75,6 +114,11 @@ while [[ "$#" -gt 0 ]]; do
 			;;
 		--cmdline-tools-url)
 			CMDLINE_TOOLS_URL="$2"
+			CMDLINE_TOOLS_URLS=""
+			shift 2
+			;;
+		--cmdline-tools-urls)
+			CMDLINE_TOOLS_URLS="$2"
 			shift 2
 			;;
 		--yes)
@@ -99,6 +143,8 @@ while [[ "$#" -gt 0 ]]; do
 			;;
 	esac
 done
+
+configure_download_urls
 
 if [[ "${#PACKAGES[@]}" -eq 0 ]]; then
 	PACKAGES=("platform-tools" "platforms;android-34" "build-tools;34.0.0")
@@ -173,7 +219,7 @@ install_cmdline_tools() {
 		fi
 		mkdir -p "$(dirname "$CMDLINE_TOOLS_ZIP")"
 		echo "Downloading Android command line tools -> $CMDLINE_TOOLS_ZIP"
-		download_with_resume "$CMDLINE_TOOLS_ZIP" "$CMDLINE_TOOLS_URL"
+		download_with_resume "$CMDLINE_TOOLS_ZIP" "${DOWNLOAD_URLS[@]}"
 	fi
 
 	if ! command -v unzip >/dev/null 2>&1; then
@@ -191,7 +237,7 @@ install_cmdline_tools() {
 			exit 2
 		fi
 		echo "Resuming incomplete Android command line tools download -> $CMDLINE_TOOLS_ZIP"
-		download_with_resume "$CMDLINE_TOOLS_ZIP" "$CMDLINE_TOOLS_URL"
+		download_with_resume "$CMDLINE_TOOLS_ZIP" "${DOWNLOAD_URLS[@]}"
 	fi
 
 	if [[ "$DRY_RUN" == "1" ]]; then

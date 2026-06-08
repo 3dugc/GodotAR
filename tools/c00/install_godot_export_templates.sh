@@ -7,6 +7,8 @@ VERSION="${GODOT_EXPORT_TEMPLATES_VERSION:-4.4.1.stable}"
 DEST="${GODOT_EXPORT_TEMPLATES_DIR:-$HOME/Library/Application Support/Godot/export_templates/$VERSION}"
 DOWNLOAD=0
 URL="${GODOT_EXPORT_TEMPLATES_URL:-}"
+URLS="${GODOT_EXPORT_TEMPLATES_URLS:-}"
+DOWNLOAD_URLS=()
 
 usage() {
 	cat <<EOF
@@ -20,6 +22,11 @@ Installs official Godot export templates into the directory used by Godot:
 The standard 4.4.1 package is available from the Godot 4.4.1 archive page:
   https://godotengine.org/download/archive/4.4.1-stable/
 
+Download sources:
+  --url <url>       Use one URL.
+  --urls "<a> <b>"  Try multiple URLs in order.
+  GODOT_EXPORT_TEMPLATES_URLS can also provide a comma, newline, or space separated fallback list.
+
 Download tuning:
   C00_CURL_RETRY=8 C00_CURL_RETRY_DELAY=15 C00_CURL_SPEED_LIMIT=1024 C00_CURL_SPEED_TIME=30 \\
     tools/c00/install_godot_export_templates.sh --download
@@ -30,15 +37,53 @@ version_tag() {
 	printf "%s" "${VERSION/.stable/-stable}"
 }
 
-default_url() {
+version_number() {
+	printf "%s" "${VERSION%.stable}"
+}
+
+official_downloads_url() {
+	printf "https://downloads.godotengine.org/?flavor=stable&platform=templates&slug=export_templates.tpz&version=%s" "$(version_number)"
+}
+
+github_release_url() {
 	local tag
 	tag="$(version_tag)"
 	printf "https://github.com/godotengine/godot/releases/download/%s/Godot_v%s_export_templates.tpz" "$tag" "$tag"
 }
 
+add_download_url() {
+	local candidate="$1"
+	if [[ -n "$candidate" ]]; then
+		DOWNLOAD_URLS+=("$candidate")
+	fi
+}
+
+add_download_urls_from_list() {
+	local list="$1"
+	list="${list//$'\n'/ }"
+	list="${list//,/ }"
+	for candidate in $list; do
+		add_download_url "$candidate"
+	done
+}
+
+configure_download_urls() {
+	DOWNLOAD_URLS=()
+	if [[ -n "$URL" ]]; then
+		add_download_url "$URL"
+	fi
+	if [[ -n "$URLS" ]]; then
+		add_download_urls_from_list "$URLS"
+	fi
+	if [[ "${#DOWNLOAD_URLS[@]}" -eq 0 ]]; then
+		add_download_url "$(official_downloads_url)"
+		add_download_url "$(github_release_url)"
+	fi
+}
+
 download_with_resume() {
 	local output="$1"
-	local url="$2"
+	shift
 	local curl_retry="${C00_CURL_RETRY:-5}"
 	local curl_retry_delay="${C00_CURL_RETRY_DELAY:-10}"
 	local curl_connect_timeout="${C00_CURL_CONNECT_TIMEOUT:-30}"
@@ -50,7 +95,17 @@ download_with_resume() {
 		local extra_args=($C00_CURL_EXTRA_ARGS)
 		args+=("${extra_args[@]}")
 	fi
-	curl "${args[@]}" -o "$output" "$url"
+	local status=1
+	local url
+	for url in "$@"; do
+		echo "Trying download URL: $url"
+		curl "${args[@]}" -o "$output" "$url" && return 0
+		status=$?
+		if [[ "$status" == "0" ]]; then
+			return 0
+		fi
+	done
+	return "$status"
 }
 
 while [[ "$#" -gt 0 ]]; do
@@ -65,6 +120,10 @@ while [[ "$#" -gt 0 ]]; do
 			;;
 		--url)
 			URL="$2"
+			shift 2
+			;;
+		--urls)
+			URLS="$2"
 			shift 2
 			;;
 		--version)
@@ -102,6 +161,8 @@ if [[ -z "$TPZ" ]]; then
 	fi
 fi
 
+configure_download_urls
+
 if [[ ! -f "$TPZ" ]]; then
 	if [[ "$DOWNLOAD" != "1" ]]; then
 		echo "ERROR: export templates package not found: $TPZ" >&2
@@ -112,11 +173,8 @@ if [[ ! -f "$TPZ" ]]; then
 		exit 2
 	fi
 	mkdir -p "$(dirname "$TPZ")"
-	if [[ -z "$URL" ]]; then
-		URL="$(default_url)"
-	fi
 	echo "Downloading Godot export templates -> $TPZ"
-	download_with_resume "$TPZ" "$URL"
+	download_with_resume "$TPZ" "${DOWNLOAD_URLS[@]}"
 fi
 
 for tool in unzip; do
@@ -131,11 +189,8 @@ if [[ "$DOWNLOAD" == "1" ]] && ! unzip -t "$TPZ" >/dev/null 2>&1; then
 		echo "ERROR: curl is required to resume incomplete export templates download." >&2
 		exit 2
 	fi
-	if [[ -z "$URL" ]]; then
-		URL="$(default_url)"
-	fi
 	echo "Resuming incomplete Godot export templates download -> $TPZ"
-	download_with_resume "$TPZ" "$URL"
+	download_with_resume "$TPZ" "${DOWNLOAD_URLS[@]}"
 fi
 
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/godot-export-templates.XXXXXX")"
