@@ -29,6 +29,8 @@ public:
 	bool stop_session();
 	bool pause();
 	bool resume();
+	bool is_running();
+	int get_tracking_status();
 
 	Dictionary check_availability();
 	Dictionary get_capabilities();

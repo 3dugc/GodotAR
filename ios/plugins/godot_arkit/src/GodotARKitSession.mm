@@ -23,6 +23,10 @@
 	return NO;
 }
 
+- (BOOL)isRunning {
+	return _running;
+}
+
 - (BOOL)start {
 	if (![self isSupported]) {
 		return NO;

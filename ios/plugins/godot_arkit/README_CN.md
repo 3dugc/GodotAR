@@ -32,6 +32,8 @@ start_session() -> bool
 stop_session() -> bool
 pause() -> bool
 resume() -> bool
+is_running() -> bool
+get_tracking_status() -> int
 check_availability() -> Dictionary
 get_capabilities() -> Dictionary
 hit_test(origin: Vector3, direction: Vector3, max_distance: float) -> Array[Dictionary]

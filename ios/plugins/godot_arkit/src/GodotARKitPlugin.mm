@@ -7,8 +7,14 @@
 
 #if VERSION_MAJOR == 4
 #include "core/config/engine.h"
+#include "servers/xr/xr_interface.h"
+#define GODOT_AR_STATE_NORMAL_TRACKING XRInterface::XR_NORMAL_TRACKING
+#define GODOT_AR_STATE_UNKNOWN_TRACKING XRInterface::XR_UNKNOWN_TRACKING
 #else
 #include "core/engine.h"
+#include "servers/arvr/arvr_interface.h"
+#define GODOT_AR_STATE_NORMAL_TRACKING ARVRInterface::ARVR_NORMAL_TRACKING
+#define GODOT_AR_STATE_UNKNOWN_TRACKING ARVRInterface::ARVR_UNKNOWN_TRACKING
 #endif
 
 static GodotARKitPlugin *godot_arkit_singleton = nullptr;
@@ -35,6 +41,8 @@ void GodotARKitPlugin::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("stop_session"), &GodotARKitPlugin::stop_session);
 	ClassDB::bind_method(D_METHOD("pause"), &GodotARKitPlugin::pause);
 	ClassDB::bind_method(D_METHOD("resume"), &GodotARKitPlugin::resume);
+	ClassDB::bind_method(D_METHOD("is_running"), &GodotARKitPlugin::is_running);
+	ClassDB::bind_method(D_METHOD("get_tracking_status"), &GodotARKitPlugin::get_tracking_status);
 
 	ClassDB::bind_method(D_METHOD("check_availability"), &GodotARKitPlugin::check_availability);
 	ClassDB::bind_method(D_METHOD("get_capabilities"), &GodotARKitPlugin::get_capabilities);
@@ -64,6 +72,15 @@ bool GodotARKitPlugin::pause() {
 
 bool GodotARKitPlugin::resume() {
 	return start_session();
+}
+
+bool GodotARKitPlugin::is_running() {
+	GodotARKitSession *arkit_session = get_session(session);
+	return arkit_session != nil && [arkit_session isRunning];
+}
+
+int GodotARKitPlugin::get_tracking_status() {
+	return is_running() ? GODOT_AR_STATE_NORMAL_TRACKING : GODOT_AR_STATE_UNKNOWN_TRACKING;
 }
 
 Dictionary GodotARKitPlugin::check_availability() {

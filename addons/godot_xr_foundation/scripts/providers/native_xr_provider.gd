@@ -116,6 +116,26 @@ func stop() -> void:
 	super.stop()
 
 
+func get_tracking_status() -> int:
+	if xr_interface:
+		return super.get_tracking_status()
+
+	var singleton := plugin_singleton if plugin_singleton else _find_singleton()
+	if singleton:
+		for method in ["get_tracking_status", "get_tracking_state"]:
+			if singleton.has_method(method):
+				return _tracking_status_from_variant(singleton.call(method))
+		if singleton.has_method("is_running") and bool(singleton.call("is_running")):
+			return XRInterface.XR_NORMAL_TRACKING
+		if singleton.has_method("get_capabilities"):
+			var raw: Variant = singleton.call("get_capabilities")
+			if raw is Dictionary:
+				if bool(raw.get("arkit_running", false)) or bool(raw.get("tracking", false)):
+					return XRInterface.XR_NORMAL_TRACKING
+
+	return super.get_tracking_status()
+
+
 func get_planes() -> Array[ARPlane]:
 	if plugin_singleton:
 		for method in ["get_planes", "get_detected_planes"]:
@@ -183,6 +203,22 @@ func _singleton_availability(singleton: Object) -> Dictionary:
 			report["availability_method"] = method
 			return report
 	return report
+
+
+func _tracking_status_from_variant(value: Variant) -> int:
+	if typeof(value) == TYPE_INT:
+		return int(value)
+
+	var text := String(value).strip_edges().to_lower()
+	match text:
+		"tracking", "running", "normal", "normal_tracking":
+			return XRInterface.XR_NORMAL_TRACKING
+		"not_tracking", "not tracking", "stopped", "none":
+			return XRInterface.XR_NOT_TRACKING
+		"limited", "unknown", "unknown_tracking":
+			return XRInterface.XR_UNKNOWN_TRACKING
+		_:
+			return XRInterface.XR_UNKNOWN_TRACKING
 
 
 func _convert_hits(raw: Variant) -> Array[XRHit]:
