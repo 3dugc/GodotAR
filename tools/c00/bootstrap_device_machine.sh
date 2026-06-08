@@ -5,6 +5,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 REPORT="${REPORT:-$PROJECT_ROOT/releases/phase_0_smoke/evidence/device-readiness-${TIMESTAMP}.md}"
 DEFAULT_GODOT_SOURCE_DIR="$PROJECT_ROOT/.godot/cache/c00/godot-source"
+DOWNLOADS_DIR="$PROJECT_ROOT/.godot/cache/c00/downloads"
 WRITE_EXPORT_PRESETS=0
 FORCE_EXPORT_PRESETS=0
 PACKAGE_ID="${PACKAGE:-org.godotengine.godotxrfoundation}"
@@ -245,6 +246,27 @@ resolve_android_debug_keystore() {
 	fi
 }
 
+file_size_bytes() {
+	local file="$1"
+	if [[ -f "$file" ]]; then
+		wc -c < "$file" | tr -d ' '
+	else
+		printf "0"
+	fi
+}
+
+append_download_cache_row() {
+	local label="$1"
+	local file_name="$2"
+	local command="$3"
+	local path="$DOWNLOADS_DIR/$file_name"
+	local state="missing"
+	if [[ -f "$path" ]]; then
+		state="$(file_size_bytes "$path") bytes"
+	fi
+	printf "| %s | %s | %s |\n" "$(escape_md "$label")" "$(escape_md "$state")" "$(escape_md "$command")" >> "$REPORT"
+}
+
 {
 	printf "# C00 Device Machine Readiness\n\n"
 	printf "Generated: %s\n\n" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
@@ -434,7 +456,17 @@ else
 	add_row MISS "OpenXR project setting" "Enable OpenXR in project.godot."
 fi
 
-	{
+{
+	printf "\n## Download Cache\n\n"
+	printf "These files are optional cache state for resumable online installers. Partial files are safe to keep; installers validate or resume them before installing.\n\n"
+	printf "| Item | Current cache state | Resume command |\n"
+	printf "| --- | --- | --- |\n"
+} >> "$REPORT"
+append_download_cache_row "Godot export templates" "Godot_v4.4.1-stable_export_templates.tpz" "tools/c00/install_godot_export_templates.sh --download --version 4.4.1.stable"
+append_download_cache_row "Android command line tools" "commandlinetools-mac-13114758_latest.zip" "tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes"
+append_download_cache_row "OpenJDK 17" "temurin17-mac-aarch64.tar.gz" "tools/c00/install_openjdk17.sh --download"
+
+{
 		printf "\n## Summary\n\n"
 		printf "%s\n" "- Pass: $pass_count"
 		printf "%s\n" "- Warn: $warn_count"

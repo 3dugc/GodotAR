@@ -70,6 +70,10 @@ if (failures.length === 0) {
 		"import_device_dependency_bundle.sh --bundle",
 		"install_openjdk17.sh --download",
 		"device-env.sh",
+		"## Download Cache",
+		"Godot_v4.4.1-stable_export_templates.tpz",
+		"commandlinetools-mac-13114758_latest.zip",
+		"temurin17-mac-aarch64.tar.gz",
 	]);
 
 	requireContains(files.spec, [

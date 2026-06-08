@@ -21,6 +21,7 @@ tools/c00/bootstrap_device_machine.sh \
 ```
 
 该脚本只生成报告和可选 starter，不会安装 Godot、Android platform tools、证书、provisioning profile 或设备 runtime。
+报告会同时列出 `.godot/cache/c00/downloads` 中的断点续传缓存，例如 Godot export templates、Android command line tools 和 OpenJDK 17；如果网络中断，保留这些 partial 文件后重跑同一 installer 即可继续。
 
 ```bash
 tools/c00/preflight.sh
