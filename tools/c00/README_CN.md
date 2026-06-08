@@ -217,6 +217,44 @@ node tools/c00/validate_evidence_bundle.js --gate ipad --manual-media path/to/ip
 ALLOW_MISSING_MEDIA=1 tools/c00/run_device_cycle.sh ipad <device>
 ```
 
+## C00 发表前总验收
+
+Rokid 和 iPad 都跑完后，用聚合 gate 生成 C00 总报告：
+
+```bash
+node tools/c00/verify_phase_evidence.js
+```
+
+默认扫描：
+
+```text
+releases/phase_0_smoke/evidence/
+```
+
+并输出：
+
+```text
+releases/phase_0_smoke/C00_PHASE_REPORT.md
+```
+
+默认要求：
+
+- 最新 `rokid-*.log` 通过 OpenXR AR gate。
+- 最新 `rokid-*.png` 和 `rokid-*.mp4` 都存在。
+- 最新 `ipad-*.log` 通过 ARKit gate。
+- 最新 `ipad-*.png`、`ipad-*.mp4` 或显式 `--ipad-manual-media` 至少一个存在。
+
+如果要显式指定素材：
+
+```bash
+node tools/c00/verify_phase_evidence.js \
+  --rokid-log releases/phase_0_smoke/evidence/rokid-xxx.log \
+  --rokid-screenshot releases/phase_0_smoke/evidence/rokid-xxx.png \
+  --rokid-video releases/phase_0_smoke/evidence/rokid-xxx.mp4 \
+  --ipad-log releases/phase_0_smoke/evidence/ipad-xxx.log \
+  --ipad-manual-media releases/phase_0_smoke/evidence/ipad-xxx.mov
+```
+
 ## 报告位置
 
 采集脚本会生成：

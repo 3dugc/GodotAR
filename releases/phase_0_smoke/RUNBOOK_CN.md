@@ -203,6 +203,22 @@ releases/phase_0_smoke/evidence/
 
 smoke log gate 还会展示 `Runtime Metadata`，用于确认 Godot 版本、启动参数和 XR/rendering project setting 是否符合设备 gate。
 
+## C00 总验收
+
+Rokid/OpenXR 和 iPad/ARKit 都跑完后，执行：
+
+```bash
+node tools/c00/verify_phase_evidence.js
+```
+
+该命令会扫描 `releases/phase_0_smoke/evidence/` 中最新的 Rokid/iPad 日志和媒体证据，并生成：
+
+```text
+releases/phase_0_smoke/C00_PHASE_REPORT.md
+```
+
+只有这个总报告显示 `PASS`，C00 才能作为可发表结果。单台设备 gate 通过但另一台缺证据时，C00 仍然不能标记完成。
+
 ## 参考原则
 
 - Unity `ARSession` 的 `CheckAvailability` 和 `Install` 模型，用于统一生命周期判断。

@@ -37,6 +37,7 @@ Codex implementation status:
 - `tools/c00/validate_smoke_log.js` now requires explicit ARKit evidence for the iPad gate, not only `native_plugin=true`.
 - Device collectors now attempt to save media evidence: Android/Rokid records `.mp4` plus `.png`; iOS captures `.png` when `idevicescreenshot` is available and otherwise asks for manual screenshot/recording.
 - `tools/c00/validate_evidence_bundle.js` now enforces publishable evidence: Rokid/Android require screenshot plus recording; iPad requires at least one screenshot or recording.
+- `tools/c00/verify_phase_evidence.js` now enforces the full C00 publish gate by requiring both Rokid/OpenXR and iPad/ARKit evidence in one aggregate report.
 - Native singleton providers can now report tracking status without an `XRInterface`; `GodotARKit` exposes `is_running()` and `get_tracking_status()` for the C00 panel and logs.
 
 Hardware status:
@@ -52,12 +53,14 @@ Hardware status:
 | `git diff --check` | Pass | No whitespace errors |
 | `node --check tools/c00/validate_smoke_log.js` | Pass | Validator parses |
 | `node --check tools/c00/validate_evidence_bundle.js` | Pass | Evidence validator parses |
+| `node --check tools/c00/verify_phase_evidence.js` | Pass | C00 aggregate verifier parses |
 | `node --check tools/c00/write_export_presets_template.js` | Pass | Preset starter writer parses |
 | `bash -n tools/c00/*.sh ios/plugins/godot_arkit/build_xcframework.sh` | Pass | Shell scripts parse |
 | Synthetic iPad ARKit gate | Pass | `backend:"ARKit"`, `native_plugin:true` |
 | Synthetic Rokid AR gate | Pass | `backend:"OpenXR"`, `ar_product_path:true` |
 | Synthetic runtime metadata report | Pass | Report includes Godot version and `--xr-platform=rokid` metadata |
 | Synthetic evidence bundle gates | Pass | Rokid requires screenshot + video; iPad accepts manual media |
+| Synthetic C00 phase evidence gate | Pass | Aggregate report passes with Rokid + iPad evidence and fails on empty evidence |
 | Synthetic Rokid OpenXR-only strict gate | Fail as expected | `ar_product_path:false` is not accepted as AR product pass |
 | `ios/plugins/godot_arkit/build_xcframework.sh --help` | Pass | Documents required Godot source header path and outputs |
 | `tools/c00/run_device_cycle.sh --help` | Pass | Documents iPad/Rokid full gate execution |
@@ -181,4 +184,5 @@ Notes:
 - `EditorSim` is useful evidence that the app starts, but never satisfies a device AR gate.
 - OpenXR with only `opaque` blend mode is an OpenXR rendering pass, not an AR product pass.
 - Rokid/Android publishable results require both screenshot and screen recording artifacts; iPad publishable results require at least one screenshot or recording artifact.
+- C00 publishable results require `tools/c00/verify_phase_evidence.js` to pass for both Rokid/OpenXR and iPad/ARKit.
 - Any engine patch must include a minimal-intrusion patch spec before the device gate can be marked complete.
