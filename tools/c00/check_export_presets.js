@@ -74,7 +74,7 @@ for (const item of gates) {
 	}
 
 	if (item === "ipad" && !preset.raw.includes("GodotARKit")) {
-		warnings.push(`Preset "${requirement.name}" does not visibly mention GodotARKit. Confirm the iOS plugin is enabled in Godot's export UI.`);
+		failures.push(`Preset "${requirement.name}" must enable the GodotARKit iOS plugin so the ARKit singleton is exported.`);
 	}
 
 	evidence.push({

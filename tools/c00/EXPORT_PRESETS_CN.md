@@ -76,6 +76,7 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 关键设置：
 
 - ARKit iOS plugin enabled
+- Preset text must mention `GodotARKit`; `tools/c00/check_export_presets.js` treats a missing plugin entry as a failure
 - Plugin files under `res://ios/plugins`
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` exists
 - `ios/plugins/godot_arkit/GodotARKit.gdip` exists

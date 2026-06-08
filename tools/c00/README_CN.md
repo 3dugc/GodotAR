@@ -85,6 +85,8 @@ Rokid preset 必须设置：
 command_line/extra_args="--xr-platform=rokid"
 ```
 
+iPad preset 必须启用 `GodotARKit` iOS plugin。`collect_ios_smoke.sh` 默认通过 devicectl 向应用传入 `--xr-platform=ipad`，可用 `IOS_XR_PLATFORM=iphone` 覆盖。
+
 ## Rokid / Android 日志采集
 
 导出 preset 请先按：

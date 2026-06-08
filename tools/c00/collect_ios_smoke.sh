@@ -7,6 +7,7 @@ BUNDLE_ID="${2:-org.godotengine.godotxrfoundation}"
 DURATION="${3:-30}"
 APP_PATH="${APP_PATH:-}"
 EXTRA_VALIDATE_ARGS="${EXTRA_VALIDATE_ARGS:-}"
+IOS_XR_PLATFORM="${IOS_XR_PLATFORM:-ipad}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="$PROJECT_ROOT/releases/phase_0_smoke/evidence"
 LOG_PATH="$OUT_DIR/ipad-${STAMP}.log"
@@ -38,7 +39,7 @@ xcrun devicectl \
 	--terminate-existing \
 	--console \
 	"$BUNDLE_ID" \
-	--xr-platform=ipad > "$LOG_PATH" 2>&1
+	"--xr-platform=${IOS_XR_PLATFORM}" > "$LOG_PATH" 2>&1
 LAUNCH_STATUS="$?"
 set -e
 

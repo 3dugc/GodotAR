@@ -141,6 +141,7 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 
 - `Backend: EditorSim`：iOS app 启动了，但 ARKit native plugin 没有被 Godot 识别。
 - `singleton_registered=false` 且 `interface_registered=false`：检查 `.gdip`、`.xcframework`、Xcode linking、iOS plugin singleton 名称。
+- `export_presets.cfg` 中看不到 `GodotARKit`：iOS preset 没有启用 ARKit plugin，不能算 iPad/ARKit gate。
 
 自动采集和验证：
 
@@ -153,6 +154,8 @@ GODOT_SOURCE_DIR=/path/to/godot APP_PATH=builds/ipad/GodotXRFoundation.app tools
 ```bash
 APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <device> org.godotengine.godotxrfoundation 30
 ```
+
+`collect_ios_smoke.sh` 默认传入 `--xr-platform=ipad`；如需改成 iPhone 验证，可设置 `IOS_XR_PLATFORM=iphone`。
 
 ## 归档材料
 
