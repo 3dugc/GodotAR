@@ -180,6 +180,17 @@ tools/c00/install_godot_export_templates.sh \
 
 如果 GitHub 下载失败，可以从 Godot 官方 4.4.1 archive 页面下载同名 standard export templates `.tpz` 后，把本地文件路径传给 `--tpz`。iPad 导出至少需要 `ios.zip`；Rokid/OpenXR 和 Android ARCore 的 Gradle 导出至少需要 `android_source.zip`。
 `--download` 使用 `curl -L --fail -C -`，如果网络中断，重复运行同一命令会尝试继续下载未完成文件。
+在线下载还支持统一的 `C00_CURL_*` 调优变量；例如慢网络上可以增加重试次数并更快识别低速连接：
+
+```bash
+C00_CURL_RETRY=8 \
+C00_CURL_RETRY_DELAY=15 \
+C00_CURL_SPEED_LIMIT=1024 \
+C00_CURL_SPEED_TIME=30 \
+tools/c00/install_godot_export_templates.sh --download --version 4.4.1.stable
+```
+
+`install_openjdk17.sh --download` 和 `install_android_sdk_packages.sh --download-cmdline-tools` 也使用同一组变量；需要代理、镜像或自定义 curl 参数时可用 `--url` / `--cmdline-tools-url` 或 `C00_CURL_EXTRA_ARGS`。
 
 安装项目内 Android Gradle build template：
 

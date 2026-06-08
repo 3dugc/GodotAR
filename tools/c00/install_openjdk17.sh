@@ -23,6 +23,10 @@ Options:
 
 Installs a project-local JDK used by Godot Android export:
   .godot/cache/c00/jdk/Contents/Home
+
+Download tuning:
+  C00_CURL_RETRY=8 C00_CURL_RETRY_DELAY=15 C00_CURL_SPEED_LIMIT=1024 C00_CURL_SPEED_TIME=30 \\
+    tools/c00/install_openjdk17.sh --download
 EOF
 }
 
@@ -41,6 +45,23 @@ ARCH="$(detect_arch)"
 if [[ -z "$URL" ]]; then
 	URL="https://api.adoptium.net/v3/binary/latest/17/ga/mac/$ARCH/jdk/hotspot/normal/eclipse"
 fi
+
+download_with_resume() {
+	local output="$1"
+	local url="$2"
+	local curl_retry="${C00_CURL_RETRY:-5}"
+	local curl_retry_delay="${C00_CURL_RETRY_DELAY:-10}"
+	local curl_connect_timeout="${C00_CURL_CONNECT_TIMEOUT:-30}"
+	local curl_speed_limit="${C00_CURL_SPEED_LIMIT:-512}"
+	local curl_speed_time="${C00_CURL_SPEED_TIME:-60}"
+	local args=(-L --fail -C - --retry "$curl_retry" --retry-delay "$curl_retry_delay" --connect-timeout "$curl_connect_timeout" --speed-limit "$curl_speed_limit" --speed-time "$curl_speed_time")
+	if [[ -n "${C00_CURL_EXTRA_ARGS:-}" ]]; then
+		# shellcheck disable=SC2206
+		local extra_args=($C00_CURL_EXTRA_ARGS)
+		args+=("${extra_args[@]}")
+	fi
+	curl "${args[@]}" -o "$output" "$url"
+}
 
 while [[ "$#" -gt 0 ]]; do
 	case "$1" in
@@ -92,7 +113,7 @@ if [[ ! -f "$ARCHIVE" ]]; then
 		exit 2
 	fi
 	echo "Downloading OpenJDK 17 -> $ARCHIVE"
-	curl -L --fail -C - -o "$ARCHIVE" "$URL"
+	download_with_resume "$ARCHIVE" "$URL"
 fi
 
 for tool in tar; do
@@ -108,7 +129,7 @@ if [[ "$DOWNLOAD" == "1" ]] && ! tar -tzf "$ARCHIVE" >/dev/null 2>&1; then
 		exit 2
 	fi
 	echo "Resuming incomplete OpenJDK 17 download -> $ARCHIVE"
-	curl -L --fail -C - -o "$ARCHIVE" "$URL"
+	download_with_resume "$ARCHIVE" "$URL"
 fi
 
 if [[ -d "$DEST/Contents/Home" && "$FORCE" != "1" ]]; then

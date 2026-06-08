@@ -30,7 +30,28 @@ Options:
 
 Default packages match Godot 4.4 Android export expectations:
   platform-tools platforms;android-34 build-tools;34.0.0
+
+Download tuning:
+  C00_CURL_RETRY=8 C00_CURL_RETRY_DELAY=15 C00_CURL_SPEED_LIMIT=1024 C00_CURL_SPEED_TIME=30 \\
+    tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes
 EOF
+}
+
+download_with_resume() {
+	local output="$1"
+	local url="$2"
+	local curl_retry="${C00_CURL_RETRY:-5}"
+	local curl_retry_delay="${C00_CURL_RETRY_DELAY:-10}"
+	local curl_connect_timeout="${C00_CURL_CONNECT_TIMEOUT:-30}"
+	local curl_speed_limit="${C00_CURL_SPEED_LIMIT:-512}"
+	local curl_speed_time="${C00_CURL_SPEED_TIME:-60}"
+	local args=(-L --fail -C - --retry "$curl_retry" --retry-delay "$curl_retry_delay" --connect-timeout "$curl_connect_timeout" --speed-limit "$curl_speed_limit" --speed-time "$curl_speed_time")
+	if [[ -n "${C00_CURL_EXTRA_ARGS:-}" ]]; then
+		# shellcheck disable=SC2206
+		local extra_args=($C00_CURL_EXTRA_ARGS)
+		args+=("${extra_args[@]}")
+	fi
+	curl "${args[@]}" -o "$output" "$url"
 }
 
 while [[ "$#" -gt 0 ]]; do
@@ -152,7 +173,7 @@ install_cmdline_tools() {
 		fi
 		mkdir -p "$(dirname "$CMDLINE_TOOLS_ZIP")"
 		echo "Downloading Android command line tools -> $CMDLINE_TOOLS_ZIP"
-		curl -L --fail -C - -o "$CMDLINE_TOOLS_ZIP" "$CMDLINE_TOOLS_URL"
+		download_with_resume "$CMDLINE_TOOLS_ZIP" "$CMDLINE_TOOLS_URL"
 	fi
 
 	if ! command -v unzip >/dev/null 2>&1; then
@@ -170,7 +191,7 @@ install_cmdline_tools() {
 			exit 2
 		fi
 		echo "Resuming incomplete Android command line tools download -> $CMDLINE_TOOLS_ZIP"
-		curl -L --fail -C - -o "$CMDLINE_TOOLS_ZIP" "$CMDLINE_TOOLS_URL"
+		download_with_resume "$CMDLINE_TOOLS_ZIP" "$CMDLINE_TOOLS_URL"
 	fi
 
 	if [[ "$DRY_RUN" == "1" ]]; then
