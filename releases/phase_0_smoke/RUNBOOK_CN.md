@@ -171,11 +171,13 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - 日志包含 runtime metadata，能确认 Godot 版本、`--xr-platform=ipad` 启动参数和 viewport XR 状态。
 - `capabilities.native_plugin=true`。
 - `capabilities.runtime="ARKit"` 或 `capabilities.arkit_supported=true`。
+- `capabilities.arkit_tracking_state` 和 `capabilities.arkit_tracking_reason` 能说明 ARKit 当前是 `normal`、`limited` 还是 `not_available`。
 
 失败判定：
 
 - `Backend: EditorSim`：iOS app 启动了，但 ARKit native plugin 没有被 Godot 识别。
 - `singleton_registered=false` 且 `interface_registered=false`：检查 `.gdip`、`.xcframework`、Xcode linking、iOS plugin singleton 名称。
+- `arkit_tracking_state=limited`：ARKit 已启动但尚未稳定跟踪，保留 `arkit_tracking_reason`，按原因检查光照、纹理、设备运动或重定位。
 - `export_presets.cfg` 中看不到 `GodotARKit`：iOS preset 没有启用 ARKit plugin，不能算 iPad/ARKit gate。
 
 自动采集和验证：

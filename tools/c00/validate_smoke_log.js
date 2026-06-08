@@ -172,6 +172,12 @@ function evaluateGate(events, gate, options) {
 		if (!hasArkitEvidence) {
 			failures.push("iPad gate requires explicit ARKit evidence: capabilities.runtime=\"ARKit\" or capabilities.arkit_supported=true.");
 		}
+		if (!getCapability(evidence, "arkit_tracking_state")) {
+			failures.push("iPad gate requires capabilities.arkit_tracking_state so ARKit tracking can be diagnosed.");
+		}
+		if (!getCapability(evidence, "arkit_tracking_reason")) {
+			failures.push("iPad gate requires capabilities.arkit_tracking_reason so ARKit tracking limits can be diagnosed.");
+		}
 	}
 
 	return {

@@ -289,6 +289,12 @@ function evaluateSmokeEvents(events, gate) {
 		if (!hasArkitEvidence) {
 			failures.push("iPad gate requires explicit ARKit evidence.");
 		}
+		if (!getCapability(evidence, "arkit_tracking_state")) {
+			failures.push("iPad gate requires capabilities.arkit_tracking_state.");
+		}
+		if (!getCapability(evidence, "arkit_tracking_reason")) {
+			failures.push("iPad gate requires capabilities.arkit_tracking_reason.");
+		}
 	}
 
 	return { failures, warnings, evidence };

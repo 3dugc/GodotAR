@@ -9,6 +9,8 @@ C00 只要求 iPad 能证明 ARKit provider 可用：
 - `Engine.has_singleton("GodotARKit") == true`
 - `GodotARKit.initialize()` 或 `GodotARKit.start_session()` 返回 `true`
 - `GodotARKit.get_capabilities().native_plugin == true`
+- `GodotARKit.get_tracking_status()` 返回 Godot `XRInterface` tracking status，并能区分 `normal`、`limited`、`not_available`
+- `GodotARKit.get_capabilities()` 暴露 `arkit_tracking_state` 和 `arkit_tracking_reason`
 - `GXF_SMOKE` 中出现 `backend:"ARKit"` 和 `session_state:"Running"`
 
 真实平面检测、raycast、anchor 可以在 C04 补完。
@@ -42,6 +44,20 @@ hit_test(origin: Vector3, direction: Vector3, max_distance: float) -> Array[Dict
 create_anchor(transform: Transform3D, attached_trackable: Variant) -> Dictionary
 get_planes() -> Array[Dictionary]
 ```
+
+`get_capabilities()` 的 ARKit tracking 字段：
+
+```gdscript
+{
+	"arkit_supported": true,
+	"arkit_running": true,
+	"arkit_tracking_status": 2,
+	"arkit_tracking_state": "normal",
+	"arkit_tracking_reason": "none"
+}
+```
+
+`arkit_tracking_status` 是插件内部状态：`0=not_available`、`1=limited`、`2=normal`。`GodotARKit.get_tracking_status()` 会把它映射成 Godot `XRInterface` / `ARVRInterface` 的 tracking status，便于 `NativeXRProvider` 和上层 ARFoundation-style API 使用。
 
 ## 启用步骤
 

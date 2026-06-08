@@ -10,11 +10,13 @@
 #include "servers/xr/xr_interface.h"
 #define GODOT_AR_STATE_NORMAL_TRACKING XRInterface::XR_NORMAL_TRACKING
 #define GODOT_AR_STATE_UNKNOWN_TRACKING XRInterface::XR_UNKNOWN_TRACKING
+#define GODOT_AR_STATE_NOT_TRACKING XRInterface::XR_NOT_TRACKING
 #else
 #include "core/engine.h"
 #include "servers/arvr/arvr_interface.h"
 #define GODOT_AR_STATE_NORMAL_TRACKING ARVRInterface::ARVR_NORMAL_TRACKING
 #define GODOT_AR_STATE_UNKNOWN_TRACKING ARVRInterface::ARVR_UNKNOWN_TRACKING
+#define GODOT_AR_STATE_NOT_TRACKING ARVRInterface::ARVR_NOT_TRACKING
 #endif
 
 static GodotARKitPlugin *godot_arkit_singleton = nullptr;
@@ -80,7 +82,20 @@ bool GodotARKitPlugin::is_running() {
 }
 
 int GodotARKitPlugin::get_tracking_status() {
-	return is_running() ? GODOT_AR_STATE_NORMAL_TRACKING : GODOT_AR_STATE_UNKNOWN_TRACKING;
+	GodotARKitSession *arkit_session = get_session(session);
+	if (arkit_session == nil) {
+		return GODOT_AR_STATE_NOT_TRACKING;
+	}
+
+	switch ([arkit_session trackingStatus]) {
+		case 2:
+			return GODOT_AR_STATE_NORMAL_TRACKING;
+		case 1:
+			return GODOT_AR_STATE_UNKNOWN_TRACKING;
+		case 0:
+		default:
+			return GODOT_AR_STATE_NOT_TRACKING;
+	}
 }
 
 Dictionary GodotARKitPlugin::check_availability() {
@@ -120,6 +135,9 @@ Dictionary GodotARKitPlugin::get_capabilities() {
 		NSDictionary *native_capabilities = [arkit_session capabilities];
 		capabilities["arkit_supported"] = [native_capabilities[@"arkit_supported"] boolValue];
 		capabilities["arkit_running"] = [native_capabilities[@"arkit_running"] boolValue];
+		capabilities["arkit_tracking_status"] = [native_capabilities[@"arkit_tracking_status"] integerValue];
+		capabilities["arkit_tracking_state"] = ns_string_to_godot(native_capabilities[@"arkit_tracking_state"]);
+		capabilities["arkit_tracking_reason"] = ns_string_to_godot(native_capabilities[@"arkit_tracking_reason"]);
 	}
 
 	return capabilities;

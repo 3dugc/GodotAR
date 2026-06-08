@@ -105,6 +105,11 @@ func _update_status_panel() -> void:
 	var error := XRFoundation.get_last_error()
 	if error != "":
 		lines.append("Last error: %s" % error)
+	if capabilities.has("arkit_tracking_state"):
+		lines.append("ARKit: %s  Reason: %s" % [
+			String(capabilities.get("arkit_tracking_state", "unknown")),
+			String(capabilities.get("arkit_tracking_reason", "unknown")),
+		])
 	if not _session_started and XRFoundation.state == XRFoundationTypes.SessionState.FAILED:
 		lines.append("Fallback or native plugin setup required.")
 

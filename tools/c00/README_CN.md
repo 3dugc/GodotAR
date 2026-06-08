@@ -203,6 +203,7 @@ iPad gate 要求：
 - `session_state:"Running"`
 - `capabilities.native_plugin:true`
 - `capabilities.runtime:"ARKit"` 或 `capabilities.arkit_supported:true`
+- `capabilities.arkit_tracking_state` / `capabilities.arkit_tracking_reason` 必须存在，用于区分正常跟踪、初始化、重定位、运动过快或特征不足。
 - `runtime` metadata 能看到 Godot 版本、`--xr-platform=ipad`、rendering/OpenXR 设置和 viewport XR 状态。
 
 ## 手动日志验证

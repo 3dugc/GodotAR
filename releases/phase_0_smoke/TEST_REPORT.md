@@ -20,6 +20,7 @@ Codex implementation status:
 
 - C00 smoke scene created.
 - Runtime status panel created.
+- Runtime status panel now shows ARKit tracking state/reason when the native ARKit provider reports them.
 - `GXF_SMOKE` structured logs created.
 - `GXF_SMOKE` now includes runtime metadata: Godot version info, XR-related command-line args, rendering method, OpenXR/XR shader settings, and viewport XR state.
 - Provider capability reports created.
@@ -31,16 +32,19 @@ Codex implementation status:
 - `NativeXRProvider` now detects native provider singletons through `Engine.has_singleton(...)` and merges their availability/capability reports.
 - `ios/plugins/godot_arkit` now contains a first-party ARKit iOS plugin skeleton that registers `GodotARKit` as a Godot `Engine` singleton.
 - `GodotARKit` now exports `.gdip` init/deinit functions as C symbols and registers its Object class with `ClassDB` before exposing the singleton.
+- `GodotARKit` now listens to ARKit `ARSessionDelegate` tracking updates and reports `arkit_tracking_status`, `arkit_tracking_state`, and `arkit_tracking_reason` through `get_capabilities()`.
 - `ios/plugins/godot_arkit/build_xcframework.sh` now builds the ARKit iOS plugin artifacts when `GODOT_SOURCE_DIR` points to matching Godot source headers.
 - `tools/c00/run_device_cycle.sh` now orchestrates preflight, optional ARKit plugin build, Godot export, device log collection, and gate validation for iPad/ARKit and Rokid/OpenXR.
 - `tools/c00/run_device_cycle.sh all` now continues across iPad/Rokid gate failures and runs the aggregate C00 phase verifier at the end.
 - `tools/c00/check_export_presets.js` now validates that `export_presets.cfg` contains the required C00 preset names before export, requires Rokid exports to include `--xr-platform=rokid`, and requires the iPad preset to enable `GodotARKit`.
 - `tools/c00/write_export_presets_template.js` now generates a local C00 export preset starter for device machines before Godot editor review.
 - `tools/c00/validate_smoke_log.js` now requires explicit ARKit evidence for the iPad gate, not only `native_plugin=true`.
+- `tools/c00/validate_smoke_log.js` and `tools/c00/verify_phase_evidence.js` now require iPad ARKit logs to include `arkit_tracking_state` and `arkit_tracking_reason`.
 - Device collectors now attempt to save media evidence: Android/Rokid records `.mp4` plus `.png`; iOS captures `.png` when `idevicescreenshot` is available and otherwise asks for manual screenshot/recording.
 - `tools/c00/validate_evidence_bundle.js` now enforces publishable evidence: Rokid/Android require screenshot plus recording; iPad requires at least one screenshot or recording.
 - `tools/c00/verify_phase_evidence.js` now enforces the full C00 publish gate by requiring both Rokid/OpenXR and iPad/ARKit evidence in one aggregate report.
 - Native singleton providers can now report tracking status without an `XRInterface`; `GodotARKit` exposes `is_running()` and `get_tracking_status()` for the C00 panel and logs.
+- `GodotARKit.get_tracking_status()` now maps real ARKit state to Godot tracking status: normal tracking, limited/unknown tracking, or not tracking.
 
 Hardware status:
 
@@ -59,6 +63,7 @@ Hardware status:
 | `node --check tools/c00/write_export_presets_template.js` | Pass | Preset starter writer parses |
 | `bash -n tools/c00/*.sh ios/plugins/godot_arkit/build_xcframework.sh` | Pass | Shell scripts parse |
 | Synthetic iPad ARKit gate | Pass | `backend:"ARKit"`, `native_plugin:true` |
+| Synthetic iPad ARKit tracking gate | Pass | Validator rejects missing `arkit_tracking_state` / `arkit_tracking_reason` and accepts complete ARKit tracking evidence |
 | Synthetic Rokid AR gate | Pass | `backend:"OpenXR"`, `ar_product_path:true` |
 | Synthetic runtime metadata report | Pass | Report includes Godot version and `--xr-platform=rokid` metadata |
 | Synthetic evidence bundle gates | Pass | Rokid requires screenshot + video; iPad accepts manual media |
@@ -70,6 +75,7 @@ Hardware status:
 | `tools/c00/run_device_cycle.sh all` control flow | Pass | With export/collect disabled, records failing preflights and exits nonzero instead of silently passing |
 | `node --check tools/c00/check_export_presets.js` | Pass | Preset checker parses |
 | ARKit plugin symbol/static check | Pass | `.gdip` init symbols are `extern "C"` and `GodotARKitPlugin` registers with `ClassDB` |
+| ARKit tracking state/static check | Pass | `GodotARKitSession` implements `ARSessionDelegate` and exposes ARKit tracking state/reason |
 | `tools/c00/preflight.sh` | Blocked by host prerequisites | Missing `godot`, `adb`, `export_presets.cfg`, `GodotARKit.gdip`, and `GodotARKit.xcframework`; `node` and `xcrun` available |
 
 ## Device Evidence
@@ -130,6 +136,8 @@ Backend:
 Provider:
 Tracking:
 Native plugin:
+ARKit tracking:
+ARKit reason:
 ```
 
 Required log snippets:
@@ -184,6 +192,7 @@ Notes:
 
 - Rokid passes only when `backend:"OpenXR"` and `session_state:"Running"` are present in `GXF_SMOKE`.
 - iPad passes only when `backend:"ARKit"` and `session_state:"Running"` are present in `GXF_SMOKE`.
+- iPad reports should preserve `capabilities.arkit_tracking_state` and `capabilities.arkit_tracking_reason`; `normal` is stable tracking, while `limited` or `not_available` must include the reason in notes.
 - C00 device reports should include runtime metadata so startup arguments, Godot version, rendering method, and XR project settings are visible in the gate report.
 - `EditorSim` is useful evidence that the app starts, but never satisfies a device AR gate.
 - EditorSim/simulator gate validates migrated service code and smoke logging only; C00 publish still requires Rokid/OpenXR and iPad/ARKit evidence.

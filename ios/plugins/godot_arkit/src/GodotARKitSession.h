@@ -8,6 +8,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)isRunning;
 - (BOOL)start;
 - (BOOL)stop;
+- (NSInteger)trackingStatus;
+- (NSString *)trackingStateName;
+- (NSString *)trackingStateReason;
 - (NSDictionary *)capabilities;
 
 @end
