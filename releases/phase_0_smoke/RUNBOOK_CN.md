@@ -158,6 +158,7 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 
 - `Backend: EditorSim`：Godot 应用启动了，但 OpenXR gate 未通过。
 - `ar_product_path=false` 且 blend 只有 `opaque`：OpenXR 渲染启动了，但还不是 AR 结果。
+- `openxr_ar_tier=D`：OpenXR runtime 是 VR-only，本周期不能作为 AR 成果发布。
 - OpenXR interface unavailable：检查 Godot OpenXR 设置、Android export XR mode、Rokid runtime、OpenXR Vendors 插件。
 
 ## iPad / ARKit

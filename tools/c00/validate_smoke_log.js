@@ -156,6 +156,12 @@ function evaluateGate(events, gate, options) {
 		} else if (!arProductPath) {
 			failures.push("Rokid gate requires capabilities.ar_product_path=true to avoid accepting an opaque VR path as AR.");
 		}
+		const arTier = String(getCapability(evidence, "openxr_ar_tier") || "");
+		if (!arTier) {
+			warnings.push("Rokid gate should include capabilities.openxr_ar_tier for AR-vs-VR diagnosis.");
+		} else if (arTier === "D") {
+			failures.push("Rokid gate reports OpenXR AR tier D, which is VR-only and not an AR product path.");
+		}
 	}
 
 	if (gate === "ipad" || gate === "android-arcore") {

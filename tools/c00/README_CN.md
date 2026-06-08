@@ -162,6 +162,7 @@ Rokid 默认严格要求：
 - `backend:"OpenXR"`
 - `session_state:"Running"`
 - `capabilities.ar_product_path:true`
+- 新日志应包含 `capabilities.openxr_ar_tier`。`A/B/C` 可作为 AR 路径证据，`D` 是 VR-only，不能算 AR 通过。
 
 如果只想记录 OpenXR 先点亮、但不标记为 AR 通过：
 

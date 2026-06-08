@@ -110,6 +110,11 @@ func _update_status_panel() -> void:
 			String(capabilities.get("arkit_tracking_state", "unknown")),
 			String(capabilities.get("arkit_tracking_reason", "unknown")),
 		])
+	if capabilities.has("openxr_ar_tier"):
+		lines.append("OpenXR AR: Tier %s  Fallback: %s" % [
+			String(capabilities.get("openxr_ar_tier", "unknown")),
+			String(capabilities.get("openxr_fallback", "unknown")),
+		])
 	if not _session_started and XRFoundation.state == XRFoundationTypes.SessionState.FAILED:
 		lines.append("Fallback or native plugin setup required.")
 

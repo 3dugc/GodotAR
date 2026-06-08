@@ -2,6 +2,15 @@ extends XRProvider
 class_name OpenXRProvider
 
 const DEFAULT_INTERFACE_NAME := &"OpenXR"
+const DEFAULT_VENDOR_SINGLETONS := [
+	&"OpenXRVendors",
+	&"OpenXRMeta",
+	&"OpenXRFbPassthrough",
+	&"OpenXRAndroidXR",
+	&"OpenXRPico",
+	&"OpenXRHTC",
+	&"RokidOpenXR",
+]
 
 
 func configure(p_owner: Node, p_backend: int, options: Dictionary = {}) -> void:
@@ -21,6 +30,8 @@ func check_availability(options: Dictionary = {}) -> Dictionary:
 	var report := super.check_availability(options)
 	report["interface_registered"] = XRServer.find_interface(DEFAULT_INTERFACE_NAME) != null
 	report["runtime_hint"] = String(options.get("platform_hint", ""))
+	report["device_profile"] = _device_profile_from_hint(options)
+	report["vendor_singletons"] = _available_vendor_singletons(options)
 	return report
 
 
@@ -28,21 +39,36 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	var capabilities := super.get_capabilities(options)
 	var xr_iface := XRServer.find_interface(DEFAULT_INTERFACE_NAME)
 	var blend_modes := _environment_blend_mode_names(xr_iface)
-	var has_ar_blend := "alpha_blend" in blend_modes or "additive" in blend_modes
+	var has_alpha_blend := "alpha_blend" in blend_modes
+	var has_additive_blend := "additive" in blend_modes
+	var has_ar_blend := has_alpha_blend or has_additive_blend
+	var vendor_singletons := _available_vendor_singletons(options)
+	var has_vendor_passthrough := _interface_has_bool_method(xr_iface, "is_passthrough_supported") or _has_vendor_passthrough_singleton(vendor_singletons)
+	var has_planes := _has_openxr_plane_trackers()
+	var has_tracking := xr_iface != null
+	var has_input_ray := xr_iface != null
+	var ar_tier := _classify_ar_tier(has_alpha_blend, has_additive_blend, has_vendor_passthrough, has_planes, has_tracking, has_input_ray)
 
 	capabilities["session"] = xr_iface != null
-	capabilities["tracking"] = xr_iface != null
-	capabilities["camera_background"] = has_ar_blend
-	capabilities["passthrough"] = has_ar_blend or _interface_has_bool_method(xr_iface, "is_passthrough_supported")
+	capabilities["tracking"] = has_tracking
+	capabilities["camera_background"] = has_ar_blend or has_vendor_passthrough
+	capabilities["passthrough"] = has_ar_blend or has_vendor_passthrough
 	capabilities["raycast"] = true
-	capabilities["plane_detection"] = _has_openxr_plane_trackers()
+	capabilities["plane_detection"] = has_planes
 	capabilities["anchors"] = true
-	capabilities["input_ray"] = true
+	capabilities["input_ray"] = has_input_ray
 	capabilities["hand_tracking"] = xr_iface != null
-	capabilities["ar_product_path"] = has_ar_blend
+	capabilities["ar_product_path"] = has_ar_blend or has_vendor_passthrough
 	capabilities["environment_blend_modes"] = blend_modes
 	capabilities["openxr_interface"] = xr_iface != null
-	capabilities["device_profile"] = String(options.get("platform_hint", "openxr"))
+	capabilities["openxr_runtime"] = _interface_runtime_name(xr_iface)
+	capabilities["openxr_selected_blend_mode"] = _current_environment_blend_mode_name(xr_iface)
+	capabilities["openxr_vendor_singletons"] = vendor_singletons
+	capabilities["openxr_ar_tier"] = ar_tier
+	capabilities["openxr_fallback"] = _fallback_for_tier(ar_tier, has_planes)
+	capabilities["device_profile"] = _device_profile_from_hint(options)
+	capabilities["runtime"] = "OpenXR"
+	capabilities["openxr_feature_flags"] = _feature_flags(capabilities)
 	return capabilities
 
 
@@ -94,11 +120,111 @@ func _has_openxr_plane_trackers() -> bool:
 	return false
 
 
+func _device_profile_from_hint(options: Dictionary = {}) -> String:
+	var hint := String(options.get("platform_hint", "openxr")).strip_edges().to_lower()
+	if hint.contains("rokid"):
+		return "RokidOpenXR"
+	if hint.contains("quest") or hint.contains("meta"):
+		return "MetaQuestOpenXR"
+	if hint.contains("pico"):
+		return "PicoOpenXR"
+	if hint.contains("androidxr") or hint.contains("android_xr"):
+		return "AndroidXROpenXR"
+	return "GenericOpenXR"
+
+
+func _available_vendor_singletons(options: Dictionary = {}) -> Array[String]:
+	var singleton_names: Array = options.get("openxr_vendor_singletons", DEFAULT_VENDOR_SINGLETONS)
+	var found: Array[String] = []
+	for singleton_name in singleton_names:
+		var name := StringName(singleton_name)
+		if Engine.has_singleton(name):
+			found.append(String(name))
+	return found
+
+
+func _has_vendor_passthrough_singleton(vendor_singletons: Array[String]) -> bool:
+	for singleton_name in vendor_singletons:
+		var lower_name := singleton_name.to_lower()
+		if lower_name.contains("passthrough") or lower_name.contains("meta"):
+			return true
+	return false
+
+
+func _classify_ar_tier(has_alpha_blend: bool, has_additive_blend: bool, has_vendor_passthrough: bool, has_planes: bool, has_tracking: bool, has_input_ray: bool) -> String:
+	if not has_tracking:
+		return "D"
+	if (has_alpha_blend or has_vendor_passthrough) and has_planes and has_input_ray:
+		return "A"
+	if (has_alpha_blend or has_vendor_passthrough) and has_input_ray:
+		return "B"
+	if has_additive_blend and has_input_ray:
+		return "C"
+	return "D"
+
+
+func _fallback_for_tier(ar_tier: String, has_planes: bool) -> String:
+	match ar_tier:
+		"A":
+			return "none"
+		"B", "C":
+			if has_planes:
+				return "environment_planes"
+			return "virtual_plane_raycast"
+		_:
+			return "vr_only_not_ar"
+
+
+func _feature_flags(capabilities: Dictionary) -> PackedStringArray:
+	var flags := PackedStringArray()
+	if bool(capabilities.get("openxr_interface", false)):
+		flags.append("OPENXR_SESSION")
+		flags.append("OPENXR_RENDER")
+		flags.append("OPENXR_REFERENCE_SPACES")
+	if "alpha_blend" in capabilities.get("environment_blend_modes", []):
+		flags.append("AR_BLEND_ALPHA")
+	if "additive" in capabilities.get("environment_blend_modes", []):
+		flags.append("AR_BLEND_ADDITIVE")
+	if bool(capabilities.get("passthrough", false)):
+		flags.append("PASSTHROUGH")
+	if bool(capabilities.get("plane_detection", false)):
+		flags.append("TRACKABLE_PLANES")
+	if bool(capabilities.get("raycast", false)):
+		flags.append("RAYCAST_FALLBACK")
+	if bool(capabilities.get("anchors", false)):
+		flags.append("ANCHOR_LOCAL")
+	if bool(capabilities.get("input_ray", false)):
+		flags.append("INPUT_RAY")
+	if bool(capabilities.get("hand_tracking", false)):
+		flags.append("HAND_TRACKING")
+	return flags
+
+
 func _interface_has_bool_method(xr_iface: XRInterface, method_name: String) -> bool:
 	if xr_iface == null or not xr_iface.has_method(method_name):
 		return false
 	var result: Variant = xr_iface.call(method_name)
 	return typeof(result) == TYPE_BOOL and bool(result)
+
+
+func _interface_runtime_name(xr_iface: XRInterface) -> String:
+	if xr_iface == null:
+		return ""
+	for method_name in ["get_system_name", "get_runtime_name", "get_name"]:
+		if xr_iface.has_method(method_name):
+			var value: Variant = xr_iface.call(method_name)
+			if value != null:
+				return String(value)
+	return String(DEFAULT_INTERFACE_NAME)
+
+
+func _current_environment_blend_mode_name(target_interface: XRInterface = null) -> String:
+	var source := target_interface if target_interface != null else xr_interface
+	if source == null:
+		return "unknown"
+	if _has_property(source, &"environment_blend_mode"):
+		return _environment_blend_mode_to_string(int(source.get("environment_blend_mode")))
+	return "unknown"
 
 
 func _get_all_tracker_names() -> Array[StringName]:

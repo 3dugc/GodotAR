@@ -116,6 +116,8 @@ GXF_SMOKE|{"cycle":"C00","event":"session_started","runtime":{"godot":...,"cmdli
 
 Rokid gate 必须看到 `backend:"OpenXR"`。
 
+Rokid gate 应记录 `capabilities.openxr_ar_tier` 和 `capabilities.openxr_fallback`；`D` 代表 VR-only，不能作为 AR 产品路径通过。
+
 iPad gate 必须看到 `backend:"ARKit"`。
 
 iPad gate 还必须看到 `capabilities.native_plugin:true`，以及 `capabilities.runtime:"ARKit"` 或 `capabilities.arkit_supported:true`。
