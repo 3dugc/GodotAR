@@ -13,6 +13,7 @@ const files = {
 	sdkInstaller: "tools/c00/install_android_sdk_packages.sh",
 	preflight: "tools/c00/preflight.sh",
 	exportWrapper: "tools/c00/export_with_godot.sh",
+	androidCollector: "tools/c00/collect_android_smoke.sh",
 	readme: "tools/c00/README_CN.md",
 };
 
@@ -59,16 +60,32 @@ if (failures.length === 0) {
 	]);
 
 	requireContains(files.preflight, [
+		"resolve_godot_binary",
+		"resolve_adb_binary",
+		"resolve_java_binary",
+		"resolve_keytool_binary",
+		".godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot",
+		"platform-tools/adb",
 		"resolve_android_debug_keystore",
 		"android/build/build.gradle",
 		"configure_android_export_environment.sh --install-build-template",
 	]);
 
 	requireContains(files.exportWrapper, [
+		"resolve_godot_binary",
+		".godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot",
 		"is_android_export",
 		"GODOT_CONFIGURE_ANDROID_EXPORT",
 		"configure_android_export_environment.sh",
 		"--install-build-template",
+	]);
+
+	requireContains(files.androidCollector, [
+		"resolve_adb_binary",
+		"ADB_BIN",
+		".godot/cache/c00/android-sdk/platform-tools/adb",
+		"--adb",
+		"Using adb:",
 	]);
 
 	requireContains(files.readme, [

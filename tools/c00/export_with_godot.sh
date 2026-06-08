@@ -11,16 +11,31 @@ if [ -z "$PRESET" ] || [ -z "$OUT_PATH" ]; then
 	exit 2
 fi
 
-GODOT="${GODOT_BIN:-}"
-if [ -z "$GODOT" ]; then
-	if command -v godot >/dev/null 2>&1; then
-		GODOT="$(command -v godot)"
-	elif [ -x "/Applications/Godot.app/Contents/MacOS/Godot" ]; then
-		GODOT="/Applications/Godot.app/Contents/MacOS/Godot"
-	else
-		echo "Godot executable not found. Install Godot or set GODOT_BIN=/path/to/Godot." >&2
-		exit 2
+resolve_godot_binary() {
+	if [ -n "${GODOT_BIN:-}" ] && [ -x "$GODOT_BIN" ]; then
+		printf "%s" "$GODOT_BIN"
+		return 0
 	fi
+	if command -v godot >/dev/null 2>&1; then
+		command -v godot
+		return 0
+	fi
+	local bundled="$PROJECT_ROOT/.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot"
+	if [ -x "$bundled" ]; then
+		printf "%s" "$bundled"
+		return 0
+	fi
+	local applications="/Applications/Godot.app/Contents/MacOS/Godot"
+	if [ -x "$applications" ]; then
+		printf "%s" "$applications"
+		return 0
+	fi
+	return 1
+}
+
+if ! GODOT="$(resolve_godot_binary)"; then
+	echo "Godot executable not found. Install Godot or set GODOT_BIN=/path/to/Godot." >&2
+	exit 2
 fi
 
 if [ ! -f "$PROJECT_ROOT/export_presets.cfg" ]; then

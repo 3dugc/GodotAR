@@ -25,6 +25,23 @@ COLLECT_STATUS=0
 
 mkdir -p "$OUT_DIR"
 
+resolve_adb_binary() {
+	if [ -n "${ADB_BIN:-}" ] && [ -x "$ADB_BIN" ]; then
+		printf "%s" "$ADB_BIN"
+		return 0
+	fi
+	if command -v adb >/dev/null 2>&1; then
+		command -v adb
+		return 0
+	fi
+	local sdk_adb="$PROJECT_ROOT/.godot/cache/c00/android-sdk/platform-tools/adb"
+	if [ -x "$sdk_adb" ]; then
+		printf "%s" "$sdk_adb"
+		return 0
+	fi
+	return 1
+}
+
 expected_xr_platform_arg() {
 	case "$GATE" in
 		rokid) printf "%s\n" "--xr-platform=rokid" ;;
@@ -67,25 +84,27 @@ check_apk_launch_args() {
 	echo "APK launch args include $expected_arg"
 }
 
-if ! command -v adb >/dev/null 2>&1; then
-	echo "adb not found. Install Android platform tools and connect Rokid/Android device." >&2
+if ! ADB="$(resolve_adb_binary)"; then
+	echo "adb not found. Install Android platform tools, set ADB_BIN, or import a device dependency bundle." >&2
 	exit 2
 fi
+echo "Using adb: $ADB"
 
 check_apk_launch_args "$APK_PATH"
 
 if [ -n "$APK_PATH" ]; then
 	echo "Installing APK: $APK_PATH"
-	adb install -r "$APK_PATH"
+	"$ADB" install -r "$APK_PATH"
 fi
 
 echo "Connected devices:"
-adb devices
+"$ADB" devices
 
 echo "Collecting Android device profile -> $PROFILE_PATH"
 if ! node "$PROJECT_ROOT/tools/c00/collect_android_device_profile.js" \
 	--gate "$GATE" \
 	--package "$PACKAGE" \
+	--adb "$ADB" \
 	--report "$PROFILE_PATH" \
 	--json "$PROFILE_JSON_PATH"; then
 	echo "Android device profile collection failed; continuing to smoke collection."
@@ -101,27 +120,27 @@ if [ -f "$PROFILE_JSON_PATH" ]; then
 fi
 
 echo "Clearing logcat..."
-adb logcat -c || true
+"$ADB" logcat -c || true
 
 if [ "$ANDROID_FORCE_STOP" != "0" ]; then
 	echo "Force stopping package before launch: $PACKAGE"
-	adb shell am force-stop "$PACKAGE" >/dev/null 2>&1 || true
+	"$ADB" shell am force-stop "$PACKAGE" >/dev/null 2>&1 || true
 fi
 
 echo "Launching package: $PACKAGE"
-adb shell monkey -p "$PACKAGE" 1 >/dev/null || true
+"$ADB" shell monkey -p "$PACKAGE" 1 >/dev/null || true
 
 if [ "$CAPTURE_MEDIA" != "0" ]; then
 	echo "Recording ${VIDEO_SECONDS}s screen capture -> $VIDEO_PATH"
-	adb shell rm -f "$REMOTE_VIDEO" >/dev/null 2>&1 || true
-	adb shell screenrecord --time-limit "$VIDEO_SECONDS" "$REMOTE_VIDEO" &
+	"$ADB" shell rm -f "$REMOTE_VIDEO" >/dev/null 2>&1 || true
+	"$ADB" shell screenrecord --time-limit "$VIDEO_SECONDS" "$REMOTE_VIDEO" &
 	SCREENRECORD_PID="$!"
 else
 	SCREENRECORD_PID=""
 fi
 
 echo "Collecting logcat for ${DURATION}s -> $LOG_PATH"
-adb logcat -v brief > "$LOG_PATH" &
+"$ADB" logcat -v brief > "$LOG_PATH" &
 LOGCAT_PID="$!"
 sleep "$DURATION"
 kill "$LOGCAT_PID" >/dev/null 2>&1 || true
@@ -129,11 +148,11 @@ wait "$LOGCAT_PID" >/dev/null 2>&1 || true
 
 if [ "$CAPTURE_MEDIA" != "0" ]; then
 	wait "$SCREENRECORD_PID" >/dev/null 2>&1 || true
-	adb pull "$REMOTE_VIDEO" "$VIDEO_PATH" >/dev/null 2>&1 || echo "Screen recording pull failed; keep manual recording if available."
-	adb shell rm -f "$REMOTE_VIDEO" >/dev/null 2>&1 || true
+	"$ADB" pull "$REMOTE_VIDEO" "$VIDEO_PATH" >/dev/null 2>&1 || echo "Screen recording pull failed; keep manual recording if available."
+	"$ADB" shell rm -f "$REMOTE_VIDEO" >/dev/null 2>&1 || true
 
 	echo "Capturing screenshot -> $SCREENSHOT_PATH"
-	adb exec-out screencap -p > "$SCREENSHOT_PATH" || echo "Screenshot capture failed; capture manually."
+	"$ADB" exec-out screencap -p > "$SCREENSHOT_PATH" || echo "Screenshot capture failed; capture manually."
 fi
 
 echo "Validating gate: $GATE"

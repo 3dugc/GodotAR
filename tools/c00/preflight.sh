@@ -137,6 +137,19 @@ check_working_command() {
 	fi
 }
 
+check_working_executable() {
+	local label="$1"
+	local executable="$2"
+	local probe="$3"
+	local purpose="$4"
+	if [ -n "$executable" ] && [ -x "$executable" ] && "$executable" $probe >/dev/null 2>&1; then
+		printf "OK   %-16s %s\n" "$label" "$executable"
+	else
+		printf "MISS %-16s %s\n" "$label" "$purpose"
+		status=1
+	fi
+}
+
 check_file() {
 	local path="$1"
 	local purpose="$2"
@@ -189,25 +202,100 @@ resolve_godot_source_dir() {
 	return 1
 }
 
+resolve_godot_binary() {
+	if [ -n "${GODOT_BIN:-}" ] && [ -x "$GODOT_BIN" ]; then
+		printf "%s" "$GODOT_BIN"
+		return 0
+	fi
+	if command -v godot >/dev/null 2>&1; then
+		command -v godot
+		return 0
+	fi
+	local bundled="$PROJECT_ROOT/.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot"
+	if [ -x "$bundled" ]; then
+		printf "%s" "$bundled"
+		return 0
+	fi
+	local applications="/Applications/Godot.app/Contents/MacOS/Godot"
+	if [ -x "$applications" ]; then
+		printf "%s" "$applications"
+		return 0
+	fi
+	return 1
+}
+
+resolve_adb_binary() {
+	if [ -n "${ADB_BIN:-}" ] && [ -x "$ADB_BIN" ]; then
+		printf "%s" "$ADB_BIN"
+		return 0
+	fi
+	if command -v adb >/dev/null 2>&1; then
+		command -v adb
+		return 0
+	fi
+	local android_sdk_dir
+	android_sdk_dir="$(resolve_android_sdk_dir)"
+	local sdk_adb="$android_sdk_dir/platform-tools/adb"
+	if [ -x "$sdk_adb" ]; then
+		printf "%s" "$sdk_adb"
+		return 0
+	fi
+	return 1
+}
+
+resolve_java_binary() {
+	if [ -n "${GODOT_JAVA_SDK_PATH:-}" ] && [ -x "$GODOT_JAVA_SDK_PATH/bin/java" ]; then
+		printf "%s" "$GODOT_JAVA_SDK_PATH/bin/java"
+		return 0
+	fi
+	if [ -n "${JAVA_HOME:-}" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+		printf "%s" "$JAVA_HOME/bin/java"
+		return 0
+	fi
+	if command -v java >/dev/null 2>&1; then
+		command -v java
+		return 0
+	fi
+	return 1
+}
+
+resolve_keytool_binary() {
+	if [ -n "${GODOT_JAVA_SDK_PATH:-}" ] && [ -x "$GODOT_JAVA_SDK_PATH/bin/keytool" ]; then
+		printf "%s" "$GODOT_JAVA_SDK_PATH/bin/keytool"
+		return 0
+	fi
+	if [ -n "${JAVA_HOME:-}" ] && [ -x "$JAVA_HOME/bin/keytool" ]; then
+		printf "%s" "$JAVA_HOME/bin/keytool"
+		return 0
+	fi
+	if command -v keytool >/dev/null 2>&1; then
+		command -v keytool
+		return 0
+	fi
+	return 1
+}
+
 printf "C00 device smoke preflight\n"
 printf "Project: %s\n\n" "$PROJECT_ROOT"
 printf "Gate: %s\n\n" "$GATE"
 
 check_command node "required for tools/c00/validate_smoke_log.js"
 if needs_godot_binary; then
-	if [ -n "${GODOT_BIN:-}" ] && [ -x "$GODOT_BIN" ]; then
-		printf "OK   %-16s %s\n" "GODOT_BIN" "$GODOT_BIN"
+	if godot_bin="$(resolve_godot_binary)"; then
+		printf "OK   %-16s %s\n" "GODOT_BIN" "$godot_bin"
 	else
-		check_command godot "required for command-line export/import validation; set GODOT_BIN if using an app bundle"
+		printf "MISS %-16s %s\n" "godot" "required for command-line export/import validation; set GODOT_BIN if using an app bundle"
+		status=1
 	fi
 else
 	check_dir "$APP_PATH" "existing .app bundle required for collection-only iOS gate"
 fi
 if needs_android_tools; then
-	if [ -n "${ADB_BIN:-}" ] && [ -x "$ADB_BIN" ]; then
-		printf "OK   %-16s %s\n" "ADB_BIN" "$ADB_BIN"
+	if adb_bin="$(resolve_adb_binary)"; then
+		printf "OK   %-16s %s\n" "ADB_BIN" "$adb_bin"
 	else
-		check_command adb "required for Rokid/Android log collection; set ADB_BIN if using a project-local Android platform-tools install"
+		printf "MISS %-16s %s\n" "adb" "required for Rokid/Android log collection; set ADB_BIN if using a project-local Android platform-tools install"
+		status=1
 	fi
 fi
 if needs_ios_tools; then
@@ -290,8 +378,10 @@ if needs_android_tools; then
 		printf "     Install Android SDK build-tools and point GODOT_ANDROID_SDK_PATH, ANDROID_SDK_ROOT, or ANDROID_HOME at the SDK root.\n"
 		status=1
 	fi
-	check_working_command java "-version" "required by Android Gradle export; install a real JDK and set JAVA_HOME/PATH so Godot can find it"
-	check_working_command keytool "-help" "required to create or validate the Android debug keystore; install a real JDK"
+	java_bin="$(resolve_java_binary || true)"
+	keytool_bin="$(resolve_keytool_binary || true)"
+	check_working_executable java "$java_bin" "-version" "required by Android Gradle export; install a real JDK and set JAVA_HOME/PATH so Godot can find it"
+	check_working_executable keytool "$keytool_bin" "-help" "required to create or validate the Android debug keystore; install a real JDK"
 	check_file "$debug_keystore" "required for debug APK signing; run tools/c00/configure_android_export_environment.sh --install-build-template"
 	check_file "$PROJECT_ROOT/android/build/build.gradle" "required for Android Gradle exports; run tools/c00/install_android_build_template.sh after installing Godot export templates"
 fi

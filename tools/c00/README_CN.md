@@ -207,6 +207,15 @@ tools/c00/configure_android_export_environment.sh --install-build-template
 
 该脚本会生成默认 debug keystore 到 `.godot/cache/c00/android/debug.keystore`，并通过 Godot editor binary 写入 `export/android/android_sdk_path`、`export/android/java_sdk_path`、`export/android/debug_keystore`、`export/android/debug_keystore_user` 和 `export/android/debug_keystore_pass`。`tools/c00/export_with_godot.sh` 在导出 `.apk` / `.aab` 前会自动调用它；如果需要完全手动控制，可设置 `GODOT_CONFIGURE_ANDROID_EXPORT=0`。
 
+`tools/c00/preflight.sh`、`tools/c00/export_with_godot.sh` 和 Android/Rokid 采集脚本会自动查找：
+
+- `GODOT_BIN`。
+- PATH 中的 `godot`。
+- 项目本地 `.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot`。
+- `/Applications/Godot.app/Contents/MacOS/Godot`。
+- `ADB_BIN`、PATH 中的 `adb` 或项目本地 `.godot/cache/c00/android-sdk/platform-tools/adb`。
+- `GODOT_JAVA_SDK_PATH` / `JAVA_HOME` 下的 `java` 和 `keytool`。
+
 命令行导出时，`tools/c00/export_with_godot.sh` 默认传入 `--xr-mode off`，避免开发机没有 OpenXR runtime 时阻塞导出流程。这个参数只影响构建机上的 Godot editor 进程，不会移除导出包里的 OpenXR/ARKit/ARCore 启动参数。
 
 iPad/ARKit gate 前先构建插件：

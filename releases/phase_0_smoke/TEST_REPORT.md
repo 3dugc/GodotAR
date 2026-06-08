@@ -113,6 +113,8 @@ Codex implementation status:
 - `tools/c00/configure_android_export_environment.sh` now prepares the Android SDK path, JDK path, debug keystore, Godot Android EditorSettings, and project Android build template before Rokid/OpenXR or Android/ARCore export.
 - `tools/c00/export_with_godot.sh` now auto-runs Android export environment configuration before `.apk` / `.aab` export unless `GODOT_CONFIGURE_ANDROID_EXPORT=0` is set.
 - `tools/c00/preflight.sh` now checks real export prerequisites, including Godot export templates, project Android build template, Android SDK `platform-tools` / `build-tools` / `apksigner`, a working JDK (`java -version` and `keytool -help`), and debug keystore configuration.
+- `tools/c00/preflight.sh` and `tools/c00/export_with_godot.sh` now auto-detect project-local Godot at `.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot`, reducing device-machine environment setup friction.
+- `tools/c00/preflight.sh` and `tools/c00/collect_android_smoke.sh` now auto-detect `ADB_BIN`, PATH `adb`, or project-local `.godot/cache/c00/android-sdk/platform-tools/adb`; Android/Rokid device profile collection receives the resolved adb path.
 - `XRFoundation.resolve_platform_hint()` now reads both Godot command-line args and user args, and smoke/aggregate gates require launch platform evidence for Rokid, iPad, and Android ARCore device gates.
 - `tools/c00/collect_android_smoke.sh` now checks APK `assets/_cl_` for the required Godot Android `command_line/extra_args` (`--xr-platform=rokid` or `--xr-platform=arcore`) before install, and force-stops the package before launch so logs come from a fresh process with the intended XR platform.
 - C00 now includes an XRI-style smoke surface: `XRInteractionManager`, `XRRayInteractor`, `XRGrabInteractable`, hover/select/activate events, and `GXF_SMOKE.xri` runtime evidence from the demo scene.
@@ -241,8 +243,8 @@ Hardware status:
 | ARKit native raycast/plane static check | Pass | `GodotARKit` binds `hit_test` / `get_planes`, calls native `ARRaycastQuery`, caches `ARPlaneAnchor` evidence, and preserves native transform matrices |
 | GodotARKit `.gdip` template check | Pass with warning | Plugin config matches Godot iOS plugin format; warns that real `GodotARKit.xcframework` is not built on this host |
 | ARKit plugin Objective-C++ syntax smoke | Pass | `tools/c00/check_arkit_plugin_static.sh` validates plugin sources against the local iOS SDK with Godot stubs |
-| `ADB_BIN=.godot/cache/c00/android-sdk/platform-tools/adb tools/c00/preflight.sh rokid` | Blocked by host prerequisites | Project-local ADB, OpenXR Vendors, and C00 export presets are recognized; still missing `GODOT_BIN` and attached Rokid/OpenXR hardware |
-| `tools/c00/preflight.sh ipad` | Blocked by host prerequisites | C00 iPad export preset and ARKit source smoke pass; still missing `GODOT_BIN`, Godot source headers, `GodotARKit.gdip`, and `GodotARKit.xcframework` |
+| `tools/c00/preflight.sh ipad` | Blocked by export template | Project-local Godot, Xcode tools, Godot source headers, `GodotARKit.gdip`, and `GodotARKit.xcframework` are recognized; still missing official `ios.zip` export template |
+| `tools/c00/preflight.sh rokid` | Blocked by Android export prerequisites | Project-local Godot/ADB, OpenXR Vendors, and C00 export presets are recognized; still missing official `android_source.zip`, Android build-tools/apksigner, real JDK/keytool, debug keystore, and `android/build/build.gradle` |
 
 ## Device Evidence
 
