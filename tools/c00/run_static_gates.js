@@ -43,6 +43,11 @@ const checks = [
 		command: ["node", "tools/c00/check_openxr_provider_surface.js"],
 		required: true,
 	}] : []),
+	...(needsARCore(gate) ? [{
+		name: "Android ARCore gate surface",
+		command: ["node", "tools/c00/check_arcore_gate_surface.js"],
+		required: true,
+	}] : []),
 	...(needsIOS(gate) ? [
 		{
 			name: "GodotARKit plugin config surface",
@@ -209,6 +214,11 @@ function commandExists(commandName) {
 
 function needsOpenXR(targetGate) {
 	return targetGate === "all" || targetGate === "rokid";
+}
+
+
+function needsARCore(targetGate) {
+	return targetGate === "all" || targetGate === "android-arcore";
 }
 
 

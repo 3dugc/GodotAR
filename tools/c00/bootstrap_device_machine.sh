@@ -280,7 +280,7 @@ fi
 	printf "   GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh all\n"
 	printf "   \`\`\`\n\n"
 	printf "   The iPad gate will build the exported Xcode project into \`builds/ipad/GodotXRFoundation.app\` when \`APP_PATH\` is empty.\n\n"
-	printf "5. Publish only when \`releases/phase_0_smoke/C00_PHASE_REPORT.md\` reports PASS for both Rokid/OpenXR and iPad/ARKit.\n"
+	printf "5. Publish only when \`releases/phase_0_smoke/C00_PHASE_REPORT.md\` reports PASS for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.\n"
 } >> "$REPORT"
 
 cat "$REPORT"

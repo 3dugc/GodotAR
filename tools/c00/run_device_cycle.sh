@@ -14,10 +14,11 @@ BUILD_ARKIT_PLUGIN="${BUILD_ARKIT_PLUGIN:-auto}"
 BUILD_IPAD_APP="${BUILD_IPAD_APP:-auto}"
 INCLUDE_EDITOR_SIM="${INCLUDE_EDITOR_SIM:-0}"
 INCLUDE_IOS_SIMULATOR="${INCLUDE_IOS_SIMULATOR:-0}"
-INCLUDE_ANDROID_ARCORE="${INCLUDE_ANDROID_ARCORE:-0}"
+INCLUDE_ANDROID_ARCORE="${INCLUDE_ANDROID_ARCORE:-1}"
 CONTINUE_ON_FAILURE="${CONTINUE_ON_FAILURE:-auto}"
 RUN_PHASE_VERIFY="${RUN_PHASE_VERIFY:-1}"
 PHASE_REPORT="${PHASE_REPORT:-releases/phase_0_smoke/C00_PHASE_REPORT.md}"
+PHASE_GATES="${PHASE_GATES:-auto}"
 
 ROKID_PRESET="${ROKID_PRESET:-C00 Rokid OpenXR}"
 ROKID_APK_PATH="${ROKID_APK_PATH:-builds/rokid/c00.apk}"
@@ -74,12 +75,13 @@ Rokid / Android:
   ROKID_APK_PATH="$ROKID_APK_PATH"
 
 All:
-  Runs ipad then rokid. Set INCLUDE_ANDROID_ARCORE=1 to include Android ARCore.
+  Runs ipad, rokid, then android-arcore. Set INCLUDE_ANDROID_ARCORE=0 to skip Android ARCore.
   INCLUDE_EDITOR_SIM=1             Run the local EditorSim gate before device gates.
   INCLUDE_IOS_SIMULATOR=1          Run iOS Simulator development gate before device gates.
   CONTINUE_ON_FAILURE=auto|1|0     Default auto continues in all mode so every device can produce evidence.
   RUN_PHASE_VERIFY=1               Run verify_phase_evidence.js after all gates.
   PHASE_REPORT="$PHASE_REPORT"
+  PHASE_GATES=rokid,ipad,android-arcore Override aggregate verifier gate list.
 EOF
 }
 
@@ -306,8 +308,25 @@ run_phase_verify() {
 
 	echo
 	echo "== C00 phase evidence verify =="
+	local gate_args=()
+	if [[ "$PHASE_GATES" == "auto" ]]; then
+		gate_args+=(--gate rokid --gate ipad)
+		if [[ "$INCLUDE_ANDROID_ARCORE" == "1" ]]; then
+			gate_args+=(--gate android-arcore)
+		fi
+	else
+		local phase_gate
+		IFS=',' read -r -a phase_gates <<< "$PHASE_GATES"
+		for phase_gate in "${phase_gates[@]}"; do
+			phase_gate="${phase_gate//[[:space:]]/}"
+			if [[ -n "$phase_gate" ]]; then
+				gate_args+=(--gate "$phase_gate")
+			fi
+		done
+	fi
 	node "$PROJECT_ROOT/tools/c00/verify_phase_evidence.js" \
-		--report "$(project_path "$PHASE_REPORT")"
+		--report "$(project_path "$PHASE_REPORT")" \
+		"${gate_args[@]}"
 }
 
 if [[ "$GATE" == "all" ]]; then

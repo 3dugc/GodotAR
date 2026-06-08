@@ -196,6 +196,15 @@ function evaluateGate(events, gate, options) {
 		}
 	}
 
+	if (gate === "android-arcore") {
+		const runtime = String(getCapability(evidence, "runtime") || evidence.runtime || "");
+		const hasArcoreEvidence = runtime === "ARCore" ||
+			getCapability(evidence, "arcore_supported") === true;
+		if (!hasArcoreEvidence) {
+			failures.push("Android ARCore gate requires explicit ARCore evidence: capabilities.runtime=\"ARCore\" or capabilities.arcore_supported=true.");
+		}
+	}
+
 	return {
 		pass: failures.length === 0,
 		failures,

@@ -6,7 +6,7 @@ const path = require("path");
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
 const DEFAULT_EVIDENCE_DIR = path.join(PROJECT_ROOT, "releases/phase_0_smoke/evidence");
 const DEFAULT_REPORT = path.join(PROJECT_ROOT, "releases/phase_0_smoke/C00_PHASE_REPORT.md");
-const REQUIRED_GATES = ["rokid", "ipad"];
+const REQUIRED_GATES = ["rokid", "ipad", "android-arcore"];
 
 const args = parseArgs(process.argv.slice(2));
 
@@ -82,7 +82,7 @@ function usage() {
 		"  node tools/c00/verify_phase_evidence.js [--dir releases/phase_0_smoke/evidence] [--report releases/phase_0_smoke/C00_PHASE_REPORT.md]",
 		"",
 		"Options:",
-		"  --gate <gate>                 Gate to require. Repeatable. Default: rokid + ipad.",
+		"  --gate <gate>                 Gate to require. Repeatable. Default: rokid + ipad + android-arcore.",
 		"  --<gate>-log <file>           Explicit smoke log path.",
 		"  --<gate>-screenshot <file>    Explicit screenshot path.",
 		"  --<gate>-video <file>         Explicit recording path.",
@@ -472,6 +472,15 @@ function evaluateSmokeEvents(events, gate) {
 		}
 		if (!getCapability(evidence, "arkit_tracking_reason")) {
 			failures.push("iPad gate requires capabilities.arkit_tracking_reason.");
+		}
+	}
+
+	if (gate === "android-arcore") {
+		const runtime = String(getCapability(evidence, "runtime") || evidence.runtime || "");
+		const hasArcoreEvidence = runtime === "ARCore" ||
+			getCapability(evidence, "arcore_supported") === true;
+		if (!hasArcoreEvidence) {
+			failures.push("Android ARCore gate requires explicit ARCore evidence.");
 		}
 	}
 

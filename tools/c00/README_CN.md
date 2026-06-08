@@ -118,6 +118,14 @@ node tools/c00/check_openxr_provider_surface.js
 
 该检查确认 `OpenXRProvider` 会记录 environment blend、OpenXR Vendors passthrough singleton 方法结果和 `openxr_ar_evidence`，并确认 Rokid smoke gate 不会只凭一个模糊布尔值通过。
 
+检查 Android ARCore gate 诊断面：
+
+```bash
+node tools/c00/check_arcore_gate_surface.js
+```
+
+该检查确认 native provider 会输出 `capabilities.runtime:"ARCore"` / `capabilities.arcore_supported:true`，并确认 Android ARCore smoke/aggregate gate 不会只凭 `native_plugin:true` 通过。
+
 ## 一键执行 Gate
 
 设备机上优先使用：
@@ -149,7 +157,7 @@ DEVICE=<ipad-uuid-or-name> \
 tools/c00/run_device_cycle.sh all
 ```
 
-`all` 模式会按 iPad、Rokid 顺序执行。默认即使某个 gate 失败也会继续跑后续 gate，最后自动执行 `verify_phase_evidence.js` 生成 C00 总报告。设置 `INCLUDE_EDITOR_SIM=1` 可在设备 gate 前先跑本地 EditorSim gate；设置 `INCLUDE_IOS_SIMULATOR=1` 可额外跑 iOS Simulator 辅助 gate。
+`all` 模式会按 iPad、Rokid、Android ARCore 顺序执行。默认即使某个 gate 失败也会继续跑后续 gate，最后自动执行 `verify_phase_evidence.js` 生成 C00 总报告。设置 `INCLUDE_EDITOR_SIM=1` 可在设备 gate 前先跑本地 EditorSim gate；设置 `INCLUDE_IOS_SIMULATOR=1` 可额外跑 iOS Simulator 辅助 gate。
 
 常用开关：
 
@@ -163,10 +171,11 @@ tools/c00/run_device_cycle.sh all
 - `VIDEO_SECONDS=15`：Android/Rokid 录屏时长。
 - `MANUAL_MEDIA_PATH=/path/to/file`：iPad 自动截图不可用时，提供手动截图或录屏。
 - `ALLOW_MISSING_MEDIA=1`：继续生成报告，但把缺失媒体证据降级为 warning。
-- `INCLUDE_ANDROID_ARCORE=1`：`all` 模式额外跑 Android ARCore gate。
+- `INCLUDE_ANDROID_ARCORE=0`：`all` 模式临时跳过 Android ARCore gate。
 - `CONTINUE_ON_FAILURE=0`：`all` 模式遇到第一个失败 gate 就停止。
 - `RUN_PHASE_VERIFY=0`：`all` 模式跳过最终 C00 聚合验证。
 - `PHASE_REPORT=releases/phase_0_smoke/C00_PHASE_REPORT.md`：覆盖 C00 总报告输出路径。
+- `PHASE_GATES=rokid,ipad`：覆盖聚合验证 gate 列表，适合设备机暂时只验证某几台；C00 发布默认要求 `rokid,ipad,android-arcore`。
 - `INCLUDE_EDITOR_SIM=1`：`all` 模式先跑 EditorSim gate。
 - `INCLUDE_IOS_SIMULATOR=1`：`all` 模式先跑 iOS Simulator 辅助 gate。
 
@@ -323,6 +332,29 @@ Rokid 默认严格要求：
 EXTRA_VALIDATE_ARGS=--allow-openxr-without-ar-blend tools/c00/collect_android_smoke.sh rokid org.godotengine.godotxrfoundation 30
 ```
 
+## Android ARCore 日志采集
+
+Android 手机/平板使用单独的 ARCore gate：
+
+```bash
+tools/c00/export_with_godot.sh "C00 Android ARCore" builds/android_arcore/c00.apk
+```
+
+```bash
+APK_PATH=builds/android_arcore/c00.apk \
+tools/c00/collect_android_smoke.sh android-arcore org.godotengine.godotxrfoundation 30
+```
+
+Android ARCore gate 要求：
+
+- `backend:"ARCore"`
+- `session_state:"Running"`
+- `ar_session_state` 和 `not_tracking_reason` 必须存在，用于对照 Unity ARFoundation 状态判断。
+- `capabilities.native_plugin:true`
+- `capabilities.runtime:"ARCore"` 或 `capabilities.arcore_supported:true`
+- device profile JSON 能检测到 ARCore package，例如 `com.google.ar.core`。
+- 截图和录屏都存在。
+
 ## iPad 日志采集
 
 iPad 导出 preset 请先按 `tools/c00/EXPORT_PRESETS_CN.md` 创建。
@@ -393,6 +425,7 @@ iPad gate 要求：
 ```bash
 node tools/c00/validate_smoke_log.js --gate rokid --log path/to/rokid.log --report releases/phase_0_smoke/evidence/rokid.md
 node tools/c00/validate_smoke_log.js --gate ipad --log path/to/ipad.log --report releases/phase_0_smoke/evidence/ipad.md
+node tools/c00/validate_smoke_log.js --gate android-arcore --log path/to/android-arcore.log --report releases/phase_0_smoke/evidence/android-arcore.md
 ```
 
 也可以把手动采集的日志/截图/录屏导入到标准 C00 evidence 目录，并自动生成同格式报告：
@@ -414,6 +447,16 @@ tools/c00/import_device_evidence.sh \
   --manual-media path/to/ipad.mov \
   --device-profile path/to/ipad-device.md \
   --device-profile-json path/to/ipad-device.json
+```
+
+```bash
+tools/c00/import_device_evidence.sh \
+  --gate android-arcore \
+  --log path/to/android-arcore.log \
+  --screenshot path/to/android-arcore.png \
+  --video path/to/android-arcore.mp4 \
+  --device-profile path/to/android-arcore-device.md \
+  --device-profile-json path/to/android-arcore-device.json
 ```
 
 支持的 gate：

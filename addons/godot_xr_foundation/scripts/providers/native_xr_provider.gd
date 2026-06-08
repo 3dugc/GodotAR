@@ -71,6 +71,11 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	capabilities["environment_blend_modes"] = _environment_blend_mode_names(xr_iface)
 	capabilities["native_plugin"] = plugin_available
 	capabilities["device_profile"] = String(options.get("platform_hint", String(display_name).to_lower()))
+	capabilities["runtime"] = String(display_name)
+	if backend == XRFoundationTypes.Backend.ARCORE:
+		capabilities["arcore_supported"] = plugin_available
+	if backend == XRFoundationTypes.Backend.ARKIT:
+		capabilities["arkit_supported"] = plugin_available
 	if singleton and singleton.has_method("get_capabilities"):
 		var raw: Variant = singleton.call("get_capabilities")
 		if raw is Dictionary:

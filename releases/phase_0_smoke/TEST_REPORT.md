@@ -43,8 +43,10 @@ Codex implementation status:
 - C00 preflight, export helper, Android/Rokid log collector, iPad log collector, and gate validator created under `tools/c00`.
 - `tools/c00/check_godot_project_static.js` now validates C00 project settings, scene resource references, load steps, required smoke nodes, and critical NodePaths without requiring a Godot binary.
 - `tools/c00/run_static_gates.js` now runs the C00 static gate set in one command and can write a Markdown report for CI/device-machine readiness.
+- `tools/c00/check_arcore_gate_surface.js` now guards the Android ARCore evidence surface without requiring Godot or a connected Android device.
 - `tools/c00/import_device_evidence.sh` now imports manually captured device logs/media into the standard C00 evidence directory and runs the same smoke/media validators.
 - `NativeXRProvider` now detects native provider singletons through `Engine.has_singleton(...)` and merges their availability/capability reports.
+- `NativeXRProvider` now reports backend runtime identity and `arcore_supported` / `arkit_supported` capability flags for native singleton providers.
 - `ios/plugins/godot_arkit` now contains a first-party ARKit iOS plugin skeleton that registers `GodotARKit` as a Godot `Engine` singleton.
 - `GodotARKit` now exports `.gdip` init/deinit functions as C symbols and registers its Object class with `ClassDB` before exposing the singleton.
 - `GodotARKit` now listens to ARKit `ARSessionDelegate` tracking updates and reports `arkit_tracking_status`, `arkit_tracking_state`, and `arkit_tracking_reason` through `get_capabilities()`.
@@ -55,19 +57,19 @@ Codex implementation status:
 - `tools/c00/check_ios_plugin_artifacts.js` now also validates the ARKit runtime bridge surface: native `start_session`/`stop_session`/tracking methods are bound, `GodotARKitSession` runs `ARWorldTrackingConfiguration`, implements `ARSessionDelegate`, and reports ARKit tracking state/reason.
 - `tools/c00/run_device_cycle.sh` now orchestrates preflight, optional ARKit plugin build, Godot export, device log collection, and gate validation for iPad/ARKit and Rokid/OpenXR.
 - `tools/c00/build_ios_xcode_project.sh` now builds the Godot iOS export zip into `builds/ipad/GodotXRFoundation.app`, and the iPad runner can use it automatically when `APP_PATH` is not set.
-- `tools/c00/run_device_cycle.sh all` now continues across iPad/Rokid gate failures and runs the aggregate C00 phase verifier at the end.
+- `tools/c00/run_device_cycle.sh all` now continues across iPad/Rokid/Android ARCore gate failures and runs the aggregate C00 phase verifier at the end.
 - `tools/c00/check_export_presets.js` now validates that `export_presets.cfg` contains the required C00 preset names before export, requires Rokid exports to include `--xr-platform=rokid`, and requires the iPad preset to enable `GodotARKit`.
 - `tools/c00/write_export_presets_template.js` now generates a local C00 export preset starter for device machines before Godot editor review.
-- `tools/c00/validate_smoke_log.js` now requires explicit ARKit evidence for the iPad gate, not only `native_plugin=true`.
+- `tools/c00/validate_smoke_log.js` now requires explicit ARKit evidence for the iPad gate and explicit ARCore evidence for the Android gate, not only `native_plugin=true`.
 - `tools/c00/validate_smoke_log.js` and `tools/c00/verify_phase_evidence.js` now require Unity-style `ar_session_state` / `not_tracking_reason` and iPad ARKit `arkit_tracking_state` / `arkit_tracking_reason`.
 - Device collectors now attempt to save media evidence: Android/Rokid records `.mp4` plus `.png`; iOS captures `.png` when `idevicescreenshot` is available and otherwise asks for manual screenshot/recording.
 - Android/Rokid collection now writes a device profile report and JSON with model, OS, display, target package, XR-related packages, and notable camera/Vulkan/XR features.
 - `tools/c00/analyze_android_device_profile.js` now analyzes Rokid/OpenXR and Android ARCore profile JSON for ADB availability, target package install state, XR/OpenXR runtime packages, camera/Vulkan/XR features, and Rokid hardware match risk.
 - `tools/c00/collect_android_smoke.sh` now appends the Android device profile analysis report to the same C00 gate report.
 - iPad collection now writes a devicectl-backed device profile report and JSON with device details, display, lock state, target bundle status, and raw JSON command evidence.
-- C00 aggregate verification now requires device profile Markdown and JSON evidence for both Rokid/OpenXR and iPad/ARKit; manual evidence import can carry those files into the standard evidence layout.
+- C00 aggregate verification now requires device profile Markdown and JSON evidence for Rokid/OpenXR, iPad/ARKit, and Android/ARCore; manual evidence import can carry those files into the standard evidence layout.
 - `tools/c00/validate_evidence_bundle.js` now enforces publishable evidence: Rokid/Android require screenshot plus recording; iPad requires at least one screenshot or recording.
-- `tools/c00/verify_phase_evidence.js` now enforces the full C00 publish gate by requiring both Rokid/OpenXR and iPad/ARKit evidence in one aggregate report.
+- `tools/c00/verify_phase_evidence.js` now enforces the full C00 publish gate by requiring Rokid/OpenXR, iPad/ARKit, and Android/ARCore evidence in one aggregate report by default.
 - Native singleton providers can now report tracking status without an `XRInterface`; `GodotARKit` exposes `is_running()` and `get_tracking_status()` for the C00 panel and logs.
 - `GodotARKit.get_tracking_status()` now maps real ARKit state to Godot tracking status: normal tracking, limited/unknown tracking, or not tracking.
 - `OpenXRProvider` now reports Unity OpenXR Feature-style runtime diagnostics: selected blend mode, vendor singletons, feature flags, AR tier, and fallback path.
@@ -104,6 +106,8 @@ Hardware status:
 | `node tools/c00/check_xri_api_surface.js` | Pass | XRI manager/ray/interactable smoke surface is present |
 | `node --check tools/c00/check_openxr_provider_surface.js` | Pass | OpenXR provider surface checker parses |
 | `node tools/c00/check_openxr_provider_surface.js` | Pass | OpenXR/Rokid AR evidence surface is present |
+| `node --check tools/c00/check_arcore_gate_surface.js` | Pass | Android ARCore gate surface checker parses |
+| `node tools/c00/check_arcore_gate_surface.js` | Pass | Android ARCore runtime/capability evidence gate is present |
 | `node --check tools/c00/write_export_presets_template.js` | Pass | Preset starter writer parses |
 | `bash -n tools/c00/*.sh ios/plugins/godot_arkit/build_xcframework.sh` | Pass | Shell scripts parse |
 | `tools/c00/build_ios_xcode_project.sh --help` | Pass | Documents exported Xcode project build path into `builds/ipad/GodotXRFoundation.app` |
@@ -113,11 +117,14 @@ Hardware status:
 | Synthetic Rokid device profile analysis | Pass | Analyzer accepts a Rokid/OpenXR profile with target app, runtime packages, camera, Vulkan, and XR feature evidence |
 | Synthetic bad Rokid profile analysis | Fail as expected | Analyzer rejects missing ADB and missing target package while warning about missing OpenXR/camera/Vulkan/XR evidence |
 | Synthetic bad ARCore profile analysis | Fail as expected | Analyzer rejects Android ARCore profile JSON with no ARCore package |
+| Synthetic Android ARCore smoke gate | Pass | `validate_smoke_log.js --gate android-arcore` accepts `backend:"ARCore"` only when native plugin and explicit ARCore runtime/capability evidence are present |
+| Synthetic bad Android ARCore smoke gate | Fail as expected | `validate_smoke_log.js --gate android-arcore` rejects logs that only expose `native_plugin:true` without `runtime:"ARCore"` or `arcore_supported:true` |
+| Synthetic Android ARCore aggregate gate | Pass | `verify_phase_evidence.js --gate android-arcore` accepts ARCore smoke, screenshot, recording, device profile Markdown, and ARCore package JSON evidence |
 | Synthetic Rokid phase profile analysis | Pass | `verify_phase_evidence.js --gate rokid` accepts good Rokid profile analysis when media size is relaxed for synthetic files |
 | Synthetic bad Rokid phase profile analysis | Fail as expected | `verify_phase_evidence.js --gate rokid` rejects profile JSON where ADB and target package evidence are missing |
 | Synthetic iPad device profile smoke | Pass | `collect_ios_device_profile.js` writes Markdown/JSON with a fake devicectl command to verify report generation |
 | Synthetic manual evidence import | Pass | `tools/c00/import_device_evidence.sh` imports synthetic Rokid/iPad logs and media into a temp evidence directory and runs validators |
-| Synthetic C00 device profile aggregate gate | Pass | `verify_phase_evidence.js` rejects missing profile evidence and accepts Rokid/iPad logs, media, and profile Markdown/JSON |
+| Synthetic C00 device profile aggregate gate | Pass | `verify_phase_evidence.js` rejects missing profile evidence and accepts Rokid/iPad/Android ARCore logs, media, and profile Markdown/JSON when all required gates are supplied |
 | Synthetic iPad ARKit gate | Pass | `backend:"ARKit"`, `native_plugin:true` |
 | Synthetic iPad ARKit tracking gate | Pass | Validator rejects missing `arkit_tracking_state` / `arkit_tracking_reason` and accepts complete ARKit tracking evidence |
 | Synthetic Rokid AR gate | Pass | `backend:"OpenXR"`, `ar_product_path:true` |
@@ -127,7 +134,7 @@ Hardware status:
 | Synthetic Unity-style ARSession log fields | Pass | `validate_smoke_log.js` rejects missing `ar_session_state` / `not_tracking_reason` and accepts complete evidence |
 | Synthetic Unity-style ARSession aggregate fields | Pass | `verify_phase_evidence.js --gate rokid` rejects missing Unity-style fields and accepts complete evidence when media/profile are downgraded to warnings |
 | Synthetic evidence bundle gates | Pass | Rokid requires screenshot + video; iPad accepts manual media |
-| Synthetic C00 phase evidence gate | Pass | Aggregate report passes with Rokid + iPad evidence and fails on empty evidence |
+| Synthetic C00 phase evidence gate | Pass | Aggregate report passes with Rokid + iPad + Android ARCore evidence and fails on empty evidence |
 | Synthetic EditorSim gate | Pass | `backend:"EditorSim"` validates without media evidence |
 | Synthetic iOS Simulator gate | Pass | `validate_smoke_log.js --gate ios-simulator` accepts `backend:"EditorSim"` as development evidence |
 | Synthetic iOS Simulator vs iPad boundary | Fail as expected | The same `EditorSim` log fails `--gate ipad` with `Expected backend ARKit` |
@@ -263,10 +270,12 @@ Notes:
 - iPad passes only when `backend:"ARKit"` and `session_state:"Running"` are present in `GXF_SMOKE`.
 - iPad reports must include Unity-style `ar_session_state` and `not_tracking_reason`.
 - iPad reports should preserve `capabilities.arkit_tracking_state` and `capabilities.arkit_tracking_reason`; `normal` is stable tracking, while `limited` or `not_available` must include the reason in notes.
+- Android ARCore passes only when `backend:"ARCore"`, `session_state:"Running"`, `capabilities.native_plugin:true`, and explicit `capabilities.runtime:"ARCore"` or `capabilities.arcore_supported:true` are present in `GXF_SMOKE`.
+- Android ARCore reports must include Unity-style `ar_session_state` and `not_tracking_reason`, plus device profile JSON evidence of an ARCore package such as `com.google.ar.core`.
 - C00 device reports should include runtime metadata so startup arguments, Godot version, rendering method, and XR project settings are visible in the gate report.
 - `EditorSim` is useful evidence that the app starts, but never satisfies a device AR gate.
-- EditorSim/simulator gate validates migrated service code and smoke logging only; C00 publish still requires Rokid/OpenXR and iPad/ARKit evidence.
+- EditorSim/simulator gate validates migrated service code and smoke logging only; C00 publish still requires Rokid/OpenXR, iPad/ARKit, and Android/ARCore evidence.
 - OpenXR with only `opaque` blend mode is an OpenXR rendering pass, not an AR product pass.
 - Rokid/Android publishable results require both screenshot and screen recording artifacts; iPad publishable results require at least one screenshot or recording artifact.
-- C00 publishable results require `tools/c00/verify_phase_evidence.js` to pass for both Rokid/OpenXR and iPad/ARKit.
+- C00 publishable results require `tools/c00/verify_phase_evidence.js` to pass for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.
 - Any engine patch must include a minimal-intrusion patch spec before the device gate can be marked complete.

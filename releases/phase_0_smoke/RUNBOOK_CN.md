@@ -1,6 +1,6 @@
 # C00 Device Smoke Runbook
 
-目标：让第一阶段每次都能在 Rokid/OpenXR 和 iPad/ARKit 上运行、检测、归档。
+目标：让第一阶段每次都能在 Rokid/OpenXR、iPad/ARKit 和 Android/ARCore 上运行、检测、归档。
 
 ## 运行入口
 
@@ -81,12 +81,16 @@ tools/c00/run_device_cycle.sh rokid
 ```
 
 ```bash
+tools/c00/run_device_cycle.sh android-arcore
+```
+
+```bash
 GODOT_SOURCE_DIR=/path/to/godot \
 DEVICE=<ipad-uuid-or-name> \
 tools/c00/run_device_cycle.sh ipad
 ```
 
-`all` 会按 iPad/ARKit、Rokid/OpenXR 顺序执行；如需同时跑 Android ARCore，增加 `INCLUDE_ANDROID_ARCORE=1`。
+`all` 会按 iPad/ARKit、Rokid/OpenXR、Android/ARCore 顺序执行；如需临时跳过 Android ARCore，设置 `INCLUDE_ANDROID_ARCORE=0`。
 
 ```bash
 GODOT_SOURCE_DIR=/path/to/godot \
@@ -96,6 +100,7 @@ tools/c00/run_device_cycle.sh all
 
 `all` 模式默认会继续执行后续 gate，即使前一个 gate 失败；最后会自动运行 `tools/c00/verify_phase_evidence.js` 并生成 `C00_PHASE_REPORT.md`。如果希望失败即停，设置 `CONTINUE_ON_FAILURE=0`。
 如需在设备 gate 前先跑本地模拟器，设置 `INCLUDE_EDITOR_SIM=1`。
+如需临时只聚合某几台设备，设置 `PHASE_GATES=rokid,ipad`；C00 发布默认要求 `rokid,ipad,android-arcore`。
 
 ## 插件优先边界
 
@@ -209,6 +214,38 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - `openxr_ar_evidence` 缺失：使用的构建太旧，或 provider 没有读到 blend/vendor passthrough 能力；重新导出并检查 OpenXR Vendors/Rokid 插件。
 - OpenXR interface unavailable：检查 Godot OpenXR 设置、Android export XR mode、Rokid runtime、OpenXR Vendors 插件。
 
+## Android / ARCore
+
+通过标准：
+
+- Android 手机/平板上能看到状态面板和旋转 cube。
+- 面板显示 `Session: Running`。
+- 面板显示 `Backend: ARCore`。
+- 日志包含 `GXF_SMOKE`，且 JSON 中 `backend` 为 `ARCore`。
+- 日志包含 `ar_session_state` 和 `not_tracking_reason`，用于对照 Unity ARFoundation 状态。
+- `capabilities.native_plugin=true`。
+- `capabilities.runtime="ARCore"` 或 `capabilities.arcore_supported=true`。
+- device profile JSON 检测到 ARCore package，例如 `com.google.ar.core`。
+
+自动采集和验证：
+
+```bash
+tools/c00/run_device_cycle.sh android-arcore
+```
+
+底层脚本：
+
+```bash
+APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh android-arcore org.godotengine.godotxrfoundation 30
+```
+
+失败判定：
+
+- `Backend: EditorSim`：Android app 启动了，但 ARCore native path 没有被识别。
+- `native_plugin=true` 但缺少 `capabilities.runtime="ARCore"` / `capabilities.arcore_supported=true`：日志证据太弱，不能证明是 ARCore runtime。
+- device profile 里没有 `com.google.ar.core` 或 ARCore 包：设备缺 ARCore 服务或采集权限不足。
+- `Backend: OpenXR`：这台 Android 设备跑到了 OpenXR 路径，不能替代手机/平板 ARCore gate。
+
 ## iPad / ARKit
 
 通过标准：
@@ -309,20 +346,20 @@ smoke log gate 还会展示 `Runtime Metadata`，用于确认 Godot 版本、启
 
 ## C00 总验收
 
-Rokid/OpenXR 和 iPad/ARKit 都跑完后，执行：
+Rokid/OpenXR、iPad/ARKit 和 Android/ARCore 都跑完后，执行：
 
 ```bash
 node tools/c00/verify_phase_evidence.js
 ```
 
-该命令会扫描 `releases/phase_0_smoke/evidence/` 中最新的 Rokid/iPad 日志和媒体证据，并生成：
+该命令会扫描 `releases/phase_0_smoke/evidence/` 中最新的 Rokid/iPad/Android ARCore 日志和媒体证据，并生成：
 
 ```text
 releases/phase_0_smoke/C00_PHASE_REPORT.md
 ```
 
-只有这个总报告显示 `PASS`，C00 才能作为可发表结果。单台设备 gate 通过但另一台缺证据时，C00 仍然不能标记完成。
-总报告默认还要求 Rokid 和 iPad 都有 `*-device.md` 与 `*-device.json` device profile；Rokid JSON 会被分析 ADB、target package、XR/OpenXR runtime 包、camera/Vulkan/XR feature 和 Rokid 硬件匹配风险。临时调试可用 `--allow-missing-device-profile` 降级为 warning，但不能作为 C00 可发表结果。
+只有这个总报告显示 `PASS`，C00 才能作为可发表结果。单台设备 gate 通过但其他必需设备缺证据时，C00 仍然不能标记完成。
+总报告默认还要求 Rokid、iPad 和 Android ARCore 都有 `*-device.md` 与 `*-device.json` device profile；Rokid/Android JSON 会被分析 ADB、target package、XR/OpenXR/ARCore runtime 包、camera/Vulkan/XR feature 和设备匹配风险。临时调试可用 `--allow-missing-device-profile` 降级为 warning，但不能作为 C00 可发表结果。
 
 ## 参考原则
 
