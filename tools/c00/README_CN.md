@@ -61,6 +61,20 @@ tools/c00/check_arkit_plugin_static.sh
 
 这个检查使用临时 Godot stub headers 和本机 iOS SDK，不会生成 `.xcframework`，也不能替代真实 `build_xcframework.sh`。
 
+同时检查 Godot iOS plugin 配置：
+
+```bash
+node tools/c00/check_ios_plugin_artifacts.js
+```
+
+设备机上构建出真实 `.gdip` 与 `.xcframework` 后，使用严格检查：
+
+```bash
+node tools/c00/check_ios_plugin_artifacts.js --file ios/plugins/godot_arkit/GodotARKit.gdip --require-binary
+```
+
+该检查会验证 Godot 官方 `.gdip` 必需字段、`GodotARKit.xcframework` 引用、`init_godot_arkit` / `deinit_godot_arkit` 符号、ARKit/Metal capability、系统 framework、plist camera 权限和 required device capabilities。
+
 ## 一键执行 Gate
 
 设备机上优先使用：
@@ -122,6 +136,8 @@ tools/c00/collect_editor_smoke.sh 15
 ```
 
 它会用 `--xr-platform=simulator` 启动 Godot，并要求日志通过 `backend:"EditorSim"` gate。模拟器 gate 只能证明上层 ARFoundation-style API、raycast、anchor、plane 和日志链路可用，不能替代 Rokid/OpenXR 或 iPad/ARKit 真机 gate。
+
+iOS Simulator 和 Android Emulator 可以作为补充：用于验证导出链路、app 启动、日志格式、以及 iOS `.xcframework` simulator slice 是否存在。它们不具备真实 ARKit/OpenXR AR tracking 证据，不能作为 C00 发表通过标准。
 
 ## Export Preset 检查
 

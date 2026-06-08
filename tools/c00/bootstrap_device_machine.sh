@@ -189,6 +189,12 @@ else
 	add_row MISS "ARKit Objective-C++ syntax smoke" "Run tools/c00/check_arkit_plugin_static.sh for details."
 fi
 
+if plugin_output="$(run_capture node "$PROJECT_ROOT/tools/c00/check_ios_plugin_artifacts.js")"; then
+	add_row PASS "GodotARKit.gdip plugin config" "$plugin_output"
+else
+	add_row MISS "GodotARKit.gdip plugin config" "$plugin_output"
+fi
+
 if [[ -f "$PROJECT_ROOT/ios/plugins/godot_arkit/GodotARKit.gdip" ]]; then
 	add_row PASS "GodotARKit.gdip" "ios/plugins/godot_arkit/GodotARKit.gdip"
 else

@@ -111,6 +111,12 @@ fi
 
 if needs_ios_tools; then
 	printf "\nNative plugin artifacts\n"
+	if node "$PROJECT_ROOT/tools/c00/check_ios_plugin_artifacts.js"; then
+		printf "OK   GodotARKit.gdip template/plugin config check\n"
+	else
+		printf "MISS GodotARKit.gdip template/plugin config check\n"
+		status=1
+	fi
 	check_file "$PROJECT_ROOT/ios/plugins/godot_arkit/GodotARKit.gdip" "required for the iPad/ARKit gate; run ios/plugins/godot_arkit/build_xcframework.sh"
 	check_dir "$PROJECT_ROOT/ios/plugins/godot_arkit/GodotARKit.xcframework" "required for the iPad/ARKit gate; run ios/plugins/godot_arkit/build_xcframework.sh"
 fi

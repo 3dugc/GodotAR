@@ -76,6 +76,18 @@ tools/c00/check_arkit_plugin_static.sh
 
 这个检查只证明插件源码能和本机 iOS SDK、最小 Godot stub headers 对齐；iPad gate 仍然必须构建真实 `GodotARKit.xcframework`。
 
+也可以检查 `.gdip` 是否符合 Godot iOS plugin 官方格式：
+
+```bash
+node tools/c00/check_ios_plugin_artifacts.js
+```
+
+构建出真实产物后运行严格检查：
+
+```bash
+node tools/c00/check_ios_plugin_artifacts.js --file ios/plugins/godot_arkit/GodotARKit.gdip --require-binary
+```
+
 3. 确认生成：
 
 ```text

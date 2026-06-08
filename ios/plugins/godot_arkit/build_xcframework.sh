@@ -185,6 +185,10 @@ xcodebuild -create-xcframework \
 
 cp "$ROOT/${PLUGIN_NAME}.gdip.template" "$OUT_GDIP"
 
+node "$ROOT/../../../tools/c00/check_ios_plugin_artifacts.js" \
+	--file "$OUT_GDIP" \
+	--require-binary
+
 echo
 echo "Created:"
 echo "  $OUT_XCFRAMEWORK"

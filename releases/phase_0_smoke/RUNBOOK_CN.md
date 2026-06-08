@@ -116,6 +116,8 @@ tools/c00/collect_editor_smoke.sh 15
 
 模拟器会通过 `--xr-platform=simulator` 选择 `EditorSim` backend，提供模拟 floor plane、raycast、anchor 和 tracking。它可以作为开发 gate，但不能替代 Rokid/OpenXR 或 iPad/ARKit 真机通过标准。
 
+iOS Simulator 和 Android Emulator 也可以作为周期内的辅助成果：它们用于验证导出链路、app 启动、日志格式，以及 iOS `.xcframework` 是否包含 simulator slice。它们不能证明真实 ARKit/OpenXR AR tracking，因此不能让 C00 发布门禁通过。
+
 ## Rokid / OpenXR
 
 通过标准：
