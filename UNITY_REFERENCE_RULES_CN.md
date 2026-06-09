@@ -1,10 +1,28 @@
 # Unity 文档反推规则
 
-版本：2026-06-08
+版本：2026-06-09
 
 目标：当 Godot XR Foundation 在接口、生命周期、provider 划分、能力命名、fallback 行为、交互系统上出现不确定时，优先参考 Unity 的公开文档，逆向其架构思想，而不是照搬某个平台 SDK 的临时做法。
 
 ## 参考优先级
+
+## 最新基线巡检
+
+规则：每个周期开始或遇到架构选择时，先查 Unity 官方可见文档中的最高版本。已发行版本优先用于稳定实现；pre-release、preview、experimental 或 unreleased 官方文档也必须进入规划，但需要在 spec/report 里标注稳定性。旧 Unity API 只能作为迁移兼容层，不能压过最新设计。
+
+当前巡检日期：2026-06-09。
+
+| Unity 包 / 文档 | 当前可见最高基线 | 状态 | 本项目对齐要求 |
+| --- | --- | --- | --- |
+| AR Foundation | `com.unity.xr.arfoundation@6.5.0` | Unity 6000.6 alpha release notes visible | 以 Unity 6.x manager/subsystem 形状为主；`XROrigin` 是主入口；`ARSessionOrigin` 只做 deprecated compatibility shim |
+| XR Core Utilities | `com.unity.xr.core-utils@2.6.0` | Unity 6000.6 alpha release notes visible | `XROrigin` / Origin Base / Camera Floor Offset / Camera / Trackables Parent 是坐标系和 trackable world transform 的核心参考 |
+| XR Interaction Toolkit | `com.unity.xr.interaction.toolkit@3.5.0` | Unity 6000.6 alpha release notes visible | XRI 3.x 的 Interaction Manager、Interactors、Interactables、Input Readers、Near-Far/Ray/Gaze/Screen-space AR 交互是交互层方向 |
+| Unity OpenXR Plugin | `com.unity.xr.openxr@1.17.0` | Unity 6000.6 alpha release notes visible | 采用 feature/extension/provider 能力模型；OpenXR 设备必须证明 AR 路径，不能把 opaque VR runtime 当成 AR 成果 |
+| Google ARCore XR Plugin | `com.unity.xr.arcore@6.5.0` | Unity 6000.6 alpha release notes visible | Android ARCore 是与 ARKit/OpenXR 同级 provider；availability、install、session、camera、planes、raycast、anchors 逐步补齐 |
+| Apple ARKit XR Plugin | `com.unity.xr.arkit@6.5.0` | Unity 6000.6 alpha release notes visible | iOS/iPad ARKit 是与 ARCore/OpenXR 同级 provider；camera/background、planes、raycast、anchors、occlusion/meshing 能力按 provider bridge 接入 |
+| Android XR OpenXR Plugin | `com.unity.xr.androidxr-openxr@1.3.1` | Unity 6000.6 alpha release notes visible | 作为 OpenXR AR 设备扩展方向记录；不改变 C00 第一优先级 OpenXR/ARKit/ARCore |
+
+Unity 6.4 package manuals 仍作为当前公开 API 细节参考，用于补足 6.5 package manuals 尚未单独公开时的 AR Foundation/XROrigin 迁移细节。若未来 Unity 官方文档出现更高版本，例如 AR Foundation 6.6/7.x、XRI 3.6+、OpenXR 1.18+、ARCore/ARKit 6.6+，先更新本表、cycle spec 和 migration 文档，再实现接口。
 
 ### 1. AR Foundation
 
@@ -132,13 +150,19 @@ specs/decisions/
 
 ## 当前引用资料
 
-- Unity AR Foundation package overview: https://docs.unity3d.com/cn/2023.2/Manual/com.unity.xr.arfoundation.html
+- Unity 6000.6 alpha release notes: https://unity.com/releases/editor/alpha
+- Unity 6000.4 beta release notes: https://unity.com/releases/editor/beta/6000.4.0b4
+- Unity AR Foundation 6.4 package overview: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.4/manual/index.html
+- Unity AR Foundation 6.4 `ARSession`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.4/api/UnityEngine.XR.ARFoundation.ARSession.html
+- Unity AR Foundation 6.4 `ARSessionOrigin`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.4/api/UnityEngine.XR.ARFoundation.ARSessionOrigin.html
+- Unity XR Core Utilities `XROrigin`: https://docs.unity.cn/Packages/com.unity.xr.core-utils%402.5/manual/xr-origin-reference.html
 - Unity AR Foundation Subsystems: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%405.0/manual/architecture/subsystems.html
 - Unity AR Session component: https://docs.unity3d.com/ja/Packages/com.unity.xr.arfoundation%405.1/manual/features/session.html
 - Unity XR architecture: https://docs.unity3d.com/cn/2022.1/Manual/XRPluginArchitecture.html
-- Unity OpenXR Features: https://docs.unity.cn/Packages/com.unity.xr.openxr%401.7/manual/features.html
-- Unity AR development overview: https://docs.unity3d.com/es/2019.4/Manual/AROverview.html
-- Unity ARCore XR Plugin overview: https://docs.unity3d.com/es/2020.1/Manual/com.unity.xr.arcore.html
-- Unity XRI Architecture: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%403.0/manual/architecture.html
-- Unity XR Ray Interactor: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%402.0/manual/xr-ray-interactor.html
+- Unity OpenXR Plugin package overview: https://docs.unity.cn/6000.0/Documentation/Manual/com.unity.xr.openxr.html
+- Unity AR development overview: https://docs.unity.cn/6000.0/Documentation/Manual/AROverview.html
+- Unity ARCore XR Plugin 6.1: https://docs.unity.cn/Packages/com.unity.xr.arcore%406.1/manual/index.html
+- Unity ARKit XR Plugin 6.0: https://docs.unity.cn/6000.0/Documentation/Manual/com.unity.xr.arkit.html
+- Unity XRI 3.1 overview: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%403.1/manual/index.html
+- Unity XR Ray Interactor 3.1: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%403.1/manual/xr-ray-interactor.html
 - Unity XRI Input Readers: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%403.1/manual/input-readers.html

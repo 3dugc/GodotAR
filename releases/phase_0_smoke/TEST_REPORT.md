@@ -12,7 +12,7 @@ Default route: `res://demo/00_device_smoke_test.tscn`
 
 | Gate | Required backend | Result | Evidence |
 | --- | --- | --- | --- |
-| Editor smoke | EditorSim | Pass | Latest local run: `releases/phase_0_smoke/evidence/editor-20260609-114514.md` |
+| Editor smoke | EditorSim | Pass | Latest local run: `releases/phase_0_smoke/evidence/editor-20260609-120814.md` |
 | iOS Simulator development gate | EditorSim | Build pass / install blocked by Godot simulator template arch | `releases/phase_0_smoke/evidence/ios-simulator-20260609-034114.md` |
 | iOS Simulator C04 placement dev gate | EditorSim | Pass | `releases/phase_0_smoke/evidence/editor-20260609-115342.log` validated with `--gate ios-simulator-place` |
 | Rokid C02 placement dev gate | EditorSim | Pass / not a real device pass | `releases/phase_0_smoke/evidence/editor-20260609-114733.log` validated with `--gate rokid-place --allow-editor-sim-backend` |
@@ -190,9 +190,10 @@ Hardware status:
 
 | Check | Result | Notes |
 | --- | --- | --- |
-| Unity latest baseline review | Pass | Official Unity docs available in this run show AR Foundation `6.4.x` as the newest visible line; C00/C01 specs now state that newer released/pre-release/preview/unreleased official docs should move the design baseline forward |
+| Unity latest baseline review | Pass | Official Unity alpha/beta release notes available in this run show Unity 6000.6 alpha as the newest observed XR line: AR Foundation/ARCore/ARKit `6.5.0`, XR Core Utilities `2.6.0`, XRI `3.5.0`, OpenXR `1.17.0`, and Android XR OpenXR `1.3.1`; Unity 6.4 package manuals remain the detailed public API reference |
+| `node tools/c00/check_unity_reference_baseline.js` | Pass | Guards `UNITY_REFERENCE_RULES_CN.md`, `MIGRATION_UNITY.md`, C00, and C01 against drifting below the newest observed Unity XR baseline or dropping the unreleased/pre-release policy |
 | `node tools/c00/check_arfoundation_api_surface.js` | Pass | Guards Unity 6.x-style `XROrigin`, deprecated `ARSessionOrigin` shim, origin smoke metadata, ARSession/camera/raycast/anchor/trackables migration APIs, and Unity 6.4 migration notes |
-| `node tools/c00/run_static_gates.js --gate all` | Pass | Includes `git diff --check`, ARFoundation/XRI surface checks, export preset checks, ARKit artifact checks, and Android export surface checks |
+| `node tools/c00/run_static_gates.js --gate all` | Pass | Includes `git diff --check`, Unity latest reference baseline, ARFoundation/XRI surface checks, export preset checks, ARKit artifact checks, and Android export surface checks |
 | `tools/c00/collect_editor_smoke.sh 5` | Pass | Latest evidence `releases/phase_0_smoke/evidence/editor-20260609-120814.md` reports `GXF_SMOKE.origin` with `Camera=XRCamera3D`, `Origin=XRFoundationRig`, `TrackablesParent=TrackablesParent`, and camera/origin-space metadata |
 | `node tools/c00/audit_phase1_completion.js` | Not ready as expected | Static/API gates pass; completion audit still requires real Rokid/OpenXR, iPad/ARKit, and Android/ARCore device evidence before Phase 1 can be reported ready |
 | `node tools/c00/check_ios_arkit_place_surface.js` | Pass | Guards `demo/06_ios_arkit_place.tscn`, `GXF_ARKIT_PLACE`, ARKit camera/tracking evidence, and native `ARSession.addAnchor` bridge inside `ios/plugins/godot_arkit` |
@@ -200,16 +201,23 @@ Hardware status:
 | Godot headless `demo/06_ios_arkit_place.tscn` with `--xr-platform=simulator` | Pass | `/private/tmp/godotar-ios-place.log` contains `GXF_ARKIT_PLACE` `session_started`, `planes_changed`, `anchors_changed`, and `placed`; no script errors |
 | `node tools/c00/audit_phase1_completion.js --report /private/tmp/godotar-phase1-audit-ios-place.md --json /private/tmp/godotar-phase1-audit-ios-place.json` | Not ready as expected | Static/plugin gates pass; only remaining failure is missing real Rokid/iPad/Android phase evidence |
 | `tools/c00/preflight.sh rokid` | Pass | Godot, Android SDK/JDK, debug keystore, OpenXR Vendors addon, Khronos AAR, and Rokid preset are present |
+| `tools/c00/preflight.sh ipad` / `rokid-place` / `ipad-place` | Pass with signing warning on iPad presets | C00 and placement export prerequisites are present; iPad presets still need a real Apple Team ID before real device install |
 | `tools/c00/export_with_godot.sh "C00 Rokid OpenXR" builds/rokid/c00.apk` | Pass | Export completes; nonfatal Godot export warnings remain recorded for later cleanup |
+| `tools/c00/export_with_godot.sh "C02 Rokid OpenXR Place" builds/rokid/c02-place.apk` | Pass | Placement APK export completes with `--xr-scene=rokid_place` and OpenXR mode |
 | `node tools/c00/check_android_apk_surface.js --gate rokid --apk builds/rokid/c00.apk` | Pass | APK contains OpenXR loader/vendor artifacts and does not contain ARCore native libs |
-| `apksigner verify --print-certs builds/rokid/c00.apk` | Pass | Debug-signed with the C00 debug keystore |
+| `node tools/c00/check_android_apk_surface.js --gate rokid-place --apk builds/rokid/c02-place.apk` | Pass | Placement APK contains `--xr-platform=rokid`, `--xr-scene=rokid_place`, OpenXR loader/vendor artifacts, and no ARCore native libs |
+| `apksigner verify --print-certs builds/rokid/c00.apk` / `builds/rokid/c02-place.apk` | Pass | Both APKs are debug-signed with the C00 debug keystore when `JAVA_HOME=.godot/cache/c00/jdk/Contents/Home` is provided |
 | `tools/c00/preflight.sh android-arcore` | Pass | GodotARCore plugin AARs and Android export prerequisites are present |
 | `tools/c00/export_with_godot.sh "C00 Android ARCore" builds/android_arcore/c00.apk` | Pass | Export completes with GodotARCore enabled only for ARCore preset |
 | `node tools/c00/check_android_apk_surface.js --gate android-arcore --apk builds/android_arcore/c00.apk` | Pass | APK contains ARCore native libs and does not contain the OpenXR loader |
 | `apksigner verify --print-certs builds/android_arcore/c00.apk` | Pass | Debug-signed with the C00 debug keystore |
 | `tools/c00/preflight.sh ipad` | Pass with signing warning | Placeholder Team ID remains in the starter preset and must be replaced before real iPad install |
 | `node tools/c00/check_ios_plugin_artifacts.js --file ios/plugins/godot_arkit/GodotARKit.gdip --require-binary` | Pass | `GodotARKit.xcframework` is present and symbol linkage matches Godot's iOS plugin call path |
+| `tools/c00/export_with_godot.sh "C00 iPad ARKit" builds/ipad/c00.zip` | Pass | Xcode export zip refreshed after the Unity `XROrigin` shim; export pack includes the ARFoundation shim scripts |
+| `tools/c00/export_with_godot.sh "C04 iPad ARKit Place" builds/ipad/c04-place.zip` | Pass | Placement Xcode export zip refreshed with `--xr-scene=ios_arkit_place` |
 | `node tools/c00/check_ios_export_project.js --input builds/ipad/c00.zip` | Pass | Exported Xcode project references GodotARKit, ARKit/Metal frameworks, camera plist, and required capabilities |
+| `node tools/c00/check_ios_export_project.js --input builds/ipad/c04-place.zip` | Pass | Placement Xcode project references GodotARKit, ARKit/Metal frameworks, camera plist, and required capabilities |
+| Latest no-sign `tools/c00/build_ios_xcode_project.sh builds/ipad/c00.zip` retry in Codex sandbox | Blocked by host sandbox/tooling | Project validation passed and `xcodebuild` reached `GodotARKit.xcframework` / `MoltenVK.xcframework` processing, then failed during asset catalog/CoreSimulator setup with no simulator runtimes visible in the sandbox; this does not replace the earlier sandbox-external no-sign device build evidence |
 | `tools/c00/build_ios_xcode_project.sh builds/ipad/c00.zip` with `IOS_BUILD_PLATFORM=ios CODE_SIGNING_ALLOWED=NO` | Pass | Generic iOS device build produces `builds/ipad/GodotXRFoundation-nosign.app` |
 | `IOS_BUILD_PLATFORM=simulator tools/c00/build_ios_xcode_project.sh builds/ios_simulator/c00.zip` with signing disabled | Pass | Simulator Xcode build succeeds after project-only export fallback, MetalFX simulator patch, and Godot template architecture detection; resulting app executable is `x86_64` |
 | `APP_PATH=builds/ios_simulator/GodotXRFoundation.app tools/c00/collect_ios_simulator_smoke.sh ...` | Fail as expected / diagnostic produced | Current Apple Silicon simulator requires `arm64`, but the app executable is `x86_64`; collector writes `releases/phase_0_smoke/evidence/ios-simulator-20260609-034114.md` before install |

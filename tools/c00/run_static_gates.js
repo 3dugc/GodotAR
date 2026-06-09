@@ -69,6 +69,11 @@ const checks = [
 		required: true,
 	},
 	{
+		name: "Unity latest reference baseline",
+		command: ["node", "tools/c00/check_unity_reference_baseline.js"],
+		required: true,
+	},
+	{
 		name: "ARFoundation migration API surface",
 		command: ["node", "tools/c00/check_arfoundation_api_surface.js"],
 		required: true,

@@ -272,7 +272,9 @@ const checks = [
 	{
 		file: "MIGRATION_UNITY.md",
 		requirements: [
-			["Unity latest baseline policy", /Unity 6\.4\.x/],
+			["Unity latest baseline policy", /Unity 6000\.6 alpha release notes/],
+			["Unity ARFoundation 6.5 baseline", /com\.unity\.xr\.arfoundation@6\.5\.0/],
+			["Unity 6.4 detailed API reference", /Unity 6\.4 package manuals remain the detailed public API reference/],
 			["pre-release baseline policy", /pre-release|preview|unreleased/],
 			["ARSession.state migration row", /ARSession\.state/],
 			["notTrackingReason migration row", /notTrackingReason/],

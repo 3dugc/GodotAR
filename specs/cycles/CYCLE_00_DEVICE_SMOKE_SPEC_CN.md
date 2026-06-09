@@ -8,7 +8,7 @@
 
 建议周期：3-5 天
 
-Unity 对齐基线：以 Unity 官方可见的最新 AR Foundation / XR Core Utilities / XR Interaction Toolkit / OpenXR 文档为目标；截至 2026-06-09，AR Foundation 基线为 Unity 6.x `com.unity.xr.arfoundation@6.4.x`。如果后续出现更高的 released / pre-release / preview / unreleased 官方文档，后续周期必须前移基线，并把旧 API 作为兼容层而不是主设计。
+Unity 对齐基线：以 Unity 官方可见的最新 AR Foundation / XR Core Utilities / XR Interaction Toolkit / OpenXR 文档和 alpha/beta release notes 为目标；截至 2026-06-09，官方 6000.6 alpha release notes 的观察基线为 `com.unity.xr.arfoundation@6.5.0`、`com.unity.xr.core-utils@2.6.0`、`com.unity.xr.interaction.toolkit@3.5.0`、`com.unity.xr.openxr@1.17.0`、`com.unity.xr.arcore@6.5.0`、`com.unity.xr.arkit@6.5.0`。Unity 6.4 package manuals 继续作为当前公开 API 细节参考；如果后续出现更高的 released / pre-release / preview / unreleased 官方文档，后续周期必须前移基线，并把旧 API 作为兼容层而不是主设计。
 
 ## 一句话成果
 
