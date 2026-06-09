@@ -92,6 +92,23 @@ releases/phase_0_smoke/evidence/device-ready-<gate>-<timestamp>.json
 
 readiness 和 device profile 报告包含 `Next Actions` / `next_actions`，会针对 ADB 无设备、Rokid 未授权、iPad `offline` / `unavailable`、`ddiServicesAvailable=false`、目标 app 尚未安装等状态给出现场恢复步骤。
 
+## Device Lab Handoff
+
+每个周期可以生成一个可交给设备机或测试同事的 handoff 包，里面包含当前 APK、iPad Xcode export、runbook、spec、Unity 迁移说明、最新 readiness evidence 和下一步命令：
+
+```bash
+tools/c00/create_device_handoff_package.sh --device "iPad M4"
+```
+
+输出位置：
+
+```text
+releases/phase_0_smoke/packages/c00-device-handoff-<stamp>/
+releases/phase_0_smoke/packages/c00-device-handoff-<stamp>.zip
+```
+
+handoff 包不是 C00 通过证据；它只是阶段可运行成果。真实通过仍必须由 Rokid/OpenXR、iPad/ARKit、Android/ARCore gate 采集日志、媒体和 device profile 后通过 completion audit。
+
 ## 离线依赖包导入
 
 如果设备机访问 Godot downloads、GitHub 或 Android SDK repository 不稳定，可以先在任意网络可用机器准备一个离线依赖包目录，再在设备机导入。推荐目录内容：

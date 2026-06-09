@@ -134,6 +134,14 @@ tools/c00/run_phase1_device_lab.sh \
   --device <ipad-uuid-or-name>
 ```
 
+每个周期结束时可以产出一个 handoff 包，交给设备机继续跑真机 gate：
+
+```bash
+tools/c00/create_device_handoff_package.sh --device "iPad M4"
+```
+
+包内会包含当前 APK、iPad Xcode export、runbook、spec、Unity 迁移说明、最新 readiness evidence 和 `DEVICE_LAB_HANDOFF.md`。它是阶段交付物，不替代 Rokid/OpenXR 和 iPad/ARKit 的真实运行证据。
+
 网络很慢时先分段推进依赖缓存：
 
 ```bash
