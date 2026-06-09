@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://demo/00_device_smoke_test.gd" id="1_smoke"]
 [ext_resource type="PackedScene" path="res://addons/godot_xr_foundation/scenes/xr_foundation_rig.tscn" id="2_rig"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/xri/xr_ray_interactor.gd" id="8_xri_ray"]
 [ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/xri/xr_grab_interactable.gd" id="9_xri_grab"]
 [ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_camera_manager.gd" id="10_camera"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/xr_origin.gd" id="11_xr_origin"]
 
 [sub_resource type="Environment" id="Environment_smoke"]
 background_mode = 1
@@ -63,6 +64,12 @@ requestedLightEstimation = 3
 requested_light_estimation = 3
 
 [node name="XRFoundationRig" parent="." instance=ExtResource("2_rig")]
+
+[node name="XROrigin" type="Node" parent="."]
+script = ExtResource("11_xr_origin")
+origin_path = NodePath("../XRFoundationRig")
+camera_path = NodePath("../XRFoundationRig/XRCamera3D")
+trackables_parent_path = NodePath("../XRFoundationRig/TrackablesParent")
 
 [node name="StatusPanel" type="Node3D" parent="XRFoundationRig/XRCamera3D"]
 transform = Transform3D(1, 0, 0, 0, 0.965926, -0.258819, 0, 0.258819, 0.965926, 0, -0.18, -1.45)

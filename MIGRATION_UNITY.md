@@ -1,12 +1,19 @@
 # Unity Migration Notes
 
+## Unity Baseline
+
+Target the newest public Unity XR design first, including pre-release, preview, or otherwise unreleased package documentation when Unity publishes it. As of 2026-06-09, the highest AR Foundation line found in Unity's official package/manual docs is Unity 6.4.x with `com.unity.xr.arfoundation@6.4.x`; future work should move this baseline forward whenever newer official AR Foundation, XR Core Utilities, XR Interaction Toolkit, ARCore XR Plug-in, ARKit XR Plug-in, or OpenXR package docs become available.
+
+Implementation rule: prefer the latest `XROrigin` / manager / subsystem shape, then keep deprecated Unity APIs as compatibility shims only when they materially reduce migration cost.
+
 ## Mental Model
 
 Unity:
 
 ```text
 ARSession
-ARSessionOrigin / XROrigin
+XROrigin
+ARSessionOrigin (deprecated compatibility)
 ARCameraManager
 ARRaycastManager
 ARPlaneManager
@@ -20,6 +27,7 @@ Godot XR Foundation:
 ```text
 XRFoundation autoload
 XRSessionManager
+XROrigin / ARSessionOrigin shim
 XRDeviceRig / XROrigin3D
 XRCamera3D
 ARRaycastManager
@@ -30,7 +38,7 @@ XRRayInteractor
 XRGrabInteractable
 ```
 
-Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content under a world/content root, and keep the rig separate.
+Godot's `XROrigin3D` remains the low-level tracking-space root. `addons/godot_xr_foundation/scripts/arfoundation/xr_origin.gd` is the Unity-facing `XROrigin` shim that points at the Godot rig, exposes Unity-style origin/camera/trackables properties, and keeps imported Unity services away from Godot engine internals.
 
 ## Common API Replacements
 
@@ -68,7 +76,16 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 | `ARPlaneManager.requestedDetectionMode` / `currentDetectionMode` | `requested_detection_mode`, `get_requested_detection_mode()`, `set_requested_detection_mode(...)`, `SetRequestedDetectionModeName("Horizontal")`, and `get_current_detection_mode()` |
 | `ARAnchorManager.trackables` | `ARAnchorManager.GetTrackables()`, `GetTrackable(id)`, `TryGetAnchor(id, result)`, or `GetAllAnchors()` |
 | `ARAnchorManager.trackablesChanged` / `anchorsChanged` | `ARAnchorManager.trackablesChanged(changes)` where `changes` is `ARTrackablesChangedEventArgs`; legacy `anchors_changed(added, updated, removed)` is also emitted |
-| `XROrigin.Camera` | `XRDeviceRig.get_camera()` |
+| `XROrigin.Camera` | `XROrigin.Camera`, `XROrigin.GetCamera()`, or `XRDeviceRig.get_camera()` |
+| `XROrigin.Origin` | `XROrigin.Origin`, `XROrigin.GetOrigin()`, usually pointing at `XRFoundationRig` / Godot `XROrigin3D` |
+| `XROrigin.TrackablesParent` | `XROrigin.TrackablesParent` or `XROrigin.GetTrackablesParent()`; the shim creates `TrackablesParent` under the origin if needed |
+| `XROrigin.CameraFloorOffsetObject` / `CameraYOffset` | `XROrigin.CameraFloorOffsetObject`, `XROrigin.GetCameraFloorOffsetObject()`, and `XROrigin.set_camera_y_offset(...)` |
+| `XROrigin.MoveCameraToWorldLocation(...)` | `XROrigin.MoveCameraToWorldLocation(desired_world_location)` |
+| `XROrigin.RotateAroundCameraUsingOriginUp(...)` / `RotateAroundCameraPosition(...)` | Same method names on the Godot `XROrigin` shim |
+| `XROrigin.MatchOriginUp(...)` / `MatchOriginUpCameraForward(...)` / `MatchOriginUpOriginForward(...)` | Same method names on the Godot `XROrigin` shim |
+| `ARSessionOrigin` | `ARSessionOrigin` shim inherits `XROrigin`; use only as a deprecated compatibility bridge for older Unity services |
+| `ARSessionOrigin.camera` / `trackablesParent` | `get_camera_node()`, `GetCamera()`, `get_trackables_parent_node()`, or `GetTrackablesParent()` |
+| `ARSessionOrigin.MakeContentAppearAt(...)` | `ARSessionOrigin.MakeContentAppearAt(...)` or `XROrigin.MakeContentAppearAt(...)`; the shim updates the origin transform so content appears at the requested world pose |
 | `XRInteractionManager` | `XRInteractionManager` |
 | `XRRayInteractor` | `XRRayInteractor` |
 | `XRGrabInteractable` | `XRGrabInteractable` |
@@ -88,6 +105,8 @@ C00 keeps the compatibility layer intentionally thin: it copies the Unity naming
 - `ARSession.notTrackingReason()` maps the current Godot/XR tracking status to `XRFoundationTypes.NotTrackingReason`.
 - `ARCameraManager` exposes Unity-style camera lifecycle fields and frame events while clearly reporting C00 limits: camera background/passthrough and light estimation come from provider capabilities, iPad/ARKit intrinsics come from the native `GodotARKit` frame when available, and CPU image acquisition is explicitly unsupported in C00.
 - Manager changed events expose Unity AR Foundation 6-style `trackablesChanged(changes)` with `changes.added`, `changes.updated`, and `changes.removed`, while still emitting legacy `planes_changed(added, updated, removed)` and `anchors_changed(added, updated, removed)` for existing Godot-side scripts.
+- `XROrigin` is the preferred Unity 6.x origin surface. C00 exposes `Camera`, `Origin`, `TrackablesParent`, `CameraFloorOffsetObject`, `CameraYOffset`, camera/origin-space query helpers, trackables-parent transform change events, origin movement/rotation helpers, and `MakeContentAppearAt(...)` as an addon-only shim over the existing Godot rig.
+- `ARSessionOrigin` remains available only as a compatibility class that inherits the `XROrigin` shim, matching Unity 6.4's deprecated-but-present inheritance shape for older ARFoundation services.
 - Screen-space raycast can now match Unity's `Raycast(screenPoint, hitResults, trackableTypes)` call shape when `ARRaycastManager.camera_path` is configured, when `SetRaycastCamera(camera)` has been called, or when a viewport/current-scene `Camera3D` can be discovered. Ray-style calls can pass a dictionary with `origin` and `direction`, a `Transform3D`, or a `Node3D`; explicit-camera aliases remain available for deterministic tests and nonstandard rigs.
 - `ARAnchorManager` exposes Unity's `AttachAnchor`, `GetAnchor`, `GetDescriptor().supportsTrackableAttachments`, and async persistent-anchor method names. Persistent anchors intentionally return unsupported results in C00, so migrated services can feature-detect without crashing while native persistence is scheduled for a later cycle.
 - Native ARKit/ARCore singleton bridges can return anchor dictionaries; `NativeXRProvider` preserves `trackable_id`, `persistent_id`, `transform`, and `tracking_state` through `ARAnchor.from_dictionary()`. On iPad/ARKit, `GodotARKitPlugin.create_anchor()` now routes placement poses into `ARSession.addAnchor` through `GodotARKitSession.addAnchorWithTransform(...)` when the native session is running.
@@ -123,7 +142,7 @@ This check does not prove controller input or final UI interaction quality; it k
 ## Porting Order
 
 1. Move scene scale to meters. Godot XR expects 1 unit to map to 1 meter.
-2. Replace Unity `XROrigin` with `addons/godot_xr_foundation/scenes/xr_foundation_rig.tscn`.
+2. Replace Unity `XROrigin` references with the addon `XROrigin` shim, and point it at `addons/godot_xr_foundation/scenes/xr_foundation_rig.tscn`.
 3. Replace session startup code with `XRSessionManager`.
 4. Replace AR raycasts and anchors first; they are usually the main gameplay dependency.
 5. Replace plane visualization next.
@@ -225,13 +244,17 @@ The provider layer in this addon is designed so those features can be added per 
 
 ## Unity References Used For This Surface
 
-- Unity AR Foundation `ARSession`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%404.2/api/UnityEngine.XR.ARFoundation.ARSession.html
+- Unity AR Foundation 6.4 package overview: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.4/manual/index.html
+- Unity AR Foundation 6.4 `ARSession`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.4/api/UnityEngine.XR.ARFoundation.ARSession.html
+- Unity AR Foundation 6.4 `ARSessionOrigin`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.4/api/UnityEngine.XR.ARFoundation.ARSessionOrigin.html
+- Unity AR Foundation 5 upgrade note from `ARSessionOrigin` to `XROrigin`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%405.1/manual/version-history/upgrade-guide.html
+- Unity XR Core Utilities `XROrigin`: https://docs.unity.cn/Packages/com.unity.xr.core-utils%402.5/manual/xr-origin-reference.html
 - Unity AR Foundation managers architecture: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%405.0/manual/architecture/managers.html
 - Unity AR Foundation 6 `ARCameraManager`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.1/api/UnityEngine.XR.ARFoundation.ARCameraManager.html
 - Apple ARKit `ARCamera`: https://developer.apple.com/documentation/arkit/arcamera
 - Apple ARKit `ARFrame.lightEstimate`: https://developer.apple.com/documentation/arkit/arframe/lightestimate
 - Unity AR Foundation 6 `ARPlaneManager.trackablesChanged`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.0/manual/features/plane-detection/arplanemanager.html
-- Unity AR Foundation 6 `ARRaycastManager` single raycasts: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.0/manual/features/raycasts.html
+- Unity AR Foundation 6.4 `ARRaycastManager`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.4/api/UnityEngine.XR.ARFoundation.ARRaycastManager.html
 - Unity AR Foundation 6 `ARAnchorManager.AttachAnchor` / `TryAddAnchorAsync`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.1/api/UnityEngine.XR.ARFoundation.ARAnchorManager.html
 - Unity XR Interaction Toolkit `XRRayInteractor`: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%402.5/manual/xr-ray-interactor.html
 - Unity XR Interaction Toolkit `TryGetCurrent3DRaycastHit`: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%401.0/api/UnityEngine.XR.Interaction.Toolkit.XRRayInteractor.html

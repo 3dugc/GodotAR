@@ -15,6 +15,7 @@ const VERSION := "v0.0.1-c00-device-smoke"
 @onready var raycast_manager: ARRaycastManager = $ARRaycastManager
 @onready var plane_manager: ARPlaneManager = $ARPlaneManager
 @onready var anchor_manager: ARAnchorManager = $ARAnchorManager
+@onready var xr_origin: Node = $XROrigin
 @onready var xri_interaction_manager: XRInteractionManager = $XRInteractionManager
 @onready var xri_ray_interactor: XRRayInteractor = $XRFoundationRig/XRCamera3D/XRRayInteractor
 @onready var xri_grab_interactable: XRGrabInteractable = $World/XRGrabInteractable
@@ -91,6 +92,9 @@ func _update_status_panel() -> void:
 	var planes := plane_manager.get_all_planes().size()
 	var anchors := anchor_manager.anchors.size()
 	var fps := int(Engine.get_frames_per_second())
+	var origin_metadata := _origin_metadata()
+	var origin_height := float(origin_metadata.get("camera_in_origin_space_height", 0.0))
+	var trackables_parent_name := String(origin_metadata.get("trackables_parent", ""))
 
 	var lines := PackedStringArray([
 		"Godot XR Foundation %s" % VERSION,
@@ -104,6 +108,10 @@ func _update_status_panel() -> void:
 		"Reason: %s" % String(XRFoundation.get_not_tracking_reason_name()),
 		"FPS: %d" % fps,
 		"Planes: %d  Anchors: %d" % [planes, anchors],
+		"Origin: %.2fm  Trackables: %s" % [
+			origin_height,
+			_yes_no(trackables_parent_name != ""),
+		],
 		"Camera: %s  Light: %d" % [
 			_yes_no(camera_manager.permissionGranted if camera_manager else false),
 			int(camera_manager.currentLightEstimation) if camera_manager else 0,
@@ -163,6 +171,7 @@ func _emit_smoke_log(event_name: String, extra: Dictionary) -> void:
 		"not_tracking_reason": String(XRFoundation.get_not_tracking_reason_name()),
 		"capabilities": XRFoundation.get_capabilities(),
 		"camera": _camera_metadata(),
+		"origin": _origin_metadata(),
 		"trackables": _trackables_metadata(),
 		"xri": _xri_metadata(),
 		"fps": int(Engine.get_frames_per_second()),
@@ -236,6 +245,14 @@ func _camera_metadata() -> Dictionary:
 		"native_frame": latest_frame.get("native_frame", {}),
 		"light_estimation": latest_frame.get("light_estimation", {}),
 	}
+
+
+func _origin_metadata() -> Dictionary:
+	if xr_origin == null:
+		return {"manager": false}
+	if xr_origin.has_method("to_dictionary"):
+		return xr_origin.call("to_dictionary")
+	return {"manager": false, "reason": "missing_to_dictionary"}
 
 
 func _trackables_metadata() -> Dictionary:

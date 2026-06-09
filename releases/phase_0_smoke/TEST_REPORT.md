@@ -38,6 +38,9 @@ Codex implementation status:
 - Unity-style `ARSession` wrapper created.
 - Unity-compatible `ARSession.state()` now returns `ARSessionState` semantics, while `ARSession.foundation_state()` keeps access to the internal lifecycle state.
 - Unity-style `ARSession.notTrackingReason`, `requestedTrackingMode`, and `matchFrameRateRequested` compatibility surface added.
+- Unity 6.x-style `XROrigin` shim added as the preferred origin/session-space facade; it exposes `Camera`, `Origin`, `TrackablesParent`, `CameraFloorOffsetObject`, `CameraYOffset`, camera/origin-space query helpers, transform-change evidence, origin movement/rotation helpers, and `MakeContentAppearAt(...)` without modifying Godot engine source.
+- Deprecated Unity `ARSessionOrigin` compatibility shim added on top of `XROrigin`, so older ARFoundation services can keep their `MakeContentAppearAt(...)`, camera, and trackables-parent assumptions during migration.
+- C00 smoke scene now mounts the addon-only `XROrigin` shim and writes `GXF_SMOKE.origin` metadata, giving iPad/Rokid/Android gates a stable way to prove Unity-style origin/camera/trackables wiring.
 - Unity-style `ARCameraManager` facade added for `permissionGranted`, `requestedLightEstimation`, `currentLightEstimation`, `frameReceived`, `TryGetIntrinsics`, `TryAcquireLatestCpuImage`, and camera/background capability metadata.
 - `GodotARKit` now exposes native ARKit camera frame metadata through `try_get_intrinsics()`, `get_camera_frame()`, and `get_light_estimation()`; `ARCameraManager.TryGetIntrinsics(...)` prefers that native frame data before falling back to Godot camera projection.
 - Unity-style migration helpers added for placement workflows: `ARRaycastManager.TryRaycast`, `ARRaycastManager.RaycastToList`, `ARRaycastManager.TryScreenRaycast`, `XRHit.get_pose()`, `ARAnchorManager.TryAddAnchorAsync`, and `ARAnchorManager.TryRemoveAnchor`.
@@ -187,7 +190,11 @@ Hardware status:
 
 | Check | Result | Notes |
 | --- | --- | --- |
+| Unity latest baseline review | Pass | Official Unity docs available in this run show AR Foundation `6.4.x` as the newest visible line; C00/C01 specs now state that newer released/pre-release/preview/unreleased official docs should move the design baseline forward |
+| `node tools/c00/check_arfoundation_api_surface.js` | Pass | Guards Unity 6.x-style `XROrigin`, deprecated `ARSessionOrigin` shim, origin smoke metadata, ARSession/camera/raycast/anchor/trackables migration APIs, and Unity 6.4 migration notes |
 | `node tools/c00/run_static_gates.js --gate all` | Pass | Includes `git diff --check`, ARFoundation/XRI surface checks, export preset checks, ARKit artifact checks, and Android export surface checks |
+| `tools/c00/collect_editor_smoke.sh 5` | Pass | Latest evidence `releases/phase_0_smoke/evidence/editor-20260609-120814.md` reports `GXF_SMOKE.origin` with `Camera=XRCamera3D`, `Origin=XRFoundationRig`, `TrackablesParent=TrackablesParent`, and camera/origin-space metadata |
+| `node tools/c00/audit_phase1_completion.js` | Not ready as expected | Static/API gates pass; completion audit still requires real Rokid/OpenXR, iPad/ARKit, and Android/ARCore device evidence before Phase 1 can be reported ready |
 | `node tools/c00/check_ios_arkit_place_surface.js` | Pass | Guards `demo/06_ios_arkit_place.tscn`, `GXF_ARKIT_PLACE`, ARKit camera/tracking evidence, and native `ARSession.addAnchor` bridge inside `ios/plugins/godot_arkit` |
 | `GODOT_SOURCE_DIR=.godot/cache/c00/godot-source ios/plugins/godot_arkit/build_xcframework.sh` | Pass | Rebuilt `GodotARKit.xcframework` after the ARKit plugin native anchor bridge change; no Godot engine source was modified |
 | Godot headless `demo/06_ios_arkit_place.tscn` with `--xr-platform=simulator` | Pass | `/private/tmp/godotar-ios-place.log` contains `GXF_ARKIT_PLACE` `session_started`, `planes_changed`, `anchors_changed`, and `placed`; no script errors |

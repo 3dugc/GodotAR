@@ -1,6 +1,6 @@
 # C00 Phase 1 Completion Audit
 
-Generated: 2026-06-09T03:54:29.506Z
+Generated: 2026-06-09T04:08:45.692Z
 
 Result: NOT_READY
 
@@ -104,7 +104,7 @@ Command: `node tools/c00/check_arfoundation_api_surface.js`
       "exists": true,
       "passed": 6,
       "total": 6
-... (75 more lines)
+... (93 more lines)
 ```
 
 ### XRI interaction API surface
@@ -433,7 +433,7 @@ OK   Godot source headers /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-co
 
 ### Rokid/iPad/Android phase evidence plus placement demos
 
-Command: `node tools/c00/verify_phase_evidence.js --dir /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/evidence --report /var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1780977291672.md --gate rokid --gate ipad --gate android-arcore --gate rokid-place --gate ipad-place`
+Command: `node tools/c00/verify_phase_evidence.js --dir /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/evidence --report /var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1780978146738.md --gate rokid --gate ipad --gate android-arcore --gate rokid-place --gate ipad-place`
 
 ```text
 {
@@ -446,7 +446,7 @@ Command: `node tools/c00/verify_phase_evidence.js --dir /Users/dirui/Documents/C
     "ipad-place"
   ],
   "evidenceDir": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/evidence",
-  "report": "/var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1780977291672.md",
+  "report": "/var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1780978146738.md",
   "failures": [
     "rokid: No GXF_SMOKE, GXF_ROKID_PLACE, or GXF_ARKIT_PLACE events found.",
     "rokid: rokid gate requires a screenshot artifact.",

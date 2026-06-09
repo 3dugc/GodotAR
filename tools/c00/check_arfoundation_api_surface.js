@@ -72,6 +72,37 @@ const checks = [
 		],
 	},
 	{
+		file: "addons/godot_xr_foundation/scripts/arfoundation/xr_origin.gd",
+		requirements: [
+			["Unity XROrigin class", /class_name\s+XROrigin/],
+			["TrackablesParentTransformChanged event", /signal\s+TrackablesParentTransformChanged/],
+			["Camera property", /var\s+Camera\s*:\s*Camera3D/],
+			["Origin property", /var\s+Origin\s*:\s*Node3D/],
+			["TrackablesParent property", /var\s+TrackablesParent\s*:\s*Node3D/],
+			["CameraFloorOffsetObject property", /var\s+CameraFloorOffsetObject\s*:\s*Node3D/],
+			["MoveCameraToWorldLocation method", /func\s+MoveCameraToWorldLocation\s*\(/],
+			["RotateAroundCameraUsingOriginUp method", /func\s+RotateAroundCameraUsingOriginUp\s*\(/],
+			["RotateAroundCameraPosition method", /func\s+RotateAroundCameraPosition\s*\(/],
+			["MatchOriginUp method", /func\s+MatchOriginUp\s*\(/],
+			["MatchOriginUpCameraForward method", /func\s+MatchOriginUpCameraForward\s*\(/],
+			["MatchOriginUpOriginForward method", /func\s+MatchOriginUpOriginForward\s*\(/],
+			["MakeContentAppearAt method", /func\s+MakeContentAppearAt\s*\(/],
+			["TransformPose method", /func\s+TransformPose\s*\(/],
+			["InverseTransformPose method", /func\s+InverseTransformPose\s*\(/],
+			["smoke dictionary metadata", /func\s+to_dictionary\s*\(\)\s*->\s*Dictionary/],
+		],
+	},
+	{
+		file: "addons/godot_xr_foundation/scripts/arfoundation/ar_session_origin.gd",
+		requirements: [
+			["Unity ARSessionOrigin compatibility class", /class_name\s+ARSessionOrigin/],
+			["inherits XROrigin", /extends\s+XROrigin/],
+			["legacy camera property", /var\s+camera\s*:\s*Camera3D/],
+			["legacy trackablesParent property", /var\s+trackablesParent\s*:\s*Node3D/],
+			["MakeContentAppearAt compatibility method", /func\s+MakeContentAppearAt\s*\(/],
+		],
+	},
+	{
 		file: "addons/godot_xr_foundation/scripts/arfoundation/ar_camera_manager.gd",
 		requirements: [
 			["ARCameraManager class", /class_name\s+ARCameraManager/],
@@ -124,6 +155,16 @@ const checks = [
 			["ARCameraManager node", /\[node\s+name="ARCameraManager"\s+type="Node"\s+parent="\."\]/],
 			["ARCameraManager configured camera path", /camera_path\s*=\s*NodePath\("\.\.\/XRFoundationRig\/XRCamera3D"\)/],
 			["ARRaycastManager configured camera path", /camera_path\s*=\s*NodePath\("\.\.\/XRFoundationRig\/XRCamera3D"\)/],
+			["XROrigin compatibility script", /res:\/\/addons\/godot_xr_foundation\/scripts\/arfoundation\/xr_origin\.gd/],
+			["XROrigin node", /\[node\s+name="XROrigin"\s+type="Node"\s+parent="\."\]/],
+		],
+	},
+	{
+		file: "demo/00_device_smoke_test.gd",
+		requirements: [
+			["origin smoke metadata helper", /func\s+_origin_metadata\s*\(\)\s*->\s*Dictionary/],
+			["origin payload", /"origin"\s*:\s*_origin_metadata\(\)/],
+			["XROrigin smoke node reference", /@onready\s+var\s+xr_origin\s*:\s*Node\s*=\s*\$XROrigin/],
 		],
 	},
 	{
@@ -231,8 +272,13 @@ const checks = [
 	{
 		file: "MIGRATION_UNITY.md",
 		requirements: [
+			["Unity latest baseline policy", /Unity 6\.4\.x/],
+			["pre-release baseline policy", /pre-release|preview|unreleased/],
 			["ARSession.state migration row", /ARSession\.state/],
 			["notTrackingReason migration row", /notTrackingReason/],
+			["XROrigin migration row", /XROrigin\.Camera/],
+			["ARSessionOrigin compatibility row", /ARSessionOrigin/],
+			["MakeContentAppearAt migration row", /MakeContentAppearAt/],
 			["ARCameraManager migration row", /ARCameraManager\.frameReceived/],
 			["ARRaycastManager.Raycast screen migration", /Raycast\(screen_position,\s*results,\s*trackable_types\)/],
 			["ARRaycastManager camera path migration", /camera_path|SetRaycastCamera/],

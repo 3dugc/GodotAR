@@ -8,6 +8,8 @@
 
 建议周期：1-2 周
 
+Unity 对齐基线：以 Unity 官方可见的最新 AR Foundation / XR Core Utilities / XR Interaction Toolkit / OpenXR 文档为目标；当前 C01 以 Unity 6.x `com.unity.xr.arfoundation@6.4.x` 的 manager/subsystem 形状和 `XROrigin` 主入口为设计基线。若官方出现更高 released、pre-release、preview 或 unreleased 文档，后续 spec 必须前移基线。
+
 ## 一句话成果
 
 同一份上层代码可以通过 Godot XR Foundation 完成 session、raycast、plane、anchor 的最小闭环，并在 EditorSim 和 OpenXR fallback 下运行。
@@ -27,6 +29,7 @@
 - `ARPlaneManager.get_all_planes()` 稳定。
 - `ARAnchorManager.add_anchor()` 稳定。
 - `ARCameraManager` 初版。
+- `XROrigin` 作为 Unity 6.x 风格 session-space/world-space 入口稳定，`ARSessionOrigin` 仅作为 deprecated 迁移 shim。
 - `demo/01_place_on_plane.tscn`。
 - `demo/02_backend_switcher.tscn`。
 - EditorSim 中支持地面 plane、raycast、anchor。
@@ -49,6 +52,13 @@
 - `ARRaycastManager.Raycast(ray_dictionary_or_transform, results, trackable_types)`
 - `ARAnchorManager.AttachAnchor(plane, pose)`
 - `ARAnchorManager.GetDescriptor()`
+- `XROrigin.Camera`
+- `XROrigin.Origin`
+- `XROrigin.TrackablesParent`
+- `XROrigin.MoveCameraToWorldLocation(...)`
+- `XROrigin.RotateAroundCameraUsingOriginUp(...)`
+- `XROrigin.MakeContentAppearAt(...)`
+- `ARSessionOrigin.MakeContentAppearAt(...)`
 - `XRRayInteractor.TryGetCurrent3DRaycastHit(result_array)`
 
 冻结：
@@ -57,6 +67,8 @@
 - `ARRaycastManager.screen_raycast(camera, screen_position, max_results)`
 - `ARAnchorManager.add_anchor(transform, attached_trackable)`
 - `ARPlaneManager.get_all_planes()`
+- `XROrigin.GetCamera()`
+- `XROrigin.GetTrackablesParent()`
 
 ## Demo
 
