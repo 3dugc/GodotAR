@@ -43,7 +43,7 @@ const checks = [
 	{
 		file: "tools/c00/verify_phase_evidence.js",
 		requirements: [
-			["aggregate iPad profile analysis", /\["rokid",\s*"android-arcore",\s*"ipad"\]\.includes\(gate\)/],
+			["aggregate iPad profile analysis", /\["rokid",\s*"rokid-place",\s*"android-arcore",\s*"ipad",\s*"ipad-place"\]\.includes\(gate\)/],
 			["aggregate iPad analyzer helper", /function\s+analyzeIosDeviceProfileJson\s*\(/],
 			["aggregate iPad availability helper", /function\s+detectIosDeviceAvailability\s*\(/],
 			["aggregate offline iPad failure", /iPad appears \$\{availability\}/],

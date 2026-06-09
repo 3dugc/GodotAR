@@ -525,6 +525,7 @@ tools/c00/run_device_cycle.sh all
 - `MANUAL_MEDIA_PATH=/path/to/file`：iPad 自动截图不可用时，提供手动截图或录屏。
 - `ALLOW_MISSING_MEDIA=1`：继续生成报告，但把缺失媒体证据降级为 warning。
 - `INCLUDE_ANDROID_ARCORE=0`：`all` 模式临时跳过 Android ARCore gate。
+- `INCLUDE_PLACE_DEMOS=1`：`all` 模式额外运行 `ipad-place` 和 `rokid-place`，验证专项 demo 的 plane/raycast/anchor/placed evidence。
 - `CONTINUE_ON_FAILURE=0`：`all` 模式遇到第一个失败 gate 就停止。
 - `RUN_PHASE_VERIFY=0`：`all` 模式跳过最终 C00 聚合验证。
 - `PHASE_REPORT=releases/phase_0_smoke/C00_PHASE_REPORT.md`：覆盖 C00 总报告输出路径。
@@ -619,6 +620,8 @@ C00 runner 依赖这些 preset 名称：
 - `C00 Rokid OpenXR`
 - `C00 iPad ARKit`
 - `C00 Android ARCore`
+- `C02 Rokid OpenXR Place`
+- `C04 iPad ARKit Place`
 
 Rokid preset 必须设置：
 
@@ -680,6 +683,16 @@ tools/c00/export_with_godot.sh "C00 Rokid OpenXR" builds/rokid/c00.apk
 node tools/c00/check_android_apk_surface.js --gate rokid --apk builds/rokid/c00.apk
 ```
 
+Rokid placement 专项 APK 检查：
+
+```bash
+tools/c00/export_with_godot.sh "C02 Rokid OpenXR Place" builds/rokid/c02-place.apk
+node tools/c00/check_android_apk_surface.js --gate rokid-place --apk builds/rokid/c02-place.apk
+tools/c00/run_device_cycle.sh rokid-place
+```
+
+该检查会额外要求 `assets/_cl_` 包含 `--xr-scene=rokid_place`。
+
 ```bash
 tools/c00/collect_android_smoke.sh rokid org.godotengine.godotxrfoundation 30
 ```
@@ -716,7 +729,7 @@ node tools/c00/analyze_android_device_profile.js \
   --report releases/phase_0_smoke/evidence/rokid-<timestamp>-device-analysis.md
 ```
 
-默认情况下，Rokid/OpenXR runtime 包名未知只会 warning；最终 AR 产品通过仍以 `GXF_SMOKE` 的 `backend:"OpenXR"`、`capabilities.ar_product_path:true` 和 `openxr_ar_tier` 为准。若设备机已经确定 runtime 包名规则，可加 `--strict-runtime-package` 把缺失 runtime 包提升为 failure。
+默认情况下，Rokid/OpenXR runtime 包名未知只会 warning；最终 AR 产品通过仍以 `GXF_SMOKE` 的 `backend:"OpenXR"`、`capabilities.ar_product_path:true` 和 `openxr_ar_tier` 为准。Rokid placement 专项 gate 使用 `GXF_ROKID_PLACE`，并要求 `event:"placed"`、`placed_count >= 1` 和 `center_screen_raycast.hit=true`。若设备机已经确定 runtime 包名规则，可加 `--strict-runtime-package` 把缺失 runtime 包提升为 failure。
 
 Rokid 默认严格要求：
 
@@ -838,13 +851,23 @@ iPad gate 要求：
 - `runtime` metadata 能看到 Godot 版本、`--xr-platform=ipad`、rendering/OpenXR 设置和 viewport XR 状态。
 - device profile analysis 能确认已选中目标 iPad、目标 bundle 已安装、设备没有锁屏，且没有处于 `offline` / `unavailable` 状态。
 
+iPad placement 专项 gate：
+
+```bash
+GODOT_SOURCE_DIR=/path/to/godot DEVICE=<device> tools/c00/run_device_cycle.sh ipad-place
+```
+
+该 gate 使用 `C04 iPad ARKit Place` preset，默认构建 `builds/ipad/GodotXRFoundation-C04.app`，并通过 `IOS_GATE=ipad-place IOS_XR_SCENE=ios_arkit_place` 启动。validator 要求 `GXF_ARKIT_PLACE`、`event:"placed"`、`planes.count >= 1`、`anchors.count >= 1` 或 `anchor.created=true`、`center_screen_raycast.hit=true`、`backend:"ARKit"`。
+
 ## 手动日志验证
 
 如果你从 Xcode、Console.app、Android Studio 或其他工具导出了日志，可以直接验证：
 
 ```bash
 node tools/c00/validate_smoke_log.js --gate rokid --log path/to/rokid.log --report releases/phase_0_smoke/evidence/rokid.md
+node tools/c00/validate_smoke_log.js --gate rokid-place --log path/to/rokid-place.log --report releases/phase_0_smoke/evidence/rokid-place.md
 node tools/c00/validate_smoke_log.js --gate ipad --log path/to/ipad.log --report releases/phase_0_smoke/evidence/ipad.md
+node tools/c00/validate_smoke_log.js --gate ipad-place --log path/to/ipad-place.log --report releases/phase_0_smoke/evidence/ipad-place.md
 node tools/c00/validate_smoke_log.js --gate android-arcore --log path/to/android-arcore.log --report releases/phase_0_smoke/evidence/android-arcore.md
 ```
 
@@ -883,17 +906,19 @@ tools/c00/import_device_evidence.sh \
 
 - `editor`
 - `rokid`
+- `rokid-place`
 - `ipad`
+- `ipad-place`
 - `android-arcore`
 
-新 C00 日志会包含 `runtime` 和 `trackables` 字段。`validate_smoke_log.js` 会在报告中追加 `Runtime Metadata` 章节；Rokid/iPad/Android ARCore 真机 gate 还要求 `platform_hint`、`runtime.resolved_platform_hint`、project setting 或 `runtime.cmdline_xr_args` 中至少一个值能证明本次启动选择了目标 XR platform。`trackables` 缺失会直接失败，因为它证明当前 app 版本已经经过 ARFoundation manager 层输出 plane/anchor/raycast evidence。
+新 C00 smoke 日志会包含 `runtime` 和 `trackables` 字段。`validate_smoke_log.js` 会在报告中追加 `Runtime Metadata` 章节；Rokid/iPad/Android ARCore 真机 gate 还要求 `platform_hint`、`runtime.resolved_platform_hint`、project setting 或 `runtime.cmdline_xr_args` 中至少一个值能证明本次启动选择了目标 XR platform。`rokid-place` / `ipad-place` 使用 `GXF_ROKID_PLACE` / `GXF_ARKIT_PLACE`，重点验证 placed/raycast/anchor evidence。
 
 ## 手动媒体证据验证
 
 C00 默认还会验证媒体证据：
 
-- Rokid / Android ARCore：必须同时有 `.png` 截图和 `.mp4` 录屏。
-- iPad / ARKit：必须至少有一张自动截图，或通过 `MANUAL_MEDIA_PATH` 指向手动截图/录屏。
+- Rokid / Rokid placement / Android ARCore：必须同时有 `.png` 截图和 `.mp4` 录屏。
+- iPad / iPad placement：必须至少有一张自动截图，或通过 `MANUAL_MEDIA_PATH` 指向手动截图/录屏。
 
 手动验证：
 

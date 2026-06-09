@@ -189,6 +189,10 @@ tools/c00/run_device_cycle.sh rokid
 ```
 
 ```bash
+tools/c00/run_device_cycle.sh rokid-place
+```
+
+```bash
 tools/c00/run_device_cycle.sh android-arcore
 ```
 
@@ -196,6 +200,12 @@ tools/c00/run_device_cycle.sh android-arcore
 GODOT_SOURCE_DIR=/path/to/godot \
 DEVICE=<ipad-uuid-or-name> \
 tools/c00/run_device_cycle.sh ipad
+```
+
+```bash
+GODOT_SOURCE_DIR=/path/to/godot \
+DEVICE=<ipad-uuid-or-name> \
+tools/c00/run_device_cycle.sh ipad-place
 ```
 
 或让 runner 自动准备默认 source 目录：
@@ -206,7 +216,7 @@ DEVICE=<ipad-uuid-or-name> \
 tools/c00/run_device_cycle.sh ipad
 ```
 
-`all` 会按 iPad/ARKit、Rokid/OpenXR、Android/ARCore 顺序执行；如需临时跳过 Android ARCore，设置 `INCLUDE_ANDROID_ARCORE=0`。
+`all` 会按 iPad/ARKit、Rokid/OpenXR、Android/ARCore 顺序执行；如需临时跳过 Android ARCore，设置 `INCLUDE_ANDROID_ARCORE=0`。如需同时跑 placement 专项 demo gate，设置 `INCLUDE_PLACE_DEMOS=1`，它会额外执行 `ipad-place` 和 `rokid-place`。
 
 ```bash
 GODOT_SOURCE_DIR=/path/to/godot \
@@ -361,6 +371,16 @@ Rokid gate 默认要求截图和录屏都存在；临时调试可用 `ALLOW_MISS
 APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godotengine.godotxrfoundation 30
 ```
 
+Rokid placement 专项 gate：
+
+```bash
+tools/c00/run_device_cycle.sh rokid-place
+```
+
+该 gate 使用 `C02 Rokid OpenXR Place` preset，导出到 `builds/rokid/c02-place.apk`，并要求 APK `assets/_cl_` 同时包含 `--xr-platform=rokid` 和 `--xr-scene=rokid_place`。日志必须包含 `GXF_ROKID_PLACE`，且 selected evidence 需要满足 `event:"placed"`、`placed_count >= 1`、`center_screen_raycast.hit=true`、`backend:"OpenXR"`。
+
+本地开发可以用 `--allow-editor-sim-backend` 验证 placement/raycast/anchor 路由，但它只作为开发检查，不能替代 Rokid 真机 gate。
+
 失败判定：
 
 - `Backend: EditorSim`：Godot 应用启动了，但 OpenXR gate 未通过。
@@ -468,6 +488,14 @@ APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <devic
 `collect_ios_smoke.sh` 默认传入 `--xr-platform=ipad`；如需改成 iPhone 验证，可设置 `IOS_XR_PLATFORM=iphone`。
 当 `APP_PATH` 指向本次 `.app` 时，脚本会先安装 app，再采集 `ipad-<timestamp>-device.md/json`，确保目标 bundle 安装状态反映本次构建。随后会生成 `ipad-<timestamp>-device-analysis.md`，分析选中设备、目标 bundle 安装状态、display 和 lock state；目标 bundle 缺失或设备锁屏不能作为 iPad/ARKit gate 通过。
 如果本机安装了 `idevicescreenshot`，脚本会自动截图；否则请手动补一张截图或 15 秒录屏。
+
+iPad placement 专项 gate：
+
+```bash
+GODOT_SOURCE_DIR=/path/to/godot DEVICE=<device> tools/c00/run_device_cycle.sh ipad-place
+```
+
+该 gate 使用 `C04 iPad ARKit Place` preset，导出到 `builds/ipad/c04-place.zip`，默认构建 `builds/ipad/GodotXRFoundation-C04.app`，并通过 `IOS_GATE=ipad-place IOS_XR_SCENE=ios_arkit_place` 启动。日志必须包含 `GXF_ARKIT_PLACE`，且 selected evidence 需要满足 `event:"placed"`、`planes.count >= 1`、`anchors.count >= 1` 或 `anchor.created=true`、`center_screen_raycast.hit=true`、`backend:"ARKit"`。
 手动素材可以通过 `MANUAL_MEDIA_PATH=/path/to/ipad.mov` 传给采集脚本；没有任何媒体素材时，iPad gate 默认失败。
 
 如果日志或媒体是从 Xcode、Console.app、Android Studio 或手动录屏导出的，用统一导入脚本归档：

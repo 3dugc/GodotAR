@@ -12,7 +12,7 @@ if (args.help || args.h || !gate || !apk) {
 	process.exit(args.help || args.h ? 0 : 2);
 }
 
-if (!["rokid", "android-arcore"].includes(gate)) {
+if (!["rokid", "rokid-place", "android-arcore"].includes(gate)) {
 	console.error(`Unsupported gate: ${gate}`);
 	usage();
 	process.exit(2);
@@ -38,8 +38,11 @@ if (!commandLineAsset.stdout.length) {
 	failures.push("APK is missing assets/_cl_; export preset command_line/extra_args cannot be verified.");
 }
 
-if (gate === "rokid") {
+if (gate === "rokid" || gate === "rokid-place") {
 	requireCommandLine("--xr-platform=rokid");
+	if (gate === "rokid-place") {
+		requireCommandLine("--xr-scene=rokid_place");
+	}
 	requireListing("lib/arm64-v8a/libopenxr_loader.so", "Rokid/OpenXR APK must include the OpenXR loader from the selected vendor AAR.");
 	requireListing("lib/arm64-v8a/libgodotopenxrvendors.so", "Rokid/OpenXR APK must include Godot OpenXR Vendors GDExtension native library.");
 	requireListing("assets/addons/godotopenxrvendors/plugin.gdextension", "Rokid/OpenXR APK must include the OpenXR Vendors GDExtension descriptor from the AAR.");
@@ -167,7 +170,7 @@ function parseArgs(argv) {
 function usage() {
 	console.error([
 		"Usage:",
-		"  node tools/c00/check_android_apk_surface.js --gate <rokid|android-arcore> --apk <path.apk>",
+		"  node tools/c00/check_android_apk_surface.js --gate <rokid|rokid-place|android-arcore> --apk <path.apk>",
 		"",
 		"Checks exported APK launch args and native XR loader/library contents.",
 	].join("\n"));

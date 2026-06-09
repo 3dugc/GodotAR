@@ -82,7 +82,7 @@ function usage() {
 		"  node tools/c00/verify_phase_evidence.js [--dir releases/phase_0_smoke/evidence] [--report releases/phase_0_smoke/C00_PHASE_REPORT.md]",
 		"",
 		"Options:",
-		"  --gate <gate>                 Gate to require. Repeatable. Default: rokid + ipad + android-arcore.",
+		"  --gate <gate>                 Gate to require. Repeatable. Default: rokid + ipad + android-arcore. Also supports rokid-place + ipad-place.",
 		"  --<gate>-log <file>           Explicit smoke log path.",
 		"  --<gate>-screenshot <file>    Explicit screenshot path.",
 		"  --<gate>-video <file>         Explicit recording path.",
@@ -170,7 +170,7 @@ function explicitOrLatest(gate, argName, extension = "") {
 
 	const extensions = extension ? [extension] : ["png", "jpg", "jpeg", "mp4", "mov"];
 	const candidates = fs.readdirSync(evidenceDir)
-		.filter((name) => name.startsWith(`${gate}-`))
+		.filter((name) => matchesGateFileName(gate, name))
 		.filter((name) => argName !== "manual-media" || name.includes("-manual-media."))
 		.filter((name) => argName !== "device-profile" || name.includes("-device."))
 		.filter((name) => argName !== "device-profile-json" || name.includes("-device."))
@@ -180,6 +180,20 @@ function explicitOrLatest(gate, argName, extension = "") {
 		.sort((left, right) => fs.statSync(right).mtimeMs - fs.statSync(left).mtimeMs);
 
 	return candidates[0] || "";
+}
+
+
+function matchesGateFileName(gate, name) {
+	if (!name.startsWith(`${gate}-`)) {
+		return false;
+	}
+	if (gate === "rokid" && name.startsWith("rokid-place-")) {
+		return false;
+	}
+	if (gate === "ipad" && name.startsWith("ipad-place-")) {
+		return false;
+	}
+	return true;
 }
 
 
@@ -203,7 +217,7 @@ function validateDeviceProfile(gate, markdownPath, jsonPath) {
 		try {
 			const parsed = JSON.parse(fs.readFileSync(summary.json.path, "utf8"));
 			summary.jsonPreview = summarizeDeviceProfileJson(parsed);
-			if (["rokid", "android-arcore", "ipad"].includes(gate)) {
+			if (["rokid", "rokid-place", "android-arcore", "ipad", "ipad-place"].includes(gate)) {
 				summary.analysis = analyzeDeviceProfileJson(parsed, gate);
 				failures.push(...summary.analysis.failures);
 				warnings.push(...summary.analysis.warnings);
@@ -241,10 +255,10 @@ function analyzeDeviceProfileJson(parsed, gate) {
 	if (!parsed || typeof parsed !== "object") {
 		return { failures, warnings, evidence: {} };
 	}
-	if (gate === "ipad") {
+	if (gate === "ipad" || gate === "ipad-place") {
 		return analyzeIosDeviceProfileJson(parsed);
 	}
-	if (!["rokid", "android-arcore"].includes(gate)) {
+	if (!["rokid", "rokid-place", "android-arcore"].includes(gate)) {
 		return { failures, warnings, evidence: {} };
 	}
 
@@ -284,7 +298,7 @@ function analyzeDeviceProfileJson(parsed, gate) {
 		warnings.push("Device profile analysis: no Vulkan feature was detected.");
 	}
 
-	if (gate === "rokid") {
+	if (gate === "rokid" || gate === "rokid-place") {
 		if (!hasMatch(xrPackages, /openxr|rokid|pico|quest|oculus|meta|lynx|vive|wave/i)) {
 			warnings.push("Device profile analysis: no OpenXR/Rokid/vendor runtime package was detected; final proof depends on smoke log backend/capabilities.");
 		}
@@ -502,18 +516,26 @@ function validateSmokeLog(gate, logPath) {
 
 
 function extractSmokeEvents(text) {
+	const markers = [
+		{ marker: "GXF_SMOKE|", source: "GXF_SMOKE" },
+		{ marker: "GXF_ROKID_PLACE|", source: "GXF_ROKID_PLACE" },
+		{ marker: "GXF_ARKIT_PLACE|", source: "GXF_ARKIT_PLACE" },
+	];
 	const events = [];
 	for (const line of text.split(/\r?\n/)) {
-		const marker = "GXF_SMOKE|";
-		const markerIndex = line.indexOf(marker);
-		if (markerIndex === -1) {
+		const found = markers.find((candidate) => line.includes(candidate.marker));
+		if (!found) {
 			continue;
 		}
+		const markerIndex = line.indexOf(found.marker);
 		try {
-			events.push(JSON.parse(line.slice(markerIndex + marker.length).trim()));
+			const parsed = JSON.parse(line.slice(markerIndex + found.marker.length).trim());
+			parsed.__source = found.source;
+			events.push(parsed);
 		} catch (error) {
 			events.push({
 				event: "parse_error",
+				__source: found.source,
 				parse_error: String(error.message || error),
 				raw_line: line,
 			});
@@ -541,13 +563,13 @@ function evaluateSmokeEvents(events, gate) {
 	const failures = [];
 	const warnings = [];
 	if (events.length === 0) {
-		failures.push("No GXF_SMOKE events found.");
+		failures.push("No GXF_SMOKE, GXF_ROKID_PLACE, or GXF_ARKIT_PLACE events found.");
 		return { failures, warnings, evidence: null };
 	}
 
 	const parseErrors = events.filter((event) => event.event === "parse_error");
 	if (parseErrors.length > 0) {
-		failures.push(`${parseErrors.length} GXF_SMOKE line(s) failed JSON parsing.`);
+		failures.push(`${parseErrors.length} GXF log line(s) failed JSON parsing.`);
 	}
 
 	const expectedBackend = backendForGate(gate);
@@ -560,14 +582,18 @@ function evaluateSmokeEvents(events, gate) {
 		return event.event !== "parse_error" && (
 			event.session_state === "Running" ||
 			event.event === "session_started" ||
-			event.event === "heartbeat"
+			event.event === "heartbeat" ||
+			event.event === "placed" ||
+			event.event === "ready" ||
+			event.event === "availability"
 		);
 	});
 	if (candidates.length === 0) {
 		failures.push("No running/session_started/heartbeat event found.");
 	}
 
-	const evidence = candidates.find((event) => event.backend === expectedBackend) || null;
+	const backendCandidates = candidates.filter((event) => event.backend === expectedBackend);
+	const evidence = selectEvidence(backendCandidates, gate);
 	if (!evidence) {
 		const observed = Array.from(new Set(events.map((event) => event.backend).filter(Boolean))).join(", ") || "none";
 		failures.push(`Expected backend ${expectedBackend}, observed ${observed}.`);
@@ -584,7 +610,7 @@ function evaluateSmokeEvents(events, gate) {
 		warnings.push("Runtime metadata is missing.");
 	}
 	validateLaunchPlatformEvidence(evidence, gate, failures);
-	if (!evidence.trackables || typeof evidence.trackables !== "object") {
+	if (isSmokeEvidence(evidence) && (!evidence.trackables || typeof evidence.trackables !== "object")) {
 		failures.push("Trackables metadata is missing from GXF_SMOKE evidence.");
 	}
 	if (!evidence.tracking || evidence.tracking === "None") {
@@ -597,7 +623,7 @@ function evaluateSmokeEvents(events, gate) {
 		failures.push("Unity-style not_tracking_reason is missing from GXF_SMOKE evidence.");
 	}
 
-	if (gate === "rokid") {
+	if (gate === "rokid" || gate === "rokid-place") {
 		const arProductPath = Boolean(getCapability(evidence, "ar_product_path"));
 		if (!arProductPath && allowOpenXRWithoutARBlend) {
 			warnings.push("Rokid OpenXR is running, but ar_product_path=false. Treat as OpenXR smoke only, not AR product pass.");
@@ -616,11 +642,15 @@ function evaluateSmokeEvents(events, gate) {
 		}
 	}
 
-	if ((gate === "ipad" || gate === "android-arcore") && !getCapability(evidence, "native_plugin")) {
+	if (gate === "rokid-place") {
+		validatePlacementEvidence(evidence, gate, failures);
+	}
+
+	if ((gate === "ipad" || gate === "ipad-place" || gate === "android-arcore") && !getCapability(evidence, "native_plugin")) {
 		failures.push(`${gate} gate requires capabilities.native_plugin=true.`);
 	}
 
-	if (gate === "ipad") {
+	if (gate === "ipad" || gate === "ipad-place") {
 		const runtime = String(getCapability(evidence, "runtime") || evidence.runtime || "");
 		const hasArkitEvidence = runtime === "ARKit" ||
 			getCapability(evidence, "arkit_supported") === true ||
@@ -633,6 +663,12 @@ function evaluateSmokeEvents(events, gate) {
 		}
 		if (!getCapability(evidence, "arkit_tracking_reason")) {
 			failures.push("iPad gate requires capabilities.arkit_tracking_reason.");
+		}
+		if (gate === "ipad-place") {
+			validatePlacementEvidence(evidence, gate, failures);
+			if (!evidence.camera || typeof evidence.camera !== "object") {
+				failures.push("ipad-place gate requires ARCameraManager camera metadata.");
+			}
 		}
 	}
 
@@ -649,6 +685,55 @@ function evaluateSmokeEvents(events, gate) {
 }
 
 
+function selectEvidence(candidates, gate) {
+	if (candidates.length === 0) {
+		return null;
+	}
+	if (gate === "rokid-place") {
+		return candidates.find((event) => event.__source === "GXF_ROKID_PLACE" && event.event === "placed") ||
+			candidates.find((event) => event.__source === "GXF_ROKID_PLACE") ||
+			null;
+	}
+	if (gate === "ipad-place") {
+		return candidates.find((event) => event.__source === "GXF_ARKIT_PLACE" && event.event === "placed") ||
+			candidates.find((event) => event.__source === "GXF_ARKIT_PLACE") ||
+			null;
+	}
+	return candidates.find((event) => event.__source === "GXF_SMOKE") || candidates[0];
+}
+
+
+function isSmokeEvidence(evidence) {
+	return evidence && evidence.__source === "GXF_SMOKE";
+}
+
+
+function validatePlacementEvidence(evidence, gate, failures) {
+	const expectedSource = gate === "rokid-place" ? "GXF_ROKID_PLACE" : "GXF_ARKIT_PLACE";
+	if (evidence.__source !== expectedSource) {
+		failures.push(`${gate} gate requires ${expectedSource} evidence, observed ${evidence.__source || "unknown"}.`);
+	}
+	if (evidence.event !== "placed" && Number(evidence.placed_count || 0) < 1) {
+		failures.push(`${gate} gate requires a placed event or placed_count >= 1.`);
+	}
+	const centerHit = evidence.center_screen_raycast || evidence.hit || {};
+	if (centerHit.hit !== true) {
+		failures.push(`${gate} gate requires center_screen_raycast.hit=true.`);
+	}
+	if (gate === "ipad-place") {
+		const planeCount = Number(evidence.planes && evidence.planes.count || 0);
+		const anchorCount = Number(evidence.anchors && evidence.anchors.count || 0);
+		const hasCreatedAnchor = Boolean(evidence.anchor && evidence.anchor.created);
+		if (planeCount < 1) {
+			failures.push("ipad-place gate requires planes.count >= 1.");
+		}
+		if (anchorCount < 1 && !hasCreatedAnchor) {
+			failures.push("ipad-place gate requires anchors.count >= 1 or anchor.created=true.");
+		}
+	}
+}
+
+
 function validateEvidence(gate, media) {
 	const failures = [];
 	const warnings = [];
@@ -662,10 +747,10 @@ function validateEvidence(gate, media) {
 		}
 	}
 
-	if (gate === "rokid" || gate === "android-arcore") {
+	if (gate === "rokid" || gate === "rokid-place" || gate === "android-arcore") {
 		requireKind("screenshot", `${gate} gate requires a screenshot artifact.`);
 		requireKind("video", `${gate} gate requires a screen recording artifact.`);
-	} else if (gate === "ipad") {
+	} else if (gate === "ipad" || gate === "ipad-place") {
 		if (goodMedia.length === 0) {
 			recordProblem("iPad gate requires at least one screenshot, screen recording, or manual media artifact.");
 		}
@@ -734,8 +819,10 @@ function fileEvidence(kind, value) {
 function backendForGate(gate) {
 	switch (gate) {
 		case "rokid":
+		case "rokid-place":
 			return "OpenXR";
 		case "ipad":
+		case "ipad-place":
 			return "ARKit";
 		case "android-arcore":
 			return "ARCore";
@@ -788,8 +875,10 @@ function validateLaunchPlatformEvidence(evidence, gate, failures) {
 function platformHintsForGate(gate) {
 	switch (gate) {
 		case "rokid":
+		case "rokid-place":
 			return ["rokid", "openxr", "androidxr", "android_xr"];
 		case "ipad":
+		case "ipad-place":
 			return ["ipad", "iphone", "ios", "arkit"];
 		case "android-arcore":
 			return ["arcore", "handheld", "handheld_ar", "phone", "mobile_ar"];

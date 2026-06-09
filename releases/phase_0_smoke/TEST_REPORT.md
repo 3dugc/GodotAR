@@ -23,6 +23,7 @@ Codex implementation status:
 
 - C00 smoke scene created.
 - Boot scene router added. Exported builds default to C00 smoke and can run cycle demos with `--xr-scene=rokid_place` or `--xr-scene=ios_arkit_place`.
+- `C02 Rokid OpenXR Place` and `C04 iPad ARKit Place` export presets, device-cycle gates, manual evidence import support, and validators were added for `GXF_ROKID_PLACE` / `GXF_ARKIT_PLACE` placed/raycast/anchor evidence.
 - Runtime status panel created.
 - Runtime status panel now shows ARKit tracking state/reason when the native ARKit provider reports them.
 - Runtime status panel now shows OpenXR AR tier/fallback when the OpenXR provider reports them.

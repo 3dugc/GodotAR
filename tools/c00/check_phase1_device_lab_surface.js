@@ -68,8 +68,27 @@ if (failures.length === 0) {
 		"C00_DEVICE_ENV_FILE",
 		"C00_AUTO_SOURCE_DEVICE_ENV",
 		"source_device_env_if_present",
+		"INCLUDE_PLACE_DEMOS",
+		"rokid-place",
+		"ipad-place",
+		"ROKID_PLACE_PRESET",
+		"IPAD_PLACE_PRESET",
 		"build_ios_xcode_project.sh will try the project-only export fallback",
 		"build_status",
+	]);
+
+	requireContains("tools/c00/validate_smoke_log.js", [
+		"GXF_ROKID_PLACE",
+		"GXF_ARKIT_PLACE",
+		"rokid-place",
+		"ipad-place",
+	]);
+
+	requireContains("tools/c00/check_export_presets.js", [
+		"C02 Rokid OpenXR Place",
+		"C04 iPad ARKit Place",
+		"--xr-scene=rokid_place",
+		"--xr-scene=ios_arkit_place",
 	]);
 
 	requireContains("tools/c00/build_ios_xcode_project.sh", [

@@ -58,6 +58,8 @@ For iPad/ARKit bring-up, run `demo/06_ios_arkit_place.tscn` from the exported Xc
 
 Exported builds include the boot scene plus smoke, OpenXR lab, Rokid placement, and iOS ARKit placement scenes. Use `--xr-scene=rokid_place` for `demo/04_rokid_ray_place.tscn`, `--xr-scene=ios_arkit_place` for `demo/06_ios_arkit_place.tscn`, or omit it for the default smoke gate.
 
+Device runners also expose product demo gates: `tools/c00/run_device_cycle.sh rokid-place` uses the `C02 Rokid OpenXR Place` APK, and `tools/c00/run_device_cycle.sh ipad-place` uses the `C04 iPad ARKit Place` Xcode export. These gates validate `GXF_ROKID_PLACE` / `GXF_ARKIT_PLACE` placed/raycast/anchor evidence in addition to the C00 smoke gates.
+
 In the editor, the project falls back to `Editor Simulation`. Click in the viewport to place cubes on the simulated floor.
 
 For Rokid or other Android OpenXR hardware, set `XRSessionManager.platform_hint` to `rokid` or `openxr`.

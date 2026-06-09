@@ -18,7 +18,7 @@ MIN_BYTES="${MIN_BYTES:-1024}"
 usage() {
 	cat <<EOF
 Usage:
-  tools/c00/import_device_evidence.sh --gate <rokid|ipad|android-arcore|editor> --log <file> [media]
+  tools/c00/import_device_evidence.sh --gate <rokid|rokid-place|ipad|ipad-place|android-arcore|editor> --log <file> [media]
 
 Media:
   --screenshot <file>      Screenshot evidence.
@@ -99,7 +99,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 case "$GATE" in
-	rokid|ipad|android-arcore|editor)
+	rokid|rokid-place|ipad|ipad-place|android-arcore|editor)
 		;;
 	*)
 		usage >&2

@@ -13,11 +13,12 @@ if (!args.log || !args.gate) {
 const logPath = path.resolve(args.log);
 const gate = String(args.gate).toLowerCase();
 const allowOpenXRWithoutARBlend = Boolean(args["allow-openxr-without-ar-blend"]);
+const allowEditorSimBackend = Boolean(args["allow-editor-sim-backend"]);
 const reportPath = args.report ? path.resolve(args.report) : "";
 
 const text = fs.readFileSync(logPath, "utf8");
 const events = extractSmokeEvents(text);
-const result = evaluateGate(events, gate, { allowOpenXRWithoutARBlend });
+const result = evaluateGate(events, gate, { allowOpenXRWithoutARBlend, allowEditorSimBackend });
 const scriptErrors = extractScriptErrors(text);
 if (scriptErrors.length > 0) {
 	result.failures.push(`${scriptErrors.length} Godot script/runtime error line(s) found in smoke log.`);
@@ -70,28 +71,37 @@ function parseArgs(argv) {
 function usage() {
 	console.error([
 		"Usage:",
-		"  node tools/c00/validate_smoke_log.js --gate <rokid|ipad|android-arcore|editor|ios-simulator|android-emulator> --log <file> [--report <file>]",
+		"  node tools/c00/validate_smoke_log.js --gate <rokid|rokid-place|ipad|ipad-place|android-arcore|editor|ios-simulator|android-emulator> --log <file> [--report <file>]",
 		"",
 		"Options:",
 		"  --allow-openxr-without-ar-blend   Downgrade Rokid ar_product_path=false from failure to warning.",
+		"  --allow-editor-sim-backend        Development-only: accept EditorSim backend for routed demo validation.",
 	].join("\n"));
 }
 
 
 function extractSmokeEvents(text) {
+	const markers = [
+		{ marker: "GXF_SMOKE|", source: "GXF_SMOKE" },
+		{ marker: "GXF_ROKID_PLACE|", source: "GXF_ROKID_PLACE" },
+		{ marker: "GXF_ARKIT_PLACE|", source: "GXF_ARKIT_PLACE" },
+	];
 	const events = [];
 	for (const line of text.split(/\r?\n/)) {
-		const marker = "GXF_SMOKE|";
-		const markerIndex = line.indexOf(marker);
-		if (markerIndex === -1) {
+		const found = markers.find((candidate) => line.includes(candidate.marker));
+		if (!found) {
 			continue;
 		}
-		const jsonText = line.slice(markerIndex + marker.length).trim();
+		const markerIndex = line.indexOf(found.marker);
+		const jsonText = line.slice(markerIndex + found.marker.length).trim();
 		try {
-			events.push(JSON.parse(jsonText));
+			const parsed = JSON.parse(jsonText);
+			parsed.__source = found.source;
+			events.push(parsed);
 		} catch (error) {
 			events.push({
 				event: "parse_error",
+				__source: found.source,
 				parse_error: String(error.message || error),
 				raw_line: line,
 			});
@@ -120,20 +130,23 @@ function evaluateGate(events, gate, options) {
 	const warnings = [];
 
 	if (events.length === 0) {
-		failures.push("No GXF_SMOKE events found.");
+		failures.push("No GXF_SMOKE, GXF_ROKID_PLACE, or GXF_ARKIT_PLACE events found.");
 		return { pass: false, failures, warnings, evidence: null };
 	}
 
 	const parseErrors = events.filter((event) => event.event === "parse_error");
 	if (parseErrors.length > 0) {
-		failures.push(`${parseErrors.length} GXF_SMOKE line(s) failed JSON parsing.`);
+		failures.push(`${parseErrors.length} GXF log line(s) failed JSON parsing.`);
 	}
 
 	const candidates = events.filter((event) => {
 		return event.event !== "parse_error" && (
 			event.session_state === "Running" ||
 			event.event === "session_started" ||
-			event.event === "heartbeat"
+			event.event === "heartbeat" ||
+			event.event === "placed" ||
+			event.event === "ready" ||
+			event.event === "availability"
 		);
 	});
 
@@ -147,7 +160,14 @@ function evaluateGate(events, gate, options) {
 		return { pass: false, failures, warnings, evidence: null };
 	}
 
-	const evidence = candidates.find((event) => event.backend === expectedBackend) || null;
+	let backendCandidates = candidates.filter((event) => event.backend === expectedBackend);
+	if (backendCandidates.length === 0 && options.allowEditorSimBackend) {
+		backendCandidates = candidates.filter((event) => event.backend === "EditorSim");
+		if (backendCandidates.length > 0) {
+			warnings.push(`Expected backend ${expectedBackend}, using EditorSim because --allow-editor-sim-backend was set. This does not satisfy the real device gate.`);
+		}
+	}
+	const evidence = selectEvidence(backendCandidates, gate);
 	if (!evidence) {
 		const observed = Array.from(new Set(events.map((event) => event.backend).filter(Boolean))).join(", ") || "none";
 		failures.push(`Expected backend ${expectedBackend}, observed ${observed}.`);
@@ -166,12 +186,12 @@ function evaluateGate(events, gate, options) {
 		warnings.push("Runtime metadata is missing. New C00 logs should include Godot version, XR command-line args, and rendering/XR project settings.");
 	}
 	validateLaunchPlatformEvidence(evidence, gate, failures);
-	if (!evidence.trackables || typeof evidence.trackables !== "object") {
+	if (isSmokeEvidence(evidence) && (!evidence.trackables || typeof evidence.trackables !== "object")) {
 		failures.push("Trackables metadata is missing from GXF_SMOKE evidence.");
 	}
-	if (!evidence.camera || typeof evidence.camera !== "object") {
+	if (requiresCameraEvidence(gate, evidence) && (!evidence.camera || typeof evidence.camera !== "object")) {
 		failures.push("ARCameraManager camera metadata is missing from GXF_SMOKE evidence.");
-	} else {
+	} else if (requiresCameraEvidence(gate, evidence)) {
 		if (evidence.camera.manager !== true) {
 			failures.push("ARCameraManager camera metadata must include manager=true.");
 		}
@@ -193,43 +213,55 @@ function evaluateGate(events, gate, options) {
 		failures.push("Unity-style not_tracking_reason is missing from GXF_SMOKE evidence.");
 	}
 
-	if (gate === "rokid") {
+	const usingEditorSimFallback = evidence.backend === "EditorSim" && options.allowEditorSimBackend;
+
+	if (gate === "rokid" || gate === "rokid-place") {
 		const arProductPath = Boolean(getCapability(evidence, "ar_product_path"));
 		if (!arProductPath && options.allowOpenXRWithoutARBlend) {
 			warnings.push("Rokid OpenXR is running, but ar_product_path=false. Treat as OpenXR smoke only, not AR product pass.");
-		} else if (!arProductPath) {
+		} else if (!arProductPath && !usingEditorSimFallback) {
 			failures.push("Rokid gate requires capabilities.ar_product_path=true to avoid accepting an opaque VR path as AR.");
 		}
 		const arTier = String(getCapability(evidence, "openxr_ar_tier") || "");
-		if (!arTier) {
+		if (!arTier && usingEditorSimFallback) {
+			warnings.push("EditorSim fallback has no OpenXR AR tier; real Rokid gate still requires it.");
+		} else if (!arTier) {
 			warnings.push("Rokid gate should include capabilities.openxr_ar_tier for AR-vs-VR diagnosis.");
 		} else if (arTier === "D") {
 			failures.push("Rokid gate reports OpenXR AR tier D, which is VR-only and not an AR product path.");
 		}
 		const arEvidence = getCapability(evidence, "openxr_ar_evidence");
-		if (!Array.isArray(arEvidence) || arEvidence.length === 0) {
+		if ((!Array.isArray(arEvidence) || arEvidence.length === 0) && !usingEditorSimFallback) {
 			failures.push("Rokid gate requires capabilities.openxr_ar_evidence so AR product proof is tied to blend mode or vendor passthrough evidence.");
 		}
 	}
 
-	if (gate === "ipad" || gate === "android-arcore") {
-		if (!getCapability(evidence, "native_plugin")) {
+	if (gate === "rokid-place") {
+		validatePlacementEvidence(evidence, gate, failures);
+	}
+
+	if (gate === "ipad" || gate === "ipad-place" || gate === "android-arcore") {
+		if (!getCapability(evidence, "native_plugin") && usingEditorSimFallback) {
+			warnings.push(`${gate} gate is using EditorSim; real device validation still requires capabilities.native_plugin=true.`);
+		} else if (!getCapability(evidence, "native_plugin")) {
 			failures.push(`${gate} gate requires capabilities.native_plugin=true.`);
 		}
 	}
 
-	if (gate === "ipad") {
+	if (gate === "ipad" || gate === "ipad-place") {
 		const runtime = String(getCapability(evidence, "runtime") || evidence.runtime || "");
 		const hasArkitEvidence = runtime === "ARKit" ||
 			getCapability(evidence, "arkit_supported") === true ||
 			evidence.provider === "ARKit";
-		if (!hasArkitEvidence) {
+		if (!hasArkitEvidence && usingEditorSimFallback) {
+			warnings.push("EditorSim fallback has no native ARKit evidence; real iPad gate still requires ARKit.");
+		} else if (!hasArkitEvidence) {
 			failures.push("iPad gate requires explicit ARKit evidence: capabilities.runtime=\"ARKit\" or capabilities.arkit_supported=true.");
 		}
-		if (!getCapability(evidence, "arkit_tracking_state")) {
+		if (!getCapability(evidence, "arkit_tracking_state") && !usingEditorSimFallback) {
 			failures.push("iPad gate requires capabilities.arkit_tracking_state so ARKit tracking can be diagnosed.");
 		}
-		if (!getCapability(evidence, "arkit_tracking_reason")) {
+		if (!getCapability(evidence, "arkit_tracking_reason") && !usingEditorSimFallback) {
 			failures.push("iPad gate requires capabilities.arkit_tracking_reason so ARKit tracking limits can be diagnosed.");
 		}
 		if (!evidence.camera || typeof evidence.camera.native_intrinsics_available !== "boolean") {
@@ -237,6 +269,9 @@ function evaluateGate(events, gate, options) {
 		}
 		if (!evidence.camera || typeof evidence.camera.native_frame_available !== "boolean") {
 			failures.push("iPad gate requires ARCameraManager camera metadata to include boolean native_frame_available.");
+		}
+		if (gate === "ipad-place") {
+			validatePlacementEvidence(evidence, gate, failures);
 		}
 	}
 
@@ -258,11 +293,67 @@ function evaluateGate(events, gate, options) {
 }
 
 
+function selectEvidence(candidates, gate) {
+	if (candidates.length === 0) {
+		return null;
+	}
+	if (gate === "rokid-place") {
+		return candidates.find((event) => event.__source === "GXF_ROKID_PLACE" && event.event === "placed") ||
+			candidates.find((event) => event.__source === "GXF_ROKID_PLACE") ||
+			null;
+	}
+	if (gate === "ipad-place") {
+		return candidates.find((event) => event.__source === "GXF_ARKIT_PLACE" && event.event === "placed") ||
+			candidates.find((event) => event.__source === "GXF_ARKIT_PLACE") ||
+			null;
+	}
+	return candidates.find((event) => event.__source === "GXF_SMOKE") || candidates[0];
+}
+
+
+function isSmokeEvidence(evidence) {
+	return evidence && evidence.__source === "GXF_SMOKE";
+}
+
+
+function requiresCameraEvidence(gate, evidence) {
+	return isSmokeEvidence(evidence) || gate === "ipad-place";
+}
+
+
+function validatePlacementEvidence(evidence, gate, failures) {
+	const expectedSource = gate === "rokid-place" ? "GXF_ROKID_PLACE" : "GXF_ARKIT_PLACE";
+	if (evidence.__source !== expectedSource) {
+		failures.push(`${gate} gate requires ${expectedSource} evidence, observed ${evidence.__source || "unknown"}.`);
+	}
+	if (evidence.event !== "placed" && Number(evidence.placed_count || 0) < 1) {
+		failures.push(`${gate} gate requires a placed event or placed_count >= 1.`);
+	}
+	const centerHit = evidence.center_screen_raycast || evidence.hit || {};
+	if (centerHit.hit !== true) {
+		failures.push(`${gate} gate requires center_screen_raycast.hit=true.`);
+	}
+	if (gate === "ipad-place") {
+		const planeCount = Number(evidence.planes && evidence.planes.count || 0);
+		const anchorCount = Number(evidence.anchors && evidence.anchors.count || 0);
+		const hasCreatedAnchor = Boolean(evidence.anchor && evidence.anchor.created);
+		if (planeCount < 1) {
+			failures.push("ipad-place gate requires planes.count >= 1.");
+		}
+		if (anchorCount < 1 && !hasCreatedAnchor) {
+			failures.push("ipad-place gate requires anchors.count >= 1 or anchor.created=true.");
+		}
+	}
+}
+
+
 function backendForGate(gate) {
 	switch (gate) {
 		case "rokid":
+		case "rokid-place":
 			return "OpenXR";
 		case "ipad":
+		case "ipad-place":
 			return "ARKit";
 		case "android-arcore":
 			return "ARCore";
@@ -317,8 +408,10 @@ function validateLaunchPlatformEvidence(evidence, gate, failures) {
 function platformHintsForGate(gate) {
 	switch (gate) {
 		case "rokid":
+		case "rokid-place":
 			return ["rokid", "openxr", "androidxr", "android_xr"];
 		case "ipad":
+		case "ipad-place":
 			return ["ipad", "iphone", "ios", "arkit"];
 		case "android-arcore":
 			return ["arcore", "handheld", "handheld_ar", "phone", "mobile_ar"];
@@ -353,7 +446,7 @@ function parseXrPlatformArgs(value) {
 
 function renderMarkdownReport(summary) {
 	const lines = [];
-	lines.push(`# C00 Smoke Gate Report: ${summary.gate}`);
+	lines.push(`# C00 XR Gate Report: ${summary.gate}`);
 	lines.push("");
 	lines.push(`Result: ${summary.pass ? "PASS" : "FAIL"}`);
 	lines.push("");

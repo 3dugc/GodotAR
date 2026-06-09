@@ -9,8 +9,10 @@ const file = path.resolve(args.file || "export_presets.cfg");
 
 const expected = {
 	rokid: { name: "C00 Rokid OpenXR", platform: "Android", path: "builds/rokid/c00.apk" },
+	"rokid-place": { name: "C02 Rokid OpenXR Place", platform: "Android", path: "builds/rokid/c02-place.apk", sceneArg: "--xr-scene=rokid_place" },
 	"android-arcore": { name: "C00 Android ARCore", platform: "Android", path: "builds/android_arcore/c00.apk" },
 	ipad: { name: "C00 iPad ARKit", platform: "iOS", path: "builds/ipad/c00.zip" },
+	"ipad-place": { name: "C04 iPad ARKit Place", platform: "iOS", path: "builds/ipad/c04-place.zip", sceneArg: "--xr-scene=ios_arkit_place" },
 };
 const requiredExportScenes = [
 	"res://demo/boot.tscn",
@@ -33,7 +35,7 @@ if (args.help || args.h) {
 	process.exit(0);
 }
 
-if (!["all", "rokid", "ipad", "ios-simulator", "android-arcore", "editor"].includes(gate)) {
+if (!["all", "rokid", "rokid-place", "ipad", "ipad-place", "ios-simulator", "android-arcore", "editor"].includes(gate)) {
 	usage();
 	process.exit(2);
 }
@@ -46,7 +48,7 @@ if (!fs.existsSync(file)) {
 const text = fs.readFileSync(file, "utf8");
 const presets = parsePresets(text);
 const gates = gate === "all"
-	? ["rokid", "ipad", "android-arcore"]
+	? ["rokid", "rokid-place", "ipad", "ipad-place", "android-arcore"]
 	: gate === "editor"
 		? []
 		: [gate === "ios-simulator" ? "ipad" : gate];
@@ -99,10 +101,13 @@ for (const item of gates) {
 		}
 	}
 
-	if (item === "rokid") {
+	if (item === "rokid" || item === "rokid-place") {
 		const extraArgs = getPresetOption(preset, "command_line/extra_args");
 		if (!extraArgs.includes("--xr-platform=rokid")) {
 			failures.push(`Preset "${requirement.name}" must set command_line/extra_args to include --xr-platform=rokid so Android startup selects OpenXR before ARCore.`);
+		}
+		if (requirement.sceneArg && !extraArgs.includes(requirement.sceneArg)) {
+			failures.push(`Preset "${requirement.name}" must set command_line/extra_args to include ${requirement.sceneArg} so boot routes to the cycle demo.`);
 		}
 		if (!isTruthyOption(preset, "gradle_build/use_gradle_build")) {
 			failures.push(`Preset "${requirement.name}" must enable gradle_build/use_gradle_build so Android OpenXR vendor loaders can be packaged.`);
@@ -135,7 +140,14 @@ for (const item of gates) {
 		}
 	}
 
-	if (item === "ipad") {
+	if (item === "ipad" || item === "ipad-place") {
+		const extraArgs = getPresetOption(preset, "command_line/extra_args");
+		if (!extraArgs.includes("--xr-platform=ipad")) {
+			failures.push(`Preset "${requirement.name}" must set command_line/extra_args to include --xr-platform=ipad so startup selects ARKit explicitly.`);
+		}
+		if (requirement.sceneArg && !extraArgs.includes(requirement.sceneArg)) {
+			failures.push(`Preset "${requirement.name}" must set command_line/extra_args to include ${requirement.sceneArg} so boot routes to the cycle demo.`);
+		}
 		if (!preset.raw.includes("GodotARKit")) {
 			failures.push(`Preset "${requirement.name}" must enable the GodotARKit iOS plugin so the ARKit singleton is exported.`);
 		}
@@ -169,9 +181,9 @@ for (const item of gates) {
 		exclude_filter: excludeFilter,
 		export_files: exportFiles,
 		extra_args: getPresetOption(preset, "command_line/extra_args"),
-		openxr_vendors: item === "rokid" ? Object.fromEntries(openXrVendorOptions.map((option) => [option, isTruthyOption(preset, option)])) : undefined,
-		app_store_team_id: item === "ipad" ? getPresetOption(preset, "application/app_store_team_id") : undefined,
-		icon_1024x1024: item === "ipad" ? getPresetOption(preset, "icons/icon_1024x1024") : undefined,
+		openxr_vendors: (item === "rokid" || item === "rokid-place") ? Object.fromEntries(openXrVendorOptions.map((option) => [option, isTruthyOption(preset, option)])) : undefined,
+		app_store_team_id: (item === "ipad" || item === "ipad-place") ? getPresetOption(preset, "application/app_store_team_id") : undefined,
+		icon_1024x1024: (item === "ipad" || item === "ipad-place") ? getPresetOption(preset, "icons/icon_1024x1024") : undefined,
 	});
 }
 
@@ -209,7 +221,7 @@ function parseArgs(argv) {
 function usage() {
 	console.error([
 		"Usage:",
-		"  node tools/c00/check_export_presets.js --gate <all|rokid|ipad|ios-simulator|android-arcore|editor> --file export_presets.cfg",
+		"  node tools/c00/check_export_presets.js --gate <all|rokid|rokid-place|ipad|ipad-place|ios-simulator|android-arcore|editor> --file export_presets.cfg",
 	].join("\n"));
 }
 

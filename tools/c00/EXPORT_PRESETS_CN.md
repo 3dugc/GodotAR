@@ -103,7 +103,30 @@ tools/c00/export_with_godot.sh "C00 Android ARCore" builds/android_arcore/c00.ap
 APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh android-arcore org.godotengine.godotxrfoundation 30
 ```
 
-## Preset 3: C00 iPad ARKit
+## Preset 3: C02 Rokid OpenXR Place
+
+平台：Android
+
+用途：Rokid/OpenXR placement demo gate。
+
+关键设置：
+
+- Preset name: `C02 Rokid OpenXR Place`
+- Use Gradle Build: enabled
+- XR Mode: OpenXR
+- OpenXR / vendor loader: 当前启用 `xr_features/openxr_vendor_khronos=true`
+- Extra Args / `command_line/extra_args`: `--xr-platform=rokid --xr-scene=rokid_place`
+- Export path: `builds/rokid/c02-place.apk`
+
+导出和验证：
+
+```bash
+tools/c00/export_with_godot.sh "C02 Rokid OpenXR Place" builds/rokid/c02-place.apk
+node tools/c00/check_android_apk_surface.js --gate rokid-place --apk builds/rokid/c02-place.apk
+tools/c00/run_device_cycle.sh rokid-place
+```
+
+## Preset 4: C00 iPad ARKit
 
 平台：iOS
 
@@ -125,6 +148,27 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 - Main scene: `res://demo/boot.tscn`，默认路由到 `res://demo/00_device_smoke_test.tscn`
 - Demo route: 需要跑 iPad/ARKit placement 时追加 `--xr-scene=ios_arkit_place`
 - Export path: `builds/ipad/c00.zip`
+
+## Preset 5: C04 iPad ARKit Place
+
+平台：iOS
+
+用途：iPad/ARKit placement demo gate。
+
+关键设置：
+
+- Preset name: `C04 iPad ARKit Place`
+- ARKit iOS plugin enabled
+- Extra Args / `command_line/extra_args`: `--xr-platform=ipad --xr-scene=ios_arkit_place`
+- Export path: `builds/ipad/c04-place.zip`
+- 默认 `.app` 输出：`builds/ipad/GodotXRFoundation-C04.app`
+
+导出和验证：
+
+```bash
+tools/c00/export_with_godot.sh "C04 iPad ARKit Place" builds/ipad/c04-place.zip
+DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh ipad-place
+```
 
 构建 ARKit 插件：
 

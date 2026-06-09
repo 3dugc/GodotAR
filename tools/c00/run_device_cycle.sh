@@ -28,6 +28,7 @@ BUILD_IPAD_APP="${BUILD_IPAD_APP:-auto}"
 INCLUDE_EDITOR_SIM="${INCLUDE_EDITOR_SIM:-0}"
 INCLUDE_IOS_SIMULATOR="${INCLUDE_IOS_SIMULATOR:-0}"
 INCLUDE_ANDROID_ARCORE="${INCLUDE_ANDROID_ARCORE:-1}"
+INCLUDE_PLACE_DEMOS="${INCLUDE_PLACE_DEMOS:-0}"
 CONTINUE_ON_FAILURE="${CONTINUE_ON_FAILURE:-auto}"
 RUN_PHASE_VERIFY="${RUN_PHASE_VERIFY:-1}"
 PHASE_REPORT="${PHASE_REPORT:-releases/phase_0_smoke/C00_PHASE_REPORT.md}"
@@ -35,11 +36,16 @@ PHASE_GATES="${PHASE_GATES:-auto}"
 
 ROKID_PRESET="${ROKID_PRESET:-C00 Rokid OpenXR}"
 ROKID_APK_PATH="${ROKID_APK_PATH:-builds/rokid/c00.apk}"
+ROKID_PLACE_PRESET="${ROKID_PLACE_PRESET:-C02 Rokid OpenXR Place}"
+ROKID_PLACE_APK_PATH="${ROKID_PLACE_APK_PATH:-builds/rokid/c02-place.apk}"
 ANDROID_ARCORE_PRESET="${ANDROID_ARCORE_PRESET:-C00 Android ARCore}"
 ANDROID_ARCORE_APK_PATH="${ANDROID_ARCORE_APK_PATH:-builds/android_arcore/c00.apk}"
 IPAD_PRESET="${IPAD_PRESET:-C00 iPad ARKit}"
 IPAD_EXPORT_PATH="${IPAD_EXPORT_PATH:-builds/ipad/c00.zip}"
 IPAD_APP_PATH="${IPAD_APP_PATH:-builds/ipad/GodotXRFoundation.app}"
+IPAD_PLACE_PRESET="${IPAD_PLACE_PRESET:-C04 iPad ARKit Place}"
+IPAD_PLACE_EXPORT_PATH="${IPAD_PLACE_EXPORT_PATH:-builds/ipad/c04-place.zip}"
+IPAD_PLACE_APP_PATH="${IPAD_PLACE_APP_PATH:-builds/ipad/GodotXRFoundation-C04.app}"
 IOS_SIMULATOR_EXPORT_PATH="${IOS_SIMULATOR_EXPORT_PATH:-builds/ios_simulator/c00.zip}"
 IOS_SIMULATOR_APP_PATH="${IOS_SIMULATOR_APP_PATH:-builds/ios_simulator/GodotXRFoundation.app}"
 SIMULATOR_DEVICE="${SIMULATOR_DEVICE:-booted}"
@@ -47,13 +53,15 @@ SIMULATOR_DEVICE="${SIMULATOR_DEVICE:-booted}"
 usage() {
 	cat <<EOF
 Usage:
-  tools/c00/run_device_cycle.sh <editor|ios-simulator|rokid|ipad|android-arcore|all> [ipad-device]
+  tools/c00/run_device_cycle.sh <editor|ios-simulator|rokid|rokid-place|ipad|ipad-place|android-arcore|all> [ipad-device]
 
 Examples:
   tools/c00/run_device_cycle.sh editor
   APP_PATH=builds/ios_simulator/GodotXRFoundation.app tools/c00/run_device_cycle.sh ios-simulator
   tools/c00/run_device_cycle.sh rokid
+  tools/c00/run_device_cycle.sh rokid-place
   GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh ipad
+  GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh ipad-place
   APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/run_device_cycle.sh ipad <ipad-device>
 
 Common environment:
@@ -90,9 +98,12 @@ Rokid / Android:
   APK_PATH=builds/rokid/c00.apk      Optional APK override for install/collect.
   ROKID_PRESET="$ROKID_PRESET"
   ROKID_APK_PATH="$ROKID_APK_PATH"
+  ROKID_PLACE_PRESET="$ROKID_PLACE_PRESET"
+  ROKID_PLACE_APK_PATH="$ROKID_PLACE_APK_PATH"
 
 All:
   Runs ipad, rokid, then android-arcore. Set INCLUDE_ANDROID_ARCORE=0 to skip Android ARCore.
+  INCLUDE_PLACE_DEMOS=1           Also run ipad-place and rokid-place cycle demo gates.
   INCLUDE_EDITOR_SIM=1             Run the local EditorSim gate before device gates.
   INCLUDE_IOS_SIMULATOR=1          Run iOS Simulator development gate before device gates.
   CONTINUE_ON_FAILURE=auto|1|0     Default auto continues in all mode so every device can produce evidence.
@@ -108,7 +119,7 @@ if [[ "$GATE" == "-h" || "$GATE" == "--help" ]]; then
 fi
 
 case "$GATE" in
-	editor|ios-simulator|rokid|ipad|android-arcore|all)
+	editor|ios-simulator|rokid|rokid-place|ipad|ipad-place|android-arcore|all)
 		;;
 	*)
 		usage >&2
@@ -311,11 +322,17 @@ run_export() {
 			rokid)
 				echo "DRY RUN: tools/c00/export_with_godot.sh \"$ROKID_PRESET\" \"${APK_PATH:-$ROKID_APK_PATH}\""
 				;;
+			rokid-place)
+				echo "DRY RUN: tools/c00/export_with_godot.sh \"$ROKID_PLACE_PRESET\" \"${APK_PATH:-$ROKID_PLACE_APK_PATH}\""
+				;;
 			android-arcore)
 				echo "DRY RUN: tools/c00/export_with_godot.sh \"$ANDROID_ARCORE_PRESET\" \"${APK_PATH:-$ANDROID_ARCORE_APK_PATH}\""
 				;;
 			ipad)
 				echo "DRY RUN: tools/c00/export_with_godot.sh \"$IPAD_PRESET\" \"$IPAD_EXPORT_PATH\""
+				;;
+			ipad-place)
+				echo "DRY RUN: tools/c00/export_with_godot.sh \"$IPAD_PLACE_PRESET\" \"$IPAD_PLACE_EXPORT_PATH\""
 				;;
 			ios-simulator)
 				echo "DRY RUN: tools/c00/export_with_godot.sh \"$IPAD_PRESET\" \"$IOS_SIMULATOR_EXPORT_PATH\""
@@ -332,6 +349,10 @@ run_export() {
 			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$ROKID_PRESET" "${APK_PATH:-$ROKID_APK_PATH}"
 			node "$PROJECT_ROOT/tools/c00/check_android_apk_surface.js" --gate rokid --apk "$(project_path "${APK_PATH:-$ROKID_APK_PATH}")"
 			;;
+		rokid-place)
+			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$ROKID_PLACE_PRESET" "${APK_PATH:-$ROKID_PLACE_APK_PATH}"
+			node "$PROJECT_ROOT/tools/c00/check_android_apk_surface.js" --gate rokid-place --apk "$(project_path "${APK_PATH:-$ROKID_PLACE_APK_PATH}")"
+			;;
 		android-arcore)
 			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$ANDROID_ARCORE_PRESET" "${APK_PATH:-$ANDROID_ARCORE_APK_PATH}"
 			node "$PROJECT_ROOT/tools/c00/check_android_apk_surface.js" --gate android-arcore --apk "$(project_path "${APK_PATH:-$ANDROID_ARCORE_APK_PATH}")"
@@ -342,6 +363,13 @@ run_export() {
 				return
 			fi
 			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$IPAD_PRESET" "$IPAD_EXPORT_PATH"
+			;;
+		ipad-place)
+			if [[ -n "${APP_PATH:-}" ]]; then
+				echo "APP_PATH is already set; skipping iPad placement export: $APP_PATH"
+				return
+			fi
+			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$IPAD_PLACE_PRESET" "$IPAD_PLACE_EXPORT_PATH"
 			;;
 		ios-simulator)
 			if [[ -n "${APP_PATH:-}" ]]; then
@@ -372,11 +400,17 @@ run_collect() {
 			rokid)
 				echo "DRY RUN: APK_PATH=${APK_PATH:-$(project_path "$ROKID_APK_PATH")} tools/c00/collect_android_smoke.sh rokid $PACKAGE $DURATION"
 				;;
+			rokid-place)
+				echo "DRY RUN: APK_PATH=${APK_PATH:-$(project_path "$ROKID_PLACE_APK_PATH")} tools/c00/collect_android_smoke.sh rokid-place $PACKAGE $DURATION"
+				;;
 			android-arcore)
 				echo "DRY RUN: APK_PATH=${APK_PATH:-$(project_path "$ANDROID_ARCORE_APK_PATH")} tools/c00/collect_android_smoke.sh android-arcore $PACKAGE $DURATION"
 				;;
 			ipad)
 				echo "DRY RUN: APP_PATH=${APP_PATH:-$IPAD_APP_PATH} tools/c00/collect_ios_smoke.sh ${DEVICE:-<ipad-device>} $PACKAGE $DURATION"
+				;;
+			ipad-place)
+				echo "DRY RUN: IOS_GATE=ipad-place IOS_XR_SCENE=ios_arkit_place APP_PATH=${APP_PATH:-$IPAD_PLACE_APP_PATH} tools/c00/collect_ios_smoke.sh ${DEVICE:-<ipad-device>} $PACKAGE $DURATION"
 				;;
 		esac
 		return
@@ -397,6 +431,10 @@ run_collect() {
 			local apk_path="${APK_PATH:-$(project_path "$ROKID_APK_PATH")}"
 			APK_PATH="$apk_path" "$PROJECT_ROOT/tools/c00/collect_android_smoke.sh" rokid "$PACKAGE" "$DURATION"
 			;;
+		rokid-place)
+			local apk_path="${APK_PATH:-$(project_path "$ROKID_PLACE_APK_PATH")}"
+			APK_PATH="$apk_path" "$PROJECT_ROOT/tools/c00/collect_android_smoke.sh" rokid-place "$PACKAGE" "$DURATION"
+			;;
 		android-arcore)
 			local apk_path="${APK_PATH:-$(project_path "$ANDROID_ARCORE_APK_PATH")}"
 			APK_PATH="$apk_path" "$PROJECT_ROOT/tools/c00/collect_android_smoke.sh" android-arcore "$PACKAGE" "$DURATION"
@@ -411,6 +449,16 @@ run_collect() {
 			fi
 			"$PROJECT_ROOT/tools/c00/collect_ios_smoke.sh" "$DEVICE" "$PACKAGE" "$DURATION"
 			;;
+		ipad-place)
+			if [[ -z "$DEVICE" ]]; then
+				echo "iPad device is required for placement collection. Run: xcrun devicectl list devices" >&2
+				exit 2
+			fi
+			if [[ -z "${APP_PATH:-}" ]]; then
+				echo "APP_PATH is empty; assuming $PACKAGE placement build is already installed on $DEVICE."
+			fi
+			IOS_GATE=ipad-place IOS_XR_SCENE=ios_arkit_place "$PROJECT_ROOT/tools/c00/collect_ios_smoke.sh" "$DEVICE" "$PACKAGE" "$DURATION"
+			;;
 	esac
 }
 
@@ -418,13 +466,33 @@ run_gate() {
 	local gate="$1"
 	echo
 	echo "== C00 gate: $gate =="
-	if [[ "$gate" == "ipad" || "$gate" == "ios-simulator" ]]; then
+	if [[ "$gate" == "ipad-place" ]]; then
+		local default_ipad_app_path
+		default_ipad_app_path="$(project_path "$IPAD_APP_PATH")"
+		if [[ "${APP_PATH:-}" == "$IPAD_APP_PATH" || "${APP_PATH:-}" == "$default_ipad_app_path" ]]; then
+			unset APP_PATH
+		fi
+	fi
+	if [[ "$gate" == "ipad" || "$gate" == "ipad-place" || "$gate" == "ios-simulator" ]]; then
 		build_arkit_plugin_if_requested || return $?
 	fi
 	run_preflight "$gate" || return $?
 	run_export "$gate" || return $?
 	if [[ "$gate" == "ipad" ]]; then
 		build_ipad_app_if_requested || return $?
+	fi
+	if [[ "$gate" == "ipad-place" ]]; then
+		local saved_ipad_export_path="$IPAD_EXPORT_PATH"
+		local saved_ipad_app_path="$IPAD_APP_PATH"
+		IPAD_EXPORT_PATH="$IPAD_PLACE_EXPORT_PATH"
+		IPAD_APP_PATH="$IPAD_PLACE_APP_PATH"
+		local build_status=0
+		build_ipad_app_if_requested || build_status=$?
+		IPAD_EXPORT_PATH="$saved_ipad_export_path"
+		IPAD_APP_PATH="$saved_ipad_app_path"
+		if [[ "$build_status" -ne 0 ]]; then
+			return "$build_status"
+		fi
 	fi
 	if [[ "$gate" == "ios-simulator" ]]; then
 		build_ios_simulator_app_if_requested || return $?
@@ -467,6 +535,9 @@ run_phase_verify() {
 	local gate_args=()
 	if [[ "$PHASE_GATES" == "auto" ]]; then
 		gate_args+=(--gate rokid --gate ipad)
+		if [[ "$INCLUDE_PLACE_DEMOS" == "1" ]]; then
+			gate_args+=(--gate rokid-place --gate ipad-place)
+		fi
 		if [[ "$INCLUDE_ANDROID_ARCORE" == "1" ]]; then
 			gate_args+=(--gate android-arcore)
 		fi
@@ -504,9 +575,21 @@ if [[ "$GATE" == "all" ]]; then
 	if [[ "$phase_status" != "0" && "$CONTINUE_ON_FAILURE" == "0" ]]; then
 		exit "$phase_status"
 	fi
+	if [[ "$INCLUDE_PLACE_DEMOS" == "1" ]]; then
+		run_gate_for_all ipad-place || phase_status="$?"
+		if [[ "$phase_status" != "0" && "$CONTINUE_ON_FAILURE" == "0" ]]; then
+			exit "$phase_status"
+		fi
+	fi
 	run_gate_for_all rokid || phase_status="$?"
 	if [[ "$phase_status" != "0" && "$CONTINUE_ON_FAILURE" == "0" ]]; then
 		exit "$phase_status"
+	fi
+	if [[ "$INCLUDE_PLACE_DEMOS" == "1" ]]; then
+		run_gate_for_all rokid-place || phase_status="$?"
+		if [[ "$phase_status" != "0" && "$CONTINUE_ON_FAILURE" == "0" ]]; then
+			exit "$phase_status"
+		fi
 	fi
 	if [[ "$INCLUDE_ANDROID_ARCORE" == "1" ]]; then
 		run_gate_for_all android-arcore || phase_status="$?"

@@ -44,8 +44,15 @@ resolve_adb_binary() {
 
 expected_xr_platform_arg() {
 	case "$GATE" in
-		rokid) printf "%s\n" "--xr-platform=rokid" ;;
+		rokid|rokid-place) printf "%s\n" "--xr-platform=rokid" ;;
 		android-arcore) printf "%s\n" "--xr-platform=arcore" ;;
+		*) printf "%s\n" "" ;;
+	esac
+}
+
+expected_xr_scene_arg() {
+	case "$GATE" in
+		rokid-place) printf "%s\n" "--xr-scene=rokid_place" ;;
 		*) printf "%s\n" "" ;;
 	esac
 }
@@ -54,7 +61,9 @@ check_apk_launch_args() {
 	local apk="$1"
 	local expected_arg
 	expected_arg="$(expected_xr_platform_arg)"
-	if [ -z "$expected_arg" ]; then
+	local expected_scene_arg
+	expected_scene_arg="$(expected_xr_scene_arg)"
+	if [ -z "$expected_arg" ] && [ -z "$expected_scene_arg" ]; then
 		return 0
 	fi
 	if [ -z "$apk" ]; then
@@ -82,6 +91,14 @@ check_apk_launch_args() {
 		return 2
 	fi
 	echo "APK launch args include $expected_arg"
+	if [ -n "$expected_scene_arg" ]; then
+		if ! printf "%s\n" "$command_line" | grep -q -- "$expected_scene_arg"; then
+			echo "APK assets/_cl_ does not include $expected_scene_arg." >&2
+			echo "Observed assets/_cl_: $command_line" >&2
+			return 2
+		fi
+		echo "APK launch args include $expected_scene_arg"
+	fi
 }
 
 if ! ADB="$(resolve_adb_binary)"; then

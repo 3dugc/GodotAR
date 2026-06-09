@@ -7,18 +7,20 @@ BUNDLE_ID="${2:-org.godotengine.godotxrfoundation}"
 DURATION="${3:-30}"
 APP_PATH="${APP_PATH:-}"
 EXTRA_VALIDATE_ARGS="${EXTRA_VALIDATE_ARGS:-}"
+IOS_GATE="${IOS_GATE:-ipad}"
 IOS_XR_PLATFORM="${IOS_XR_PLATFORM:-ipad}"
+IOS_XR_SCENE="${IOS_XR_SCENE:-}"
 CAPTURE_MEDIA="${CAPTURE_MEDIA:-1}"
 ALLOW_MISSING_MEDIA="${ALLOW_MISSING_MEDIA:-0}"
 MANUAL_MEDIA_PATH="${MANUAL_MEDIA_PATH:-}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="$PROJECT_ROOT/releases/phase_0_smoke/evidence"
-LOG_PATH="$OUT_DIR/ipad-${STAMP}.log"
-REPORT_PATH="$OUT_DIR/ipad-${STAMP}.md"
-SCREENSHOT_PATH="$OUT_DIR/ipad-${STAMP}.png"
-PROFILE_PATH="$OUT_DIR/ipad-${STAMP}-device.md"
-PROFILE_JSON_PATH="$OUT_DIR/ipad-${STAMP}-device.json"
-PROFILE_ANALYSIS_PATH="$OUT_DIR/ipad-${STAMP}-device-analysis.md"
+LOG_PATH="$OUT_DIR/${IOS_GATE}-${STAMP}.log"
+REPORT_PATH="$OUT_DIR/${IOS_GATE}-${STAMP}.md"
+SCREENSHOT_PATH="$OUT_DIR/${IOS_GATE}-${STAMP}.png"
+PROFILE_PATH="$OUT_DIR/${IOS_GATE}-${STAMP}-device.md"
+PROFILE_JSON_PATH="$OUT_DIR/${IOS_GATE}-${STAMP}-device.json"
+PROFILE_ANALYSIS_PATH="$OUT_DIR/${IOS_GATE}-${STAMP}-device-analysis.md"
 COLLECT_STATUS=0
 
 mkdir -p "$OUT_DIR"
@@ -64,6 +66,10 @@ if [ -f "$PROFILE_JSON_PATH" ]; then
 fi
 
 echo "Launching $BUNDLE_ID on $DEVICE with console capture for ${DURATION}s"
+LAUNCH_ARGS=("--xr-platform=${IOS_XR_PLATFORM}")
+if [ -n "$IOS_XR_SCENE" ]; then
+	LAUNCH_ARGS+=("--xr-scene=${IOS_XR_SCENE}")
+fi
 set +e
 xcrun devicectl \
 	--timeout "$DURATION" \
@@ -72,20 +78,20 @@ xcrun devicectl \
 	--terminate-existing \
 	--console \
 	"$BUNDLE_ID" \
-	"--xr-platform=${IOS_XR_PLATFORM}" > "$LOG_PATH" 2>&1
+	"${LAUNCH_ARGS[@]}" > "$LOG_PATH" 2>&1
 LAUNCH_STATUS="$?"
 set -e
 
-if ! grep -q "GXF_SMOKE" "$LOG_PATH"; then
+if ! grep -Eq "GXF_SMOKE|GXF_ARKIT_PLACE|GXF_ROKID_PLACE" "$LOG_PATH"; then
 	if command -v idevicesyslog >/dev/null 2>&1; then
-		echo "No GXF_SMOKE from devicectl console. Trying idevicesyslog for ${DURATION}s..."
+		echo "No GXF evidence from devicectl console. Trying idevicesyslog for ${DURATION}s..."
 		idevicesyslog > "$LOG_PATH" &
 		LOG_PID="$!"
 		sleep "$DURATION"
 		kill "$LOG_PID" >/dev/null 2>&1 || true
 		wait "$LOG_PID" >/dev/null 2>&1 || true
 	elif command -v pymobiledevice3 >/dev/null 2>&1; then
-		echo "No GXF_SMOKE from devicectl console. Trying pymobiledevice3 syslog for ${DURATION}s..."
+		echo "No GXF evidence from devicectl console. Trying pymobiledevice3 syslog for ${DURATION}s..."
 		pymobiledevice3 syslog live > "$LOG_PATH" &
 		LOG_PID="$!"
 		sleep "$DURATION"
@@ -109,7 +115,7 @@ echo "devicectl launch status: $LAUNCH_STATUS"
 echo "Validating iPad gate"
 set +e
 node "$PROJECT_ROOT/tools/c00/validate_smoke_log.js" \
-	--gate ipad \
+	--gate "$IOS_GATE" \
 	--log "$LOG_PATH" \
 	--report "$REPORT_PATH" \
 	$EXTRA_VALIDATE_ARGS
@@ -120,7 +126,7 @@ if [ "$SMOKE_STATUS" -ne 0 ]; then
 	echo "Smoke validation failed with exit $SMOKE_STATUS; continuing to evidence/profile report assembly." >&2
 fi
 
-EVIDENCE_ARGS=(--gate ipad --screenshot "$SCREENSHOT_PATH" --report "$REPORT_PATH")
+EVIDENCE_ARGS=(--gate "$IOS_GATE" --screenshot "$SCREENSHOT_PATH" --report "$REPORT_PATH")
 if [ -n "$MANUAL_MEDIA_PATH" ]; then
 	EVIDENCE_ARGS+=(--manual-media "$MANUAL_MEDIA_PATH")
 fi

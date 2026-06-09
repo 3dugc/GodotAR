@@ -64,7 +64,7 @@ function parseArgs(argv) {
 function usage() {
 	console.error([
 		"Usage:",
-		"  node tools/c00/validate_evidence_bundle.js --gate <rokid|ipad|android-arcore|editor|ios-simulator|android-emulator> [--screenshot <file>] [--video <file>] [--manual-media <file>] [--report <file>]",
+		"  node tools/c00/validate_evidence_bundle.js --gate <rokid|rokid-place|ipad|ipad-place|android-arcore|editor|ios-simulator|android-emulator> [--screenshot <file>] [--video <file>] [--manual-media <file>] [--report <file>]",
 		"",
 		"Options:",
 		"  --allow-missing-media   Downgrade missing media evidence from failure to warning.",
@@ -109,10 +109,10 @@ function evaluateEvidence(gate, media, options) {
 		}
 	}
 
-	if (gate === "rokid" || gate === "android-arcore") {
+	if (gate === "rokid" || gate === "rokid-place" || gate === "android-arcore") {
 		requireKind("screenshot", `${gate} gate requires a screenshot artifact.`);
 		requireKind("video", `${gate} gate requires a screen recording artifact.`);
-	} else if (gate === "ipad") {
+	} else if (gate === "ipad" || gate === "ipad-place") {
 		if (!hasAnyGoodMedia()) {
 			recordProblem("iPad gate requires at least one screenshot, screen recording, or manual media artifact.");
 		}
