@@ -65,9 +65,12 @@ function checkAndroidReady(gateName) {
 	const parsedDevices = parseAdbDevices(devices.stdout);
 	const availableDevices = parsedDevices.filter((item) => item.state === "device");
 	const targetDevice = serial ? parsedDevices.find((item) => item.serial === serial) : availableDevices[0] || null;
+	const hostPermissionBlocked = isAndroidHostPermissionBlocked(devices);
 
 	if (!adb) {
 		failures.push("adb was not found. Set ADB_BIN or install Android platform-tools.");
+	} else if (hostPermissionBlocked) {
+		failures.push(`Host permission blocked adb readiness: ${devices.stderr || "adb could not start or query its local server"}`);
 	} else if (!devices.ok) {
 		failures.push(`adb devices -l failed: ${devices.stderr || "unknown error"}`);
 	} else if (serial && (!targetDevice || targetDevice.state !== "device")) {
@@ -91,10 +94,11 @@ function checkAndroidReady(gateName) {
 		pass: failures.length === 0,
 		failures,
 		warnings,
-		next_actions: androidReadinessNextActions(gateName, { adb, devices, parsedDevices, availableDevices, serial, targetDevice }),
+		next_actions: androidReadinessNextActions(gateName, { adb, devices, parsedDevices, availableDevices, serial, targetDevice, hostPermissionBlocked }),
 		evidence: {
 			adb,
 			serial: serial || "",
+			host_permission_blocked: hostPermissionBlocked,
 			devices: parsedDevices,
 			selected_device: targetDevice,
 			raw_devices_output: devices.stdout.trim(),
@@ -144,6 +148,7 @@ function checkIpadReady() {
 		"--allow-missing-target",
 	]);
 	const analysis = parseJsonOutput(analyze.stdout);
+	const hostPermissionBlocked = isIpadHostPermissionBlocked(profile, collect, analyze, analysis);
 	if (!analyze.ok) {
 		for (const failure of arrayOfStrings(analysis.failures)) {
 			failures.push(failure);
@@ -161,9 +166,10 @@ function checkIpadReady() {
 		pass: failures.length === 0,
 		failures,
 		warnings,
-		next_actions: ipadReadinessNextActions({ device, profile, analysis }),
+		next_actions: ipadReadinessNextActions({ device, profile, analysis, hostPermissionBlocked }),
 		evidence: {
 			device,
+			host_permission_blocked: hostPermissionBlocked,
 			profile: summarizeIpadProfile(profile),
 			analysis: analysis.evidence || {},
 		},
@@ -179,6 +185,11 @@ function androidReadinessNextActions(gateName, context) {
 
 	if (!context.adb) {
 		actions.push("Install Android platform-tools or set ADB_BIN to the adb executable from the C00 Android SDK.");
+		return actions;
+	}
+	if (context.hostPermissionBlocked) {
+		actions.push("Run the readiness command from a normal macOS terminal or an approved unsandboxed Codex command so adb can bind its local server socket.");
+		actions.push("If adb is wedged after a blocked run, run `adb kill-server` and retry with the project-local platform-tools adb.");
 		return actions;
 	}
 	if (context.devices && context.devices.ok === false) {
@@ -215,6 +226,11 @@ function ipadReadinessNextActions(context) {
 	const selectedDevice = profile.selected_device || {};
 	const availability = String(evidence.device_availability || "").toLowerCase();
 
+	if (context.hostPermissionBlocked) {
+		actions.push("Run the iPad readiness command from a normal macOS terminal or an approved unsandboxed Codex command so devicectl, CoreDevice, and xctrace can access user caches and XPC services.");
+		actions.push("After the host permission check passes, reconnect and unlock the iPad, trust this Mac, then rerun readiness with the same --device value.");
+		return actions;
+	}
 	if (!profile.selected_device) {
 		actions.push(`Connect the iPad, unlock it, trust this Mac, then confirm it appears in \`xcrun devicectl list devices\` using the same --device value: ${context.device}.`);
 		return actions;
@@ -239,6 +255,28 @@ function ipadReadinessNextActions(context) {
 		actions.push("Retry readiness from a normal terminal and inspect the devicectl/xctrace stderr in the evidence block.");
 	}
 	return actions;
+}
+
+
+function isAndroidHostPermissionBlocked(result) {
+	const text = [
+		result && result.stderr,
+		result && result.stdout,
+	].join("\n");
+	return /Operation not permitted|could not install \*smartsocket\* listener|ADB server didn't ACK|failed to start daemon/i.test(text);
+}
+
+
+function isIpadHostPermissionBlocked(profile, collect, analyze, analysis) {
+	const text = [
+		collect && collect.stderr,
+		collect && collect.stdout,
+		analyze && analyze.stderr,
+		analyze && analyze.stdout,
+		JSON.stringify(profile || {}),
+		JSON.stringify(analysis || {}),
+	].join("\n");
+	return /Operation not permitted|XPCError|connection was invalidated|CoreDeviceService|Cannot create temporary directory for Instruments Analysis Core|com\.apple\.dt\.InstrumentsCLI|permission to save the file/i.test(text);
 }
 
 

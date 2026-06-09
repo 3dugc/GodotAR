@@ -88,6 +88,7 @@ function analyzeProfile(profile, gateName) {
 	const xrPackages = arrayOfStrings(profile.xr_related_packages);
 	const targetPackage = profile.target_package || {};
 	const display = profile.display || {};
+	const hostPermissionBlocked = isHostPermissionBlocked(profile);
 	const deviceText = [
 		properties["ro.product.manufacturer"],
 		properties["ro.product.brand"],
@@ -101,9 +102,15 @@ function analyzeProfile(profile, gateName) {
 		warnings.push(`Profile was collected for gate "${profile.gate}", but analyzed as "${gateName}".`);
 	}
 	if (!profile.adb || profile.adb.available !== true) {
-		failures.push("adb was not available during device profile collection.");
+		if (hostPermissionBlocked) {
+			failures.push("Host permission blocked adb device profile collection; adb could not start or query its local server from this environment.");
+		} else {
+			failures.push("adb was not available during device profile collection.");
+		}
 	}
-	if (!profile.adb || profile.adb.has_connected_device !== true) {
+	if (hostPermissionBlocked) {
+		warnings.push("ADB stderr indicates host permission or sandbox restrictions, not necessarily a missing physical device.");
+	} else if (!profile.adb || profile.adb.has_connected_device !== true) {
 		failures.push("No connected Android device was available in adb state 'device'. Connect and authorize the Rokid/Android device before running the gate.");
 	}
 	if (!targetPackage.installed) {
@@ -154,9 +161,10 @@ function analyzeProfile(profile, gateName) {
 		pass: failures.length === 0,
 		failures,
 		warnings,
-		next_actions: androidNextActions({ profile, gateName, targetPackage, xrPackages, notableFeatures, deviceText }),
+		next_actions: androidNextActions({ profile, gateName, targetPackage, xrPackages, notableFeatures, deviceText, hostPermissionBlocked }),
 		evidence: {
 			device: deviceText || "unknown",
+			host_permission_blocked: hostPermissionBlocked,
 			connected_devices: (profile.adb && Array.isArray(profile.adb.connected_devices)) ? profile.adb.connected_devices : [],
 			target_package_installed: Boolean(targetPackage.installed),
 			target_package_version: targetPackage.version_name || targetPackage.version_code || "",
@@ -192,7 +200,16 @@ function androidNextActions(context) {
 	const label = gateName === "rokid" ? "Rokid/OpenXR" : "Android/ARCore";
 
 	if (adb.available !== true) {
+		if (context.hostPermissionBlocked) {
+			actions.push("Run the Android/Rokid profile collector from a normal macOS terminal or an approved unsandboxed Codex command so adb can bind its local server socket.");
+			actions.push("If adb is wedged after a blocked run, run `adb kill-server` and retry with the project-local platform-tools adb.");
+			return actions;
+		}
 		actions.push("Install Android platform-tools or set ADB_BIN to the project-local adb executable.");
+		return actions;
+	}
+	if (context.hostPermissionBlocked) {
+		actions.push("Retry from a normal macOS terminal or approved unsandboxed command before diagnosing USB transport or runtime packages.");
 		return actions;
 	}
 	if (adb.has_connected_device !== true) {
@@ -216,6 +233,17 @@ function androidNextActions(context) {
 		actions.push("If the gate still fails, inspect the smoke log and device profile evidence for runtime package or permission errors.");
 	}
 	return actions;
+}
+
+
+function isHostPermissionBlocked(profile) {
+	const adb = profile.adb || {};
+	const text = [
+		adb.error,
+		adb.devices,
+		JSON.stringify(profile.warnings || []),
+	].join("\n");
+	return /Operation not permitted|could not install \*smartsocket\* listener|ADB server didn't ACK|failed to start daemon/i.test(text);
 }
 
 

@@ -22,6 +22,9 @@ const checks = [
 			["readiness next actions", /next_actions/],
 			["Android recovery guidance", /androidReadinessNextActions/],
 			["iPad recovery guidance", /ipadReadinessNextActions/],
+			["host permission blocked evidence", /host_permission_blocked/],
+			["Android host permission helper", /isAndroidHostPermissionBlocked/],
+			["iPad host permission helper", /isIpadHostPermissionBlocked/],
 		],
 	},
 	{
@@ -30,6 +33,8 @@ const checks = [
 			["Android analyzer next actions", /next_actions/],
 			["Android recovery helper", /androidNextActions/],
 			["USB debugging guidance", /USB debugging/],
+			["Android analyzer host permission evidence", /host_permission_blocked/],
+			["Android analyzer host permission helper", /isHostPermissionBlocked/],
 		],
 	},
 	{
@@ -38,6 +43,8 @@ const checks = [
 			["iOS analyzer next actions", /next_actions/],
 			["iOS recovery helper", /iosNextActions/],
 			["Xcode pairing guidance", /Xcode Devices and Simulators/],
+			["iOS analyzer host permission evidence", /host_permission_blocked/],
+			["iOS analyzer host permission helper", /isHostPermissionBlocked/],
 		],
 	},
 	{

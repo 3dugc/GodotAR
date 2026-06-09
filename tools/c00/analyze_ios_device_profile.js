@@ -82,14 +82,18 @@ function analyzeProfile(profile) {
 	const commands = profile.commands || {};
 	const lockState = detectLockState(commands.lock_state);
 	const availability = detectDeviceAvailability(profile);
+	const hostPermissionBlocked = isHostPermissionBlocked(profile);
 
 	if (profile.gate && String(profile.gate).toLowerCase() !== "ipad") {
 		warnings.push(`Profile was collected for gate "${profile.gate}", but analyzed as "ipad".`);
 	}
-	if (!selectedDevice) {
+	if (hostPermissionBlocked) {
+		failures.push("Host permission blocked iPad device profile collection; devicectl, CoreDevice, or xctrace could not access required host services from this environment.");
+	}
+	if (!selectedDevice && !hostPermissionBlocked) {
 		failures.push(`No selected iPad device was found in devicectl output for ${profile.device || "unknown device"}.`);
 	}
-	if (availability === "offline" || availability === "unavailable") {
+	if ((availability === "offline" || availability === "unavailable") && !hostPermissionBlocked) {
 		failures.push(`iPad appears ${availability}; connect, unlock, and trust the device before running the ARKit gate.`);
 	}
 	if (!targetApp) {
@@ -115,9 +119,10 @@ function analyzeProfile(profile) {
 		pass: failures.length === 0,
 		failures,
 		warnings,
-		next_actions: iosNextActions({ profile, selectedDevice, targetApp, availability, lockState }),
+		next_actions: iosNextActions({ profile, selectedDevice, targetApp, availability, lockState, hostPermissionBlocked }),
 		evidence: {
 			device: summarizeDevice(selectedDevice),
+			host_permission_blocked: hostPermissionBlocked,
 			device_availability: availability || "unknown",
 			target_bundle_installed: Boolean(targetApp),
 			target_bundle: profile.bundle_id || "",
@@ -142,6 +147,11 @@ function iosNextActions(context) {
 	const selectedDevice = context.selectedDevice || {};
 	const availability = String(context.availability || "").toLowerCase();
 
+	if (context.hostPermissionBlocked) {
+		actions.push("Run the iPad profile collector from a normal macOS terminal or an approved unsandboxed Codex command so devicectl, CoreDevice, and xctrace can access user caches and XPC services.");
+		actions.push("After host permissions are clear, reconnect and unlock the iPad, trust this Mac, and rerun readiness with the same --device value.");
+		return actions;
+	}
 	if (!context.selectedDevice) {
 		actions.push(`Connect and unlock the iPad, trust this Mac, then confirm it appears in \`xcrun devicectl list devices\` as ${profile.device || "the requested device"}.`);
 		return actions;
@@ -166,6 +176,15 @@ function iosNextActions(context) {
 		actions.push("If the iPad gate still fails, inspect the raw devicectl/xctrace command evidence in the profile JSON.");
 	}
 	return actions;
+}
+
+
+function isHostPermissionBlocked(profile) {
+	const text = [
+		JSON.stringify(profile.commands || {}),
+		JSON.stringify(profile.warnings || []),
+	].join("\n");
+	return /Operation not permitted|XPCError|connection was invalidated|CoreDeviceService|Cannot create temporary directory for Instruments Analysis Core|com\.apple\.dt\.InstrumentsCLI|permission to save the file/i.test(text);
 }
 
 

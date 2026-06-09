@@ -93,6 +93,7 @@ releases/phase_0_smoke/evidence/device-ready-<gate>-<timestamp>.json
 ```
 
 readiness 和 device profile 报告包含 `Next Actions` / `next_actions`，会针对 ADB 无设备、Rokid 未授权、iPad `offline` / `unavailable`、`ddiServicesAvailable=false`、目标 app 尚未安装等状态给出现场恢复步骤。
+如果在 Codex 沙盒、CI 沙盒或其它受限终端里运行，ADB 可能因为不能绑定本地 server socket 报 `Operation not permitted`，`devicectl` / `xctrace` 也可能因为 CoreDevice XPC 或 Instruments cache 权限失败。报告会用 `host_permission_blocked:true` 标出这类主机权限阻塞；此时先在普通 macOS 终端或已批准的 unsandboxed 命令里重跑 readiness，再判断是否真的缺设备。
 
 ## Device Lab Handoff
 
