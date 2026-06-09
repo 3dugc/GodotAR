@@ -77,6 +77,10 @@ func get_trackable(trackable_id: Variant) -> ARPlane:
 	return null
 
 
+func get_plane(trackable_id: Variant) -> ARPlane:
+	return get_trackable(trackable_id)
+
+
 func try_get_trackable(trackable_id: Variant, result: Array = []) -> bool:
 	var plane := get_trackable(trackable_id)
 	result.clear()
@@ -92,6 +96,10 @@ func get_requested_detection_mode() -> int:
 
 func set_requested_detection_mode(value: int) -> void:
 	requested_detection_mode = value
+
+
+func set_requestedDetectionMode(value: int) -> void:
+	set_requested_detection_mode(value)
 
 
 func set_requested_detection_mode_name(value: String) -> void:
@@ -114,6 +122,10 @@ func GetTrackable(trackable_id: Variant) -> ARPlane:
 	return get_trackable(trackable_id)
 
 
+func GetPlane(trackable_id: Variant) -> ARPlane:
+	return get_plane(trackable_id)
+
+
 func TryGetTrackable(trackable_id: Variant, result: Array = []) -> bool:
 	return try_get_trackable(trackable_id, result)
 
@@ -124,6 +136,18 @@ func TryGetPlane(trackable_id: Variant, result: Array = []) -> bool:
 
 func SetRequestedDetectionModeName(value: String) -> void:
 	set_requested_detection_mode_name(value)
+
+
+func SetRequestedDetectionMode(value: int) -> void:
+	set_requested_detection_mode(value)
+
+
+func GetRequestedDetectionMode() -> int:
+	return get_requested_detection_mode()
+
+
+func GetCurrentDetectionMode() -> int:
+	return get_current_detection_mode()
 
 
 func sync_provider_planes() -> void:

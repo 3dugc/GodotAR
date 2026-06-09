@@ -12,9 +12,10 @@ Default route: `res://demo/00_device_smoke_test.tscn`
 
 | Gate | Required backend | Result | Evidence |
 | --- | --- | --- | --- |
-| Editor smoke | EditorSim | Pass | Latest local run: `releases/phase_0_smoke/evidence/editor-20260609-090834.md` |
+| Editor smoke | EditorSim | Pass | Latest local run: `releases/phase_0_smoke/evidence/editor-20260609-114514.md` |
 | iOS Simulator development gate | EditorSim | Build pass / install blocked by Godot simulator template arch | `releases/phase_0_smoke/evidence/ios-simulator-20260609-034114.md` |
-| iOS Simulator C04 placement dev gate | EditorSim | Pass | `releases/phase_0_smoke/evidence/editor-20260609-112045.log` validated with `--gate ios-simulator-place` |
+| iOS Simulator C04 placement dev gate | EditorSim | Pass | `releases/phase_0_smoke/evidence/editor-20260609-115342.log` validated with `--gate ios-simulator-place` |
+| Rokid C02 placement dev gate | EditorSim | Pass / not a real device pass | `releases/phase_0_smoke/evidence/editor-20260609-114733.log` validated with `--gate rokid-place --allow-editor-sim-backend` |
 | Rokid AR gate | OpenXR | Pending device run | Screenshot/log |
 | iPad AR gate | ARKit | Pending device run | Screenshot/log |
 | Android ARCore availability | ARCore | Pending device run | Screenshot/log |
@@ -41,7 +42,12 @@ Codex implementation status:
 - `GodotARKit` now exposes native ARKit camera frame metadata through `try_get_intrinsics()`, `get_camera_frame()`, and `get_light_estimation()`; `ARCameraManager.TryGetIntrinsics(...)` prefers that native frame data before falling back to Godot camera projection.
 - Unity-style migration helpers added for placement workflows: `ARRaycastManager.TryRaycast`, `ARRaycastManager.RaycastToList`, `ARRaycastManager.TryScreenRaycast`, `XRHit.get_pose()`, `ARAnchorManager.TryAddAnchorAsync`, and `ARAnchorManager.TryRemoveAnchor`.
 - `ARRaycastManager` now supports Unity-style screen point list output via `Raycast(screen_position, hits, trackable_types)` when `camera_path`, `SetRaycastCamera(camera)`, or the active viewport camera can resolve the AR camera.
+- `ARRaycastManager` now also accepts Unity Ray-style inputs through `Raycast(ray_dictionary_or_transform, hits, trackable_types)`, `RaycastRayToList(...)`, and `TryRaycastRay(...)`; `XRFoundationTypes` exposes `TRACKABLE_TYPE_PLANES`, `TRACKABLE_TYPE_POINTS`, and string mask conversion for Unity `TrackableType` migration.
+- `ARAnchorManager` now exposes Unity-style `AttachAnchor(plane, pose)`, `GetAnchor(id)`, `GetDescriptor().supportsTrackableAttachments`, result `value` fields for `TryAddAnchorAsync`, and explicit unsupported results for persistent anchor async APIs.
+- `XRRayInteractor.TryGetCurrent3DRaycastHit(result_array)`, `TryGetCurrentRaycast(...)`, and `TryGetCurrentUIRaycastResult(...)` now support Unity XRI out-parameter style migration while preserving the no-argument dictionary return used by existing Godot code.
 - Latest local EditorSim validation loaded the smoke scene successfully, reported `GXF_SMOKE.camera` metadata from `ARCameraManager`, and reported a center-screen AR raycast hit against the simulated floor.
+- Latest routed C04 iOS placement validation loaded `demo/06_ios_arkit_place.tscn` through `--xr-scene=ios_arkit_place`, used the Unity-style raycast/anchor facade, and passed `validate_smoke_log.js --gate ios-simulator-place --allow-editor-sim-backend`.
+- Latest routed C02 Rokid placement validation loaded `demo/04_rokid_ray_place.tscn` through `--xr-scene=rokid_place`, used the Unity-style raycast/anchor facade, and passed `validate_smoke_log.js --gate rokid-place --allow-editor-sim-backend`; this remains development evidence only.
 - `ARPlaneManager.planes_changed` and `ARAnchorManager.anchors_changed` list-style events added for Unity manager migration.
 - `NativeXRProvider` now preserves native anchor dictionary ids and persistent ids from ARKit/ARCore singleton bridges instead of replacing them with generated ids.
 - `tools/c00/check_arfoundation_api_surface.js` now guards the migration API surface without requiring a Godot binary.

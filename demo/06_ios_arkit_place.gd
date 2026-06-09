@@ -36,6 +36,7 @@ func _ready() -> void:
 	camera_manager.frameReceived.connect(_on_camera_frame_received)
 	plane_manager.trackablesChanged.connect(_on_planes_changed)
 	anchor_manager.trackablesChanged.connect(_on_anchors_changed)
+	raycast_manager.SetRaycastCamera(xr_camera)
 	_ensure_place_input_actions()
 	_availability_report = ar_session.check_availability()
 	_emit_place_log("availability", {"availability": _availability_report})
@@ -103,7 +104,7 @@ func _place_at_current_hit(reason: String) -> bool:
 	var transform := _transform_from_hit_metadata(_last_hit)
 	placed_object.visible = true
 	placed_object.global_transform = transform
-	var anchor: ARAnchor = anchor_manager.add_anchor(transform)
+	var anchor: ARAnchor = _try_add_anchor_unity_style(transform)
 	_placed_count += 1
 	_last_place_reason = reason
 	_emit_place_log("placed", {
@@ -119,7 +120,7 @@ func _place_hit(hit: XRHit, reason: String) -> bool:
 	var transform := hit.get_pose()
 	placed_object.visible = true
 	placed_object.global_transform = transform
-	var anchor: ARAnchor = anchor_manager.add_anchor(transform)
+	var anchor: ARAnchor = _try_attach_anchor_unity_style(hit, transform)
 	_placed_count += 1
 	_last_place_reason = reason
 	_emit_place_log("placed", {
@@ -135,7 +136,38 @@ func _screen_raycast(screen_position: Vector2) -> Array[XRHit]:
 	if raycast_manager == null or xr_camera == null:
 		var empty: Array[XRHit] = []
 		return empty
-	return raycast_manager.screen_raycast(xr_camera, screen_position, 1, XRFoundationTypes.TrackableType.PLANE)
+	var raw_hits: Array = []
+	var mask := XRFoundationTypes.TRACKABLE_TYPE_PLANES
+	if not bool(raycast_manager.Raycast(screen_position, raw_hits, mask)):
+		var missed: Array[XRHit] = []
+		return missed
+	var hits: Array[XRHit] = []
+	for hit in raw_hits:
+		if hit is XRHit:
+			hits.append(hit)
+	return hits
+
+
+func _try_attach_anchor_unity_style(hit: XRHit, transform: Transform3D) -> ARAnchor:
+	if anchor_manager == null:
+		return null
+	var plane: ARPlane = plane_manager.GetPlane(hit.trackableId) if plane_manager else null
+	if plane != null and bool(anchor_manager.GetDescriptor().get("supportsTrackableAttachments", false)):
+		var attached := anchor_manager.AttachAnchor(plane, transform)
+		if attached != null:
+			return attached
+	return _try_add_anchor_unity_style(transform)
+
+
+func _try_add_anchor_unity_style(transform: Transform3D) -> ARAnchor:
+	if anchor_manager == null:
+		return null
+	var result: Dictionary = anchor_manager.TryAddAnchorAsync(transform)
+	if bool(result.get("success", false)):
+		var anchor_value: Variant = result.get("value", result.get("anchor", null))
+		if anchor_value is ARAnchor:
+			return anchor_value
+	return null
 
 
 func _viewport_center() -> Vector2:

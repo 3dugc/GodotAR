@@ -32,6 +32,7 @@ func _ready() -> void:
 	XRFoundation.session_started.connect(_on_session_started)
 	XRFoundation.session_failed.connect(_on_session_failed)
 	xri_manager.select_entered.connect(_on_select_entered)
+	raycast_manager.SetRaycastCamera(xr_camera)
 	_ensure_xri_input_actions()
 	_emit_place_log("ready", {"availability": ar_session.check_availability()})
 
@@ -80,7 +81,15 @@ func _center_screen_raycast() -> Array[XRHit]:
 		var empty_viewport: Array[XRHit] = []
 		return empty_viewport
 	var center := viewport.get_visible_rect().size * 0.5
-	return raycast_manager.screen_raycast(xr_camera, center, 1, XRFoundationTypes.TrackableType.PLANE)
+	var raw_hits: Array = []
+	if not bool(raycast_manager.Raycast(center, raw_hits, XRFoundationTypes.TRACKABLE_TYPE_PLANES)):
+		var missed: Array[XRHit] = []
+		return missed
+	var hits: Array[XRHit] = []
+	for hit in raw_hits:
+		if hit is XRHit:
+			hits.append(hit)
+	return hits
 
 
 func _place_at_current_hit(reason: String) -> bool:
@@ -91,7 +100,7 @@ func _place_at_current_hit(reason: String) -> bool:
 	placed_object.visible = true
 	placed_object.global_transform = transform
 	if anchor_manager:
-		anchor_manager.add_anchor(transform)
+		anchor_manager.TryAddAnchorAsync(transform)
 	_placed_count += 1
 	_last_place_reason = reason
 	_emit_place_log("placed", {
@@ -141,10 +150,7 @@ func _emit_place_log(event_name: String, extra: Dictionary) -> void:
 		"center_screen_raycast": _last_hit,
 		"placed_count": _placed_count,
 		"last_place_reason": _last_place_reason,
-		"xri": {
-			"interaction_manager": xri_manager != null,
-			"ray_interactor": xri_ray != null,
-		},
+		"xri": _xri_metadata(),
 	}
 	for key in extra.keys():
 		payload[key] = extra[key]
@@ -177,6 +183,36 @@ func _on_session_failed(reason: String) -> void:
 
 func _on_select_entered(_interactor: Node, _interactable: Node) -> void:
 	_place_at_current_hit("xri_select")
+
+
+func _xri_metadata() -> Dictionary:
+	var ray_hits: Array = []
+	var has_3d_hit := false
+	var raycast_hit := {}
+	if xri_ray:
+		has_3d_hit = bool(xri_ray.TryGetCurrent3DRaycastHit(ray_hits))
+	if has_3d_hit and not ray_hits.is_empty():
+		var hit: Dictionary = ray_hits[0]
+		var position := Vector3.ZERO
+		var normal := Vector3.UP
+		var position_value: Variant = hit.get("position", Vector3.ZERO)
+		var normal_value: Variant = hit.get("normal", Vector3.UP)
+		if position_value is Vector3:
+			position = position_value
+		if normal_value is Vector3:
+			normal = normal_value
+		raycast_hit = {
+			"position": _vector3_array(position),
+			"normal": _vector3_array(normal),
+			"has_interactable": hit.get("interactable", null) != null,
+			"has_collider": hit.get("collider", null) != null,
+		}
+	return {
+		"interaction_manager": xri_manager != null,
+		"ray_interactor": xri_ray != null,
+		"try_get_current_3d_raycast_hit": has_3d_hit,
+		"raycast_hit": raycast_hit,
+	}
 
 
 func _ensure_xri_input_actions() -> void:

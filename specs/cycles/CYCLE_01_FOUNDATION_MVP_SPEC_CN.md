@@ -45,6 +45,11 @@
 - `ARCameraManager`
 - `XRFoundation.get_capabilities()`
 - `XRFoundation.capabilities_changed`
+- `ARRaycastManager.Raycast(screen_position, results, trackable_types)`
+- `ARRaycastManager.Raycast(ray_dictionary_or_transform, results, trackable_types)`
+- `ARAnchorManager.AttachAnchor(plane, pose)`
+- `ARAnchorManager.GetDescriptor()`
+- `XRRayInteractor.TryGetCurrent3DRaycastHit(result_array)`
 
 冻结：
 

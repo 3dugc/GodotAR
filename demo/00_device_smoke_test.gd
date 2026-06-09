@@ -190,7 +190,11 @@ func _runtime_metadata() -> Dictionary:
 
 
 func _xri_metadata() -> Dictionary:
-	var raycast := xri_ray_interactor.TryGetCurrent3DRaycastHit() if xri_ray_interactor else {"success": false}
+	var raycast: Dictionary = {"success": false}
+	if xri_ray_interactor:
+		var raycast_result: Variant = xri_ray_interactor.TryGetCurrent3DRaycastHit()
+		if raycast_result is Dictionary:
+			raycast = raycast_result
 	return {
 		"interaction_manager": xri_interaction_manager != null,
 		"ray_interactor": xri_ray_interactor != null,

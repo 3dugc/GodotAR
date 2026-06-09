@@ -12,6 +12,14 @@ signal trackablesChanged(changes: ARTrackablesChangedEventArgs)
 @export var anchors_parent_path: NodePath
 
 var anchors: Dictionary = {}
+var supportsTrackableAttachments := true
+var descriptor := {
+	"supportsTrackableAttachments": true,
+	"supportsSaveAnchor": false,
+	"supportsLoadAnchor": false,
+	"supportsEraseAnchor": false,
+	"supportsGetSavedAnchorIds": false,
+}
 
 
 func get_all_anchors() -> Array[ARAnchor]:
@@ -36,6 +44,10 @@ func get_trackable(trackable_id: Variant) -> ARAnchor:
 	return null
 
 
+func get_anchor(trackable_id: Variant) -> ARAnchor:
+	return get_trackable(trackable_id)
+
+
 func try_get_trackable(trackable_id: Variant, result: Array = []) -> bool:
 	var anchor := get_trackable(trackable_id)
 	result.clear()
@@ -58,6 +70,13 @@ func add_anchor(transform: Transform3D, attached_trackable: ARTrackable = null) 
 	anchor_added.emit(anchor)
 	_emit_trackables_changed([anchor], [], [])
 	return anchor
+
+
+func attach_anchor(plane: ARPlane, pose: Variant) -> ARAnchor:
+	if plane == null:
+		return null
+	var transform := _pose_to_transform(pose)
+	return add_anchor(transform, plane)
 
 
 func remove_anchor(anchor_or_id: Variant) -> void:
@@ -87,6 +106,28 @@ func try_add_anchor_async(pose: Variant) -> Dictionary:
 	return try_add_anchor(pose)
 
 
+func try_save_anchor_async(_anchor: ARAnchor, _cancellation_token: Variant = null) -> Dictionary:
+	return _anchor_result(false, null, "persistent_anchors_not_supported_in_c00")
+
+
+func try_load_anchor_async(_saved_anchor_guid: Variant, _cancellation_token: Variant = null) -> Dictionary:
+	return _anchor_result(false, null, "persistent_anchors_not_supported_in_c00")
+
+
+func try_erase_anchor_async(_saved_anchor_guid: Variant, _cancellation_token: Variant = null) -> Dictionary:
+	return _anchor_result(false, null, "persistent_anchors_not_supported_in_c00")
+
+
+func try_get_saved_anchor_ids_async(_allocator: Variant = null, _cancellation_token: Variant = null) -> Dictionary:
+	return {
+		"success": false,
+		"status": "Failure",
+		"result": [],
+		"value": [],
+		"error": "persistent_anchors_not_supported_in_c00",
+	}
+
+
 func try_remove_anchor(anchor: ARAnchor) -> bool:
 	if anchor == null or not anchors.has(anchor.trackable_id):
 		return false
@@ -106,6 +147,10 @@ func GetTrackable(trackable_id: Variant) -> ARAnchor:
 	return get_trackable(trackable_id)
 
 
+func GetAnchor(trackable_id: Variant) -> ARAnchor:
+	return get_anchor(trackable_id)
+
+
 func TryGetTrackable(trackable_id: Variant, result: Array = []) -> bool:
 	return try_get_trackable(trackable_id, result)
 
@@ -116,6 +161,10 @@ func TryGetAnchor(trackable_id: Variant, result: Array = []) -> bool:
 
 func AddAnchor(transform: Transform3D, attached_trackable: ARTrackable = null) -> ARAnchor:
 	return add_anchor(transform, attached_trackable)
+
+
+func AttachAnchor(plane: ARPlane, pose: Variant) -> ARAnchor:
+	return attach_anchor(plane, pose)
 
 
 func RemoveAnchor(anchor_or_id: Variant) -> void:
@@ -130,8 +179,33 @@ func TryAddAnchorAsync(pose: Variant) -> Dictionary:
 	return try_add_anchor_async(pose)
 
 
+func TrySaveAnchorAsync(anchor: ARAnchor, cancellation_token: Variant = null) -> Dictionary:
+	return try_save_anchor_async(anchor, cancellation_token)
+
+
+func TryLoadAnchorAsync(saved_anchor_guid: Variant, cancellation_token: Variant = null) -> Dictionary:
+	return try_load_anchor_async(saved_anchor_guid, cancellation_token)
+
+
+func TryEraseAnchorAsync(saved_anchor_guid: Variant, cancellation_token: Variant = null) -> Dictionary:
+	return try_erase_anchor_async(saved_anchor_guid, cancellation_token)
+
+
+func TryGetSavedAnchorIdsAsync(allocator: Variant = null, cancellation_token: Variant = null) -> Dictionary:
+	return try_get_saved_anchor_ids_async(allocator, cancellation_token)
+
+
 func TryRemoveAnchor(anchor: ARAnchor) -> bool:
 	return try_remove_anchor(anchor)
+
+
+func get_descriptor() -> Dictionary:
+	descriptor["supportsTrackableAttachments"] = supportsTrackableAttachments
+	return descriptor
+
+
+func GetDescriptor() -> Dictionary:
+	return get_descriptor()
 
 
 func _get_anchor_parent() -> Node3D:
@@ -179,6 +253,7 @@ func _anchor_result(success: bool, anchor: ARAnchor = null, error: String = "") 
 		"success": success,
 		"status": "Success" if success else "Failure",
 		"result": anchor,
+		"value": anchor,
 		"anchor": anchor,
 		"error": error,
 	}

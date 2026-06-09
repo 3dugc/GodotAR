@@ -35,6 +35,21 @@ func raycast_to_list(origin: Vector3, direction: Vector3, results: Array, max_re
 	return not hits.is_empty()
 
 
+func raycast_ray_to_list(ray: Variant, results: Array, trackable_types: int = 0xffffffff, point_cloud_raycast_angle_in_degrees: float = 5.0) -> bool:
+	var ray_data := _extract_ray(ray)
+	results.clear()
+	if ray_data.is_empty():
+		return false
+	var max_results := 0
+	return raycast_to_list(
+		ray_data["origin"],
+		ray_data["direction"],
+		results,
+		max_results,
+		trackable_types
+	)
+
+
 func screen_raycast_to_list(camera: Camera3D, screen_position: Vector2, results: Array, max_results: int = 0, trackable_types: int = 0xffffffff) -> bool:
 	var hits := screen_raycast(camera, screen_position, max_results, trackable_types)
 	results.clear()
@@ -54,6 +69,10 @@ func raycast_from_screen(camera: Camera3D, screen_position: Vector2, results: Ar
 
 func RaycastToList(origin: Vector3, direction: Vector3, results: Array, max_results: int = 0, trackable_types: int = 0xffffffff) -> bool:
 	return raycast_to_list(origin, direction, results, max_results, trackable_types)
+
+
+func RaycastRayToList(ray: Variant, results: Array, trackable_types: int = 0xffffffff, point_cloud_raycast_angle_in_degrees: float = 5.0) -> bool:
+	return raycast_ray_to_list(ray, results, trackable_types, point_cloud_raycast_angle_in_degrees)
 
 
 func ScreenRaycastToList(camera: Camera3D, screen_position: Vector2, results: Array, max_results: int = 0, trackable_types: int = 0xffffffff) -> bool:
@@ -78,15 +97,21 @@ func RaycastScreen(camera: Camera3D, screen_position: Vector2, results: Array, t
 
 func Raycast(query: Variant, arg2: Variant = null, arg3: Variant = null, arg4: Variant = null) -> Variant:
 	if query is Vector2 and arg2 is Array:
-		var trackable_types := int(arg3) if arg3 != null else 0xffffffff
+		var trackable_types := XRFoundationTypes.trackable_type_mask_from_variant(arg3, 0xffffffff) if arg3 != null else 0xffffffff
 		return unity_screen_raycast(query, arg2, trackable_types)
 	if query is Camera3D and arg2 is Vector2 and arg3 is Array:
-		var camera_trackable_types := int(arg4) if arg4 != null else 0xffffffff
+		var camera_trackable_types := XRFoundationTypes.trackable_type_mask_from_variant(arg4, 0xffffffff) if arg4 != null else 0xffffffff
 		return screen_raycast_to_list(query, arg2, arg3, 0, camera_trackable_types)
+	if arg2 is Array:
+		var ray_trackable_types := XRFoundationTypes.trackable_type_mask_from_variant(arg3, 0xffffffff) if arg3 != null else 0xffffffff
+		var point_cloud_angle := float(arg4) if arg4 != null else 5.0
+		if raycast_ray_to_list(query, arg2, ray_trackable_types, point_cloud_angle):
+			return true
+		return false
 	if query is Vector3 and arg2 is Vector3:
 		var max_results := int(arg3) if arg3 != null else 1
-		var ray_trackable_types := int(arg4) if arg4 != null else 0xffffffff
-		return raycast(query, arg2, max_results, ray_trackable_types)
+		var vector_trackable_types := XRFoundationTypes.trackable_type_mask_from_variant(arg4, 0xffffffff) if arg4 != null else 0xffffffff
+		return raycast(query, arg2, max_results, vector_trackable_types)
 	var empty: Array[XRHit] = []
 	return empty
 
@@ -97,6 +122,10 @@ func ScreenRaycast(camera: Camera3D, screen_position: Vector2, max_results: int 
 
 func TryRaycast(origin: Vector3, direction: Vector3, results: Array, max_results: int = 0, trackable_types: int = 0xffffffff) -> bool:
 	return raycast_to_list(origin, direction, results, max_results, trackable_types)
+
+
+func TryRaycastRay(ray: Variant, results: Array, trackable_types: int = 0xffffffff, point_cloud_raycast_angle_in_degrees: float = 5.0) -> bool:
+	return raycast_ray_to_list(ray, results, trackable_types, point_cloud_raycast_angle_in_degrees)
 
 
 func TryScreenRaycast(camera: Camera3D, screen_position: Vector2, results: Array, max_results: int = 0, trackable_types: int = 0xffffffff) -> bool:
@@ -144,6 +173,28 @@ func _find_camera_in_tree(root: Node) -> Camera3D:
 		if camera:
 			return camera
 	return null
+
+
+func _extract_ray(ray: Variant) -> Dictionary:
+	if ray is Dictionary:
+		var origin_value: Variant = ray.get("origin", ray.get("position", null))
+		var direction_value: Variant = ray.get("direction", null)
+		if origin_value is Vector3 and direction_value is Vector3:
+			return {
+				"origin": origin_value,
+				"direction": direction_value.normalized(),
+			}
+	if ray is Transform3D:
+		return {
+			"origin": ray.origin,
+			"direction": (-ray.basis.z).normalized(),
+		}
+	if ray is Node3D:
+		return {
+			"origin": ray.global_transform.origin,
+			"direction": (-ray.global_transform.basis.z).normalized(),
+		}
+	return {}
 
 
 func _filter_hits(hits: Array[XRHit], trackable_types: int) -> Array[XRHit]:

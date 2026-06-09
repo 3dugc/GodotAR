@@ -62,6 +62,12 @@ enum TrackableType {
 	ANCHOR,
 }
 
+const TRACKABLE_TYPE_ALL := 0xffffffff
+const TRACKABLE_TYPE_PLANES := 1 << TrackableType.PLANE
+const TRACKABLE_TYPE_POINTS := (1 << TrackableType.POINT) | (1 << TrackableType.FEATURE_POINT)
+const TRACKABLE_TYPE_FEATURE_POINT := 1 << TrackableType.FEATURE_POINT
+const TRACKABLE_TYPE_ANCHOR := 1 << TrackableType.ANCHOR
+
 enum PlaneDetectionMode {
 	NONE,
 	HORIZONTAL,
@@ -270,6 +276,12 @@ static func trackable_type_from_variant(value: Variant, fallback: int = Trackabl
 	return trackable_type_from_string(String(value), fallback)
 
 
+static func trackable_type_mask_from_variant(value: Variant, fallback: int = TRACKABLE_TYPE_ALL) -> int:
+	if typeof(value) == TYPE_INT:
+		return int(value)
+	return trackable_type_mask_from_string(String(value), fallback)
+
+
 static func trackable_type_from_string(value: String, fallback: int = TrackableType.UNKNOWN) -> int:
 	match value.strip_edges().to_lower().replace(" ", "_").replace("-", "_"):
 		"plane", "planes", "estimated_plane", "existing_plane", "plane_within_polygon":
@@ -288,3 +300,25 @@ static func trackable_type_from_string(value: String, fallback: int = TrackableT
 			return fallback
 		_:
 			return fallback
+
+
+static func trackable_type_mask_from_string(value: String, fallback: int = TRACKABLE_TYPE_ALL) -> int:
+	var normalized := value.strip_edges().to_lower().replace(" ", "_").replace("-", "_")
+	match normalized:
+		"", "all", "everything", "any":
+			return TRACKABLE_TYPE_ALL
+		"plane", "planes", "estimated_plane", "existing_plane", "plane_within_polygon", "plane_within_bounds":
+			return TRACKABLE_TYPE_PLANES
+		"point", "points", "feature_point", "feature_points":
+			return TRACKABLE_TYPE_POINTS
+		"anchor", "anchors":
+			return TRACKABLE_TYPE_ANCHOR
+		_:
+			if not normalized.contains("|") and not normalized.contains(","):
+				return fallback
+			var mask := 0
+			var normalized_parts := normalized.replace(",", "|")
+			for part in normalized_parts.split("|", false):
+				var single := trackable_type_mask_from_string(part, 0)
+				mask |= single
+			return mask if mask != 0 else fallback

@@ -52,13 +52,17 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 | `ARCameraManager.TryGetIntrinsics(out XRCameraIntrinsics)` | `ARCameraManager.TryGetIntrinsics(result_dictionary)`; iPad/ARKit now prefers native `GodotARKit.try_get_intrinsics()` from the latest ARKit frame, then falls back to projection-derived Godot camera intrinsics |
 | `ARCameraManager.TryAcquireLatestCpuImage(out XRCpuImage)` | `ARCameraManager.TryAcquireLatestCpuImage(result_dictionary)` currently returns `false` with `reason:"cpu_image_not_exposed_in_c00"` |
 | `ARCameraFrameEventArgs` intrinsics/light metadata | `ARCameraManager.GetLatestFrame()` / `frameReceived(args)` includes native ARKit timestamp, tracking state/reason, intrinsics, and ambient light estimate when the native frame is available |
-| `ARRaycastManager.Raycast(Ray, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.RaycastToList(origin, direction, results, max_results, trackable_types)`, `Raycast(origin, direction, max_results, trackable_types)`, or `TryRaycast(...)` |
-| `ARRaycastManager.Raycast(Vector2, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.Raycast(screen_position, results, trackable_types)` when `camera_path` or the active viewport camera is available; explicit-camera aliases remain available through `RaycastFromScreen(camera, ...)`, `RaycastScreenPoint(...)`, `RaycastList(...)`, or `TryScreenRaycast(...)` |
+| `ARRaycastManager.Raycast(Ray, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.Raycast(ray_dictionary_or_transform, results, trackable_types)`, `RaycastRayToList(...)`, `TryRaycastRay(...)`, `ARRaycastManager.RaycastToList(origin, direction, results, max_results, trackable_types)`, or `TryRaycast(...)` |
+| `ARRaycastManager.Raycast(Vector2, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.Raycast(screen_position, results, trackable_types)` when `camera_path`, `SetRaycastCamera(camera)`, or the active viewport camera is available; explicit-camera aliases remain available through `RaycastFromScreen(camera, ...)`, `RaycastScreenPoint(...)`, `RaycastList(...)`, or `TryScreenRaycast(...)` |
+| `TrackableType.PlaneWithinPolygon` / `TrackableType.FeaturePoint` | `XRFoundationTypes.TRACKABLE_TYPE_PLANES`, `TRACKABLE_TYPE_POINTS`, or string masks such as `"PlaneWithinPolygon"` passed into the raycast facade |
 | `ARRaycastHit.pose` | `XRHit.pose`, `XRHit.get_pose()`, `XRHit.GetPose()`, or `XRHit.to_dictionary().pose` |
 | `ARRaycastHit.trackableId` / `trackableType` | `XRHit.trackableId` / `trackableType`, `GetTrackableId()`, `GetTrackableType()`, or the snake_case `trackable_id` / `trackable_type` fields |
 | `ARAnchorManager.AddAnchor(...)` | `ARAnchorManager.AddAnchor(...)` or `add_anchor(...)` |
-| `ARAnchorManager.TryAddAnchorAsync(Pose)` | `ARAnchorManager.TryAddAnchorAsync(transform_or_pose_dictionary)` |
+| `ARAnchorManager.AttachAnchor(ARPlane, Pose)` | `ARAnchorManager.AttachAnchor(plane, transform_or_pose_dictionary)`; check `ARAnchorManager.GetDescriptor().supportsTrackableAttachments` first when porting Unity code |
+| `ARAnchorManager.TryAddAnchorAsync(Pose)` | `ARAnchorManager.TryAddAnchorAsync(transform_or_pose_dictionary)`; result includes `success`, `status`, `value`, `anchor`, and `error` |
 | `ARAnchorManager.TryRemoveAnchor(anchor)` | `ARAnchorManager.TryRemoveAnchor(anchor)` |
+| `ARAnchorManager.GetAnchor(trackableId)` | `ARAnchorManager.GetAnchor(id)` |
+| Persistent anchor APIs | `TrySaveAnchorAsync`, `TryLoadAnchorAsync`, `TryEraseAnchorAsync`, and `TryGetSavedAnchorIdsAsync` return explicit unsupported results in C00 instead of missing methods |
 | `ARPlaneManager.trackables` | `ARPlaneManager.GetTrackables()`, `GetTrackable(id)`, `TryGetPlane(id, result)`, `GetAllPlanes()`, or `get_all_planes()` |
 | `ARPlaneManager.trackablesChanged` | `ARPlaneManager.trackablesChanged(changes)` where `changes` is `ARTrackablesChangedEventArgs`; legacy `planes_changed(added, updated, removed)` is also emitted |
 | `ARPlaneManager.requestedDetectionMode` / `currentDetectionMode` | `requested_detection_mode`, `get_requested_detection_mode()`, `set_requested_detection_mode(...)`, `SetRequestedDetectionModeName("Horizontal")`, and `get_current_detection_mode()` |
@@ -68,6 +72,9 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 | `XRInteractionManager` | `XRInteractionManager` |
 | `XRRayInteractor` | `XRRayInteractor` |
 | `XRGrabInteractable` | `XRGrabInteractable` |
+| `XRRayInteractor.TryGetCurrent3DRaycastHit(out RaycastHit)` | `XRRayInteractor.TryGetCurrent3DRaycastHit(result_array)` fills the array and returns `bool`; calling without arguments still returns a Dictionary |
+| `XRRayInteractor.TryGetCurrentRaycast(...)` | `XRRayInteractor.TryGetCurrentRaycast(raycast_hit, raycast_hit_index, ui_raycast_hit, ui_raycast_hit_index, is_ui_hit_closest)` fills arrays and reports `bool` |
+| `XRRayInteractor.TryGetCurrentUIRaycastResult(out RaycastResult)` | `XRRayInteractor.TryGetCurrentUIRaycastResult(result_array, endpoint_index_array)` currently returns `false` until Godot UI hit bridging is implemented |
 | `hoverEntered` / `hoverExited` | XRI-style camelCase signals are emitted alongside Godot snake_case `hover_entered` / `hover_exited` |
 | `selectEntered` / `selectExited` | XRI-style camelCase signals are emitted alongside `select_entered` / `select_exited`; `firstSelectEntered` and `lastSelectExited` are also emitted for single-select migration |
 | `activated` / `deactivated` | `activated` / `deactivated` signals on the interactor, interactable, and interaction manager |
@@ -81,7 +88,8 @@ C00 keeps the compatibility layer intentionally thin: it copies the Unity naming
 - `ARSession.notTrackingReason()` maps the current Godot/XR tracking status to `XRFoundationTypes.NotTrackingReason`.
 - `ARCameraManager` exposes Unity-style camera lifecycle fields and frame events while clearly reporting C00 limits: camera background/passthrough and light estimation come from provider capabilities, iPad/ARKit intrinsics come from the native `GodotARKit` frame when available, and CPU image acquisition is explicitly unsupported in C00.
 - Manager changed events expose Unity AR Foundation 6-style `trackablesChanged(changes)` with `changes.added`, `changes.updated`, and `changes.removed`, while still emitting legacy `planes_changed(added, updated, removed)` and `anchors_changed(added, updated, removed)` for existing Godot-side scripts.
-- Screen-space raycast can now match Unity's `Raycast(screenPoint, hitResults, trackableTypes)` call shape when `ARRaycastManager.camera_path` is configured, when `SetRaycastCamera(camera)` has been called, or when a viewport/current-scene `Camera3D` can be discovered. Explicit-camera aliases remain available for deterministic tests and nonstandard rigs.
+- Screen-space raycast can now match Unity's `Raycast(screenPoint, hitResults, trackableTypes)` call shape when `ARRaycastManager.camera_path` is configured, when `SetRaycastCamera(camera)` has been called, or when a viewport/current-scene `Camera3D` can be discovered. Ray-style calls can pass a dictionary with `origin` and `direction`, a `Transform3D`, or a `Node3D`; explicit-camera aliases remain available for deterministic tests and nonstandard rigs.
+- `ARAnchorManager` exposes Unity's `AttachAnchor`, `GetAnchor`, `GetDescriptor().supportsTrackableAttachments`, and async persistent-anchor method names. Persistent anchors intentionally return unsupported results in C00, so migrated services can feature-detect without crashing while native persistence is scheduled for a later cycle.
 - Native ARKit/ARCore singleton bridges can return anchor dictionaries; `NativeXRProvider` preserves `trackable_id`, `persistent_id`, `transform`, and `tracking_state` through `ARAnchor.from_dictionary()`. On iPad/ARKit, `GodotARKitPlugin.create_anchor()` now routes placement poses into `ARSession.addAnchor` through `GodotARKitSession.addAnchorWithTransform(...)` when the native session is running.
 - `match_frame_rate_requested` is surfaced as a migration option now; actual native frame pacing should be implemented in the ARKit/ARCore/OpenXR providers when those SDK bridges expose preferred frame timing.
 
@@ -98,7 +106,7 @@ This check is meant to run in CI or on a device machine before the real iPad/Rok
 C00 includes a thin XRI-style interaction smoke layer so Unity services that assume XRI concepts have a stable landing point before full interaction features are implemented.
 
 - `XRInteractionManager` centrally registers interactors/interactables and dispatches hover/select/activate transitions.
-- `XRRayInteractor` exposes `GetValidTargets(...)`, `TryGetCurrent3DRaycastHit()`, `select()`, `release()`, `activate()`, and `deactivate()`.
+- `XRRayInteractor` exposes `GetValidTargets(...)`, `TryGetCurrent3DRaycastHit()`, `TryGetCurrentRaycast(...)`, `TryGetCurrentUIRaycastResult(...)`, `select()`, `release()`, `activate()`, and `deactivate()`. The out-parameter style methods use caller-provided arrays so Unity services can keep a similar control flow after porting to GDScript.
 - `XRRayInteractor`, `XRGrabInteractable`, and `XRInteractionManager` emit both Godot-style snake_case signals and Unity XRI-style camelCase signals such as `hoverEntered`, `selectEntered`, `firstSelectEntered`, `lastSelectExited`, `activated`, and `deactivated`.
 - `XRGrabInteractable` exposes XRI-style hover/select/activate events plus `IsHovered()` and `IsSelected()`.
 - `XRInputProfile` exposes a small capability-derived descriptor for gaze/ray/controller modes, so OpenXR device demos can report the intended XRI selection path before full controller profile bindings are implemented.
@@ -168,7 +176,7 @@ func _ready() -> void:
 
 func place_from_screen_unity_style(screen_position: Vector2) -> void:
 	var hits: Array = []
-	if not raycast_manager.Raycast(screen_position, hits):
+	if not raycast_manager.Raycast(screen_position, hits, XRFoundationTypes.TRACKABLE_TYPE_PLANES):
 		return
 
 	var result := anchor_manager.TryAddAnchorAsync(hits[0].get_pose())
@@ -224,4 +232,6 @@ The provider layer in this addon is designed so those features can be added per 
 - Apple ARKit `ARFrame.lightEstimate`: https://developer.apple.com/documentation/arkit/arframe/lightestimate
 - Unity AR Foundation 6 `ARPlaneManager.trackablesChanged`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.0/manual/features/plane-detection/arplanemanager.html
 - Unity AR Foundation 6 `ARRaycastManager` single raycasts: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.0/manual/features/raycasts.html
+- Unity AR Foundation 6 `ARAnchorManager.AttachAnchor` / `TryAddAnchorAsync`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.1/api/UnityEngine.XR.ARFoundation.ARAnchorManager.html
 - Unity XR Interaction Toolkit `XRRayInteractor`: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%402.5/manual/xr-ray-interactor.html
+- Unity XR Interaction Toolkit `TryGetCurrent3DRaycastHit`: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%401.0/api/UnityEngine.XR.Interaction.Toolkit.XRRayInteractor.html

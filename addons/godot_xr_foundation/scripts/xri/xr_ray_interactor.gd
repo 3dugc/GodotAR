@@ -132,7 +132,44 @@ func deactivate() -> bool:
 	return true
 
 
-func TryGetCurrent3DRaycastHit() -> Dictionary:
+func TryGetCurrent3DRaycastHit(result: Variant = null) -> Variant:
+	var hit := _current_3d_raycast_hit()
+	if result is Array:
+		result.clear()
+		if bool(hit.get("success", false)):
+			result.append(hit)
+			return true
+		return false
+	return hit
+
+
+func TryGetCurrentRaycast(raycast_hit: Array = [], raycast_hit_index: Array = [], ui_raycast_hit: Array = [], ui_raycast_hit_index: Array = [], is_ui_hit_closest: Array = []) -> bool:
+	var hit := _current_3d_raycast_hit()
+	raycast_hit.clear()
+	raycast_hit_index.clear()
+	ui_raycast_hit.clear()
+	ui_raycast_hit_index.clear()
+	is_ui_hit_closest.clear()
+	if not bool(hit.get("success", false)):
+		is_ui_hit_closest.append(false)
+		return false
+	raycast_hit.append(hit)
+	raycast_hit_index.append(0)
+	is_ui_hit_closest.append(false)
+	return true
+
+
+func TryGetCurrentUIRaycastResult(result: Array = [], raycast_endpoint_index: Array = []) -> bool:
+	result.clear()
+	raycast_endpoint_index.clear()
+	return false
+
+
+func GetCurrent3DRaycastHit() -> Dictionary:
+	return _current_3d_raycast_hit()
+
+
+func _current_3d_raycast_hit() -> Dictionary:
 	if not is_colliding():
 		return {"success": false}
 	return {
