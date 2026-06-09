@@ -19,9 +19,10 @@ const expectedBinary = String(args.binary || `${expectedPlugin}.xcframework`);
 const keepTemp = Boolean(args["keep-temp"]);
 
 const work = resolveInput(input);
-const summary = inspectExport(work.dir);
+const summary = inspectExport(work.dir, work.targetName);
 summary.input = input;
 summary.extractedDir = work.dir;
+summary.targetName = work.targetName || "";
 summary.requirePlugin = requirePlugin;
 summary.expectedPlugin = expectedPlugin;
 summary.expectedBinary = expectedBinary;
@@ -75,14 +76,19 @@ function resolveInput(inputPath) {
 			const root = path.dirname(inputPath);
 			const basename = path.basename(inputPath, ".zip");
 			if (fs.existsSync(path.join(root, `${basename}.xcodeproj`))) {
-				return { dir: root, cleanup: null };
+				return { dir: root, targetName: basename, cleanup: null };
 			}
 		}
 		throwResult(`Input does not exist: ${inputPath}`);
 	}
 	const stats = fs.statSync(inputPath);
 	if (stats.isDirectory()) {
-		return { dir: inputPath, cleanup: null };
+		const parent = path.dirname(inputPath);
+		const basename = path.basename(inputPath);
+		if (fs.existsSync(path.join(parent, `${basename}.xcodeproj`))) {
+			return { dir: parent, targetName: basename, cleanup: null };
+		}
+		return { dir: inputPath, targetName: "", cleanup: null };
 	}
 	if (!stats.isFile() || !inputPath.toLowerCase().endsWith(".zip")) {
 		throwResult(`Input must be a Godot iOS export .zip or unpacked directory: ${inputPath}`);
@@ -98,15 +104,16 @@ function resolveInput(inputPath) {
 	}
 	return {
 		dir: tempDir,
+		targetName: path.basename(inputPath, ".zip"),
 		cleanup: () => fs.rmSync(tempDir, { recursive: true, force: true }),
 	};
 }
 
 
-function inspectExport(root) {
+function inspectExport(root, targetName = "") {
 	const failures = [];
 	const warnings = [];
-	const files = walk(root);
+	const files = walk(root).filter((file) => isTargetFile(file, root, targetName));
 	const projectFiles = files.filter((file) => file.endsWith(".xcodeproj/project.pbxproj"));
 	const plistFiles = files.filter((file) => path.basename(file).endsWith(".plist"));
 	const textFiles = files.filter((file) => isTextCandidate(file));
@@ -155,6 +162,7 @@ function inspectExport(root) {
 		pass: failures.length === 0,
 		failures,
 		warnings,
+		targetName,
 		xcodeProjects: projectFiles.map((file) => path.relative(root, file)),
 		plistFiles: plistFiles.map((file) => path.relative(root, file)),
 		pluginReferences: {
@@ -177,6 +185,19 @@ function inspectExport(root) {
 			warnings.push(message);
 		}
 	}
+}
+
+
+function isTargetFile(file, root, targetName) {
+	if (!targetName) {
+		return true;
+	}
+	const relative = path.relative(root, file).replaceAll(path.sep, "/");
+	return relative === "PrivacyInfo.xcprivacy"
+		|| relative.startsWith(`${targetName}/`)
+		|| relative.startsWith(`${targetName}.xcodeproj/`)
+		|| relative.startsWith(`${targetName}.xcframework/`)
+		|| relative.startsWith("MoltenVK.xcframework/");
 }
 
 

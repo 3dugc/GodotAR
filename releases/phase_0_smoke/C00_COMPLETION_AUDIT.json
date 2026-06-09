@@ -1,15 +1,17 @@
 {
-  "pass": true,
+  "pass": false,
   "phaseReady": false,
-  "status": "PARTIAL",
-  "generatedAt": "2026-06-08T15:44:45.454Z",
+  "status": "NOT_READY",
+  "generatedAt": "2026-06-09T03:06:28.393Z",
   "projectRoot": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR",
   "evidenceDir": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/evidence",
-  "reportPath": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/C00_PHASE1_AUDIT_LOCAL.md",
+  "reportPath": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/C00_COMPLETION_AUDIT.md",
   "jsonPath": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/C00_COMPLETION_AUDIT.json",
-  "skipPreflight": true,
-  "skipEvidence": true,
-  "failures": [],
+  "skipPreflight": false,
+  "skipEvidence": false,
+  "failures": [
+    "Rokid/iPad/Android phase evidence: Collect or import real device evidence, then rerun this audit."
+  ],
   "warnings": [],
   "checks": [
     {
@@ -22,7 +24,7 @@
       "exitCode": 0,
       "summary": "All code/static/API/export-surface gates pass.",
       "nextAction": "",
-      "outputPreview": "{\n  \"pass\": true,\n  \"gate\": \"all\",\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"warnings\": [],\n  \"results\": [\n    {\n      \"name\": \"node --check tools/c00/analyze_android_device_profile.js\",\n      \"status\": \"PASS\",\n      \"command\": \"node --check tools/c00/analyze_android_device_profile.js\",\n      \"output\": \"\"\n    },\n    {\n      \"name\": \"node --check tools/c00/analyze_ios_device_profile.js\",\n      \"status\": \"PASS\",\n      \"command\": \"node --check tools/c00/analyze_ios_device_profile.js\",\n      \"output\": \"\"\n    },\n    {\n      \"name\": \"node --check tools/c00/audit_phase1_completion.js\",\n      \"status\": \"PASS\",\n      \"command\": \"node --check tools/c00/audit_phase1_completion.js\",\n      \"output\": \"\"\n    },\n    {\n      \"name\": \"node --check tools/c00/check_android_arcore_plugin_surface.js\",\n      \"status\": \"PASS\",\n... (407 more lines)"
+      "outputPreview": "{\n  \"pass\": true,\n  \"gate\": \"all\",\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"warnings\": [],\n  \"results\": [\n    {\n      \"name\": \"node --check tools/c00/analyze_android_device_profile.js\",\n      \"status\": \"PASS\",\n      \"command\": \"node --check tools/c00/analyze_android_device_profile.js\",\n      \"output\": \"\"\n    },\n    {\n      \"name\": \"node --check tools/c00/analyze_ios_device_profile.js\",\n      \"status\": \"PASS\",\n      \"command\": \"node --check tools/c00/analyze_ios_device_profile.js\",\n      \"output\": \"\"\n    },\n    {\n      \"name\": \"node --check tools/c00/audit_phase1_completion.js\",\n      \"status\": \"PASS\",\n      \"command\": \"node --check tools/c00/audit_phase1_completion.js\",\n      \"output\": \"\"\n    },\n    {\n      \"name\": \"node --check tools/c00/check_android_apk_surface.js\",\n      \"status\": \"PASS\",\n... (473 more lines)"
     },
     {
       "id": "arfoundation-api",
@@ -34,7 +36,7 @@
       "exitCode": 0,
       "summary": "Unity-style ARSession, raycast, trackables, and changed-event facades are present.",
       "nextAction": "",
-      "outputPreview": "{\n  \"pass\": true,\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"evidence\": [\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xr_foundation_types.gd\",\n      \"exists\": true,\n      \"passed\": 9,\n      \"total\": 9\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xr_foundation.gd\",\n      \"exists\": true,\n      \"passed\": 5,\n      \"total\": 5\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/providers/xr_provider.gd\",\n      \"exists\": true,\n      \"passed\": 2,\n      \"total\": 2\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/arfoundation/xr_session_manager.gd\",\n      \"exists\": true,\n      \"passed\": 6,\n      \"total\": 6\n... (57 more lines)"
+      "outputPreview": "{\n  \"pass\": true,\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"evidence\": [\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xr_foundation_types.gd\",\n      \"exists\": true,\n      \"passed\": 9,\n      \"total\": 9\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xr_foundation.gd\",\n      \"exists\": true,\n      \"passed\": 5,\n      \"total\": 5\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/providers/xr_provider.gd\",\n      \"exists\": true,\n      \"passed\": 2,\n      \"total\": 2\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/arfoundation/xr_session_manager.gd\",\n      \"exists\": true,\n      \"passed\": 6,\n      \"total\": 6\n... (75 more lines)"
     },
     {
       "id": "xri-api",
@@ -46,7 +48,7 @@
       "exitCode": 0,
       "summary": "Unity XRI-style manager/ray/interactable smoke surface is present.",
       "nextAction": "",
-      "outputPreview": "{\n  \"pass\": true,\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"evidence\": [\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xri/xr_interaction_manager.gd\",\n      \"exists\": true,\n      \"passed\": 14,\n      \"total\": 14\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xri/xr_ray_interactor.gd\",\n      \"exists\": true,\n      \"passed\": 13,\n      \"total\": 13\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xri/xr_grab_interactable.gd\",\n      \"exists\": true,\n      \"passed\": 12,\n      \"total\": 12\n    },\n    {\n      \"file\": \"demo/00_device_smoke_test.tscn\",\n      \"exists\": true,\n      \"passed\": 3,\n      \"total\": 3\n... (9 more lines)"
+      "outputPreview": "{\n  \"pass\": true,\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"evidence\": [\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xri/xr_input_profile.gd\",\n      \"exists\": true,\n      \"passed\": 9,\n      \"total\": 9\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xri/xr_interaction_manager.gd\",\n      \"exists\": true,\n      \"passed\": 14,\n      \"total\": 14\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xri/xr_ray_interactor.gd\",\n      \"exists\": true,\n      \"passed\": 13,\n      \"total\": 13\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xri/xr_grab_interactable.gd\",\n      \"exists\": true,\n      \"passed\": 12,\n      \"total\": 12\n... (15 more lines)"
     },
     {
       "id": "arkit-binary",
@@ -70,7 +72,7 @@
       "exitCode": 0,
       "summary": "OpenXR AR evidence, passthrough report, and virtual-plane fallback diagnostics are guarded.",
       "nextAction": "",
-      "outputPreview": "{\n  \"pass\": true,\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"evidence\": [\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/providers/openxr_provider.gd\",\n      \"exists\": true,\n      \"passed\": 23,\n      \"total\": 23\n    },\n    {\n      \"file\": \"tools/c00/validate_smoke_log.js\",\n      \"exists\": true,\n      \"passed\": 2,\n      \"total\": 2\n    },\n    {\n      \"file\": \"tools/c00/verify_phase_evidence.js\",\n      \"exists\": true,\n      \"passed\": 2,\n      \"total\": 2\n    }\n  ]\n}"
+      "outputPreview": "{\n  \"pass\": true,\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"evidence\": [\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/providers/openxr_provider.gd\",\n      \"exists\": true,\n      \"passed\": 23,\n      \"total\": 23\n    },\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/xr_foundation.gd\",\n      \"exists\": true,\n      \"passed\": 4,\n      \"total\": 4\n    },\n    {\n      \"file\": \"tools/c00/validate_smoke_log.js\",\n      \"exists\": true,\n      \"passed\": 2,\n      \"total\": 2\n    },\n    {\n      \"file\": \"tools/c00/verify_phase_evidence.js\",\n      \"exists\": true,\n      \"passed\": 2,\n      \"total\": 2\n... (27 more lines)"
     },
     {
       "id": "arcore-surface",
@@ -83,6 +85,54 @@
       "summary": "ARCore gate requires explicit native ARCore runtime/capability evidence.",
       "nextAction": "",
       "outputPreview": "{\n  \"pass\": true,\n  \"projectRoot\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\",\n  \"failures\": [],\n  \"evidence\": [\n    {\n      \"file\": \"addons/godot_xr_foundation/scripts/providers/native_xr_provider.gd\",\n      \"exists\": true,\n      \"passed\": 2,\n      \"total\": 2\n    },\n    {\n      \"file\": \"tools/c00/validate_smoke_log.js\",\n      \"exists\": true,\n      \"passed\": 3,\n      \"total\": 3\n    },\n    {\n      \"file\": \"tools/c00/verify_phase_evidence.js\",\n      \"exists\": true,\n      \"passed\": 3,\n      \"total\": 3\n    },\n    {\n      \"file\": \"tools/c00/run_device_cycle.sh\",\n      \"exists\": true,\n      \"passed\": 3,\n      \"total\": 3\n... (9 more lines)"
+    },
+    {
+      "id": "preflight-rokid",
+      "group": "device-machine",
+      "title": "rokid preflight",
+      "required": true,
+      "command": "bash tools/c00/preflight.sh rokid",
+      "status": "PASS",
+      "exitCode": 0,
+      "summary": "rokid export/device prerequisites are present on this machine.",
+      "nextAction": "",
+      "outputPreview": "C00 device smoke preflight\nProject: /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\n\nGate: rokid\n\nOK   node             /usr/local/bin/node\nOK   GODOT_BIN        /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot\nOK   ADB_BIN          /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/android-sdk/platform-tools/adb\n\nPlugin landing zones\nOK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/android/plugins\nOK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/addons/godotopenxrvendors\nOK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/addons/godotopenxrvendors/.bin/android/debug/godotopenxr-khronos-debug.aar\nOK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/addons/godotopenxrvendors/.bin/android/release/godotopenxr-khronos-release.aar\nOK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/addons/godot_openxr_vendors_export/plugin.cfg\n\nExport presets\n{\n  \"file\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/export_presets.cfg\",\n  \"gate\": \"rokid\",\n  \"pass\": true,\n  \"failures\": [],\n  \"warnings\": [],\n  \"presets\": [\n    {\n      \"gate\": \"rokid\",\n      \"section\": \"preset.0\",\n      \"name\": \"C00 Rokid OpenXR\",\n... (42 more lines)"
+    },
+    {
+      "id": "preflight-ipad",
+      "group": "device-machine",
+      "title": "ipad preflight",
+      "required": true,
+      "command": "bash tools/c00/preflight.sh ipad",
+      "status": "PASS",
+      "exitCode": 0,
+      "summary": "ipad export/device prerequisites are present on this machine.",
+      "nextAction": "",
+      "outputPreview": "C00 device smoke preflight\nProject: /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\n\nGate: ipad\n\nOK   node             /usr/local/bin/node\nOK   GODOT_BIN        /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot\nOK   xcrun            /usr/bin/xcrun\nOK   xcodebuild       /usr/bin/xcodebuild\n\nPlugin landing zones\nOK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/ios/plugins\n\nNative plugin artifacts\nOK   Godot source headers /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-source\n{\n  \"pass\": true,\n  \"file\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/ios/plugins/godot_arkit/GodotARKit.gdip\",\n  \"pluginDir\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/ios/plugins/godot_arkit\",\n  \"requireBinary\": false,\n  \"failures\": [],\n  \"warnings\": [],\n  \"config\": {\n    \"name\": \"GodotARKit\",\n    \"binary\": \"GodotARKit.xcframework\",\n    \"initialization\": \"init_godot_arkit\",\n    \"deinitialization\": \"deinit_godot_arkit\"\n  },\n... (79 more lines)"
+    },
+    {
+      "id": "preflight-android-arcore",
+      "group": "device-machine",
+      "title": "android-arcore preflight",
+      "required": true,
+      "command": "bash tools/c00/preflight.sh android-arcore",
+      "status": "PASS",
+      "exitCode": 0,
+      "summary": "android-arcore export/device prerequisites are present on this machine.",
+      "nextAction": "",
+      "outputPreview": "C00 device smoke preflight\nProject: /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR\n\nGate: android-arcore\n\nOK   node             /usr/local/bin/node\nOK   GODOT_BIN        /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot\nOK   ADB_BIN          /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/android-sdk/platform-tools/adb\n\nPlugin landing zones\nOK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/android/plugins\n\nExport presets\n{\n  \"file\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/export_presets.cfg\",\n  \"gate\": \"android-arcore\",\n  \"pass\": true,\n  \"failures\": [],\n  \"warnings\": [],\n  \"presets\": [\n    {\n      \"gate\": \"android-arcore\",\n      \"section\": \"preset.1\",\n      \"name\": \"C00 Android ARCore\",\n      \"platform\": \"Android\",\n      \"export_path\": \"builds/android_arcore/c00.apk\",\n      \"exclude_filter\": \"android/build/*,builds/*,exports/*,releases/*,tools/*\",\n      \"export_files\": \"PackedStringArray(\\\"res://demo/boot.tscn\\\", \\\"res://demo/00_device_smoke_test.tscn\\\", \\\"res://demo/03_openxr_ar_capability_lab.tscn\\\", \\\"res://demo/04_rokid_ray_place.tscn\\\", \\\"res://demo/06_ios_arkit_place.tscn\\\")\",\n... (32 more lines)"
+    },
+    {
+      "id": "phase-evidence",
+      "group": "device-evidence",
+      "title": "Rokid/iPad/Android phase evidence",
+      "required": true,
+      "command": "node tools/c00/verify_phase_evidence.js --dir /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/evidence --report /var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1780974404475.md",
+      "status": "FAIL",
+      "exitCode": 1,
+      "summary": "Collect or import real device evidence, then rerun this audit.",
+      "nextAction": "Collect or import real device evidence, then rerun this audit.",
+      "outputPreview": "{\n  \"pass\": false,\n  \"gates\": [\n    \"rokid\",\n    \"ipad\",\n    \"android-arcore\"\n  ],\n  \"evidenceDir\": \"/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/evidence\",\n  \"report\": \"/var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1780974404475.md\",\n  \"failures\": [\n    \"rokid: No GXF_SMOKE, GXF_ROKID_PLACE, or GXF_ARKIT_PLACE events found.\",\n    \"rokid: rokid gate requires a screenshot artifact.\",\n    \"rokid: rokid gate requires a screen recording artifact.\",\n    \"rokid: Device profile analysis: no connected Android device was available in adb state 'device'.\",\n    \"rokid: Device profile analysis: target package was not installed: org.godotengine.godotxrfoundation.\",\n    \"ipad: No GXF_SMOKE, GXF_ROKID_PLACE, or GXF_ARKIT_PLACE events found.\",\n    \"ipad: iPad gate requires at least one screenshot, screen recording, or manual media artifact.\",\n    \"ipad: Device profile analysis: iPad appears unavailable; connect, unlock, and trust the device before running the ARKit gate.\",\n    \"ipad: Device profile analysis: target bundle was not installed: org.godotengine.godotxrfoundation.\",\n    \"android-arcore: Missing smoke log. Expected android-arcore-*.log or --android-arcore-log.\",\n    \"android-arcore: android-arcore gate requires a screenshot artifact.\",\n    \"android-arcore: android-arcore gate requires a screen recording artifact.\",\n    \"android-arcore: android-arcore gate requires a device profile Markdown artifact.\",\n    \"android-arcore: android-arcore gate requires a device profile JSON artifact.\"\n  ],\n  \"warnings\": [\n    \"rokid: Device profile analysis: ro.product.model is missing.\",\n    \"rokid: Device profile analysis: display size or density is missing.\",\n... (236 more lines)"
     }
   ]
 }

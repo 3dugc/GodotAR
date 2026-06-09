@@ -4,6 +4,7 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 EXPORT_INPUT="${1:-${IPAD_EXPORT_PATH:-$PROJECT_ROOT/builds/ipad/c00.zip}}"
 DEVICE="${2:-${DEVICE:-}}"
+PROJECT_ONLY_NAME="${PROJECT_ONLY_NAME:-}"
 
 BUILD_ROOT="${BUILD_ROOT:-$PROJECT_ROOT/builds/ipad/xcode}"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PROJECT_ROOT/builds/ipad/DerivedData}"
@@ -79,6 +80,7 @@ if [[ ! -e "$EXPORT_INPUT" ]]; then
 			if [[ -d "$project_only_root/$project_only_name.xcodeproj" ]]; then
 				echo "iOS export zip not found; using project-only export directory: $project_only_root"
 				EXPORT_INPUT="$project_only_root"
+				PROJECT_ONLY_NAME="$project_only_name"
 			else
 				echo "ERROR: iOS export input does not exist: $EXPORT_INPUT" >&2
 				exit 2
@@ -95,6 +97,7 @@ SOURCE_DIR="$EXPORT_INPUT"
 if [[ -f "$EXPORT_INPUT" ]]; then
 	case "$EXPORT_INPUT" in
 		*.zip)
+			PROJECT_ONLY_NAME="${PROJECT_ONLY_NAME:-$(basename "$EXPORT_INPUT" .zip)}"
 			SOURCE_DIR="$BUILD_ROOT/exported"
 			rm -rf "$SOURCE_DIR"
 			mkdir -p "$SOURCE_DIR"
@@ -113,7 +116,24 @@ if [[ ! -d "$SOURCE_DIR" ]]; then
 	exit 2
 fi
 
-XCODE_PROJECT="$(find "$SOURCE_DIR" -name "*.xcodeproj" -type d | sort | head -n 1 || true)"
+if [[ -z "$PROJECT_ONLY_NAME" ]]; then
+	source_parent="$(dirname "$SOURCE_DIR")"
+	source_name="$(basename "$SOURCE_DIR")"
+	if [[ -d "$source_parent/$source_name.xcodeproj" ]]; then
+		PROJECT_ONLY_NAME="$source_name"
+		SOURCE_DIR="$source_parent"
+	fi
+fi
+
+if [[ -n "$PROJECT_ONLY_NAME" ]]; then
+	XCODE_PROJECT="$SOURCE_DIR/$PROJECT_ONLY_NAME.xcodeproj"
+	if [[ ! -d "$XCODE_PROJECT" ]]; then
+		echo "ERROR: Expected project-only Xcode project not found: $XCODE_PROJECT" >&2
+		exit 1
+	fi
+else
+	XCODE_PROJECT="$(find "$SOURCE_DIR" -name "*.xcodeproj" -type d | sort | head -n 1 || true)"
+fi
 if [[ -z "$XCODE_PROJECT" ]]; then
 	echo "ERROR: No .xcodeproj found in: $SOURCE_DIR" >&2
 	exit 1
@@ -155,7 +175,11 @@ NODE
 patch_simulator_project_if_needed
 
 echo "Checking exported iOS project for ARKit plugin references..."
-node "$PROJECT_ROOT/tools/c00/check_ios_export_project.js" --input "$SOURCE_DIR"
+if [[ -n "$PROJECT_ONLY_NAME" && -d "$SOURCE_DIR/$PROJECT_ONLY_NAME" ]]; then
+	node "$PROJECT_ROOT/tools/c00/check_ios_export_project.js" --input "$SOURCE_DIR/$PROJECT_ONLY_NAME"
+else
+	node "$PROJECT_ROOT/tools/c00/check_ios_export_project.js" --input "$SOURCE_DIR"
+fi
 
 LIST_JSON="$BUILD_ROOT/xcodebuild-list.json"
 mkdir -p "$BUILD_ROOT"
