@@ -1,0 +1,144 @@
+[gd_scene load_steps=21 format=3]
+
+[ext_resource type="Script" path="res://demo/04_rokid_ray_place.gd" id="1_place"]
+[ext_resource type="PackedScene" path="res://addons/godot_xr_foundation/scenes/xr_foundation_rig.tscn" id="2_rig"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_session.gd" id="3_session"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_raycast_manager.gd" id="4_raycast"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_anchor_manager.gd" id="5_anchors"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/xri/xr_interaction_manager.gd" id="6_xri_manager"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/xri/xr_ray_interactor.gd" id="7_xri_ray"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/xri/xr_grab_interactable.gd" id="8_xri_grab"]
+
+[sub_resource type="Environment" id="Environment_place"]
+background_mode = 1
+background_color = Color(0.022, 0.027, 0.032, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.9, 0.96, 1, 1)
+ambient_light_energy = 0.8
+
+[sub_resource type="QuadMesh" id="QuadMesh_panel"]
+size = Vector2(1.45, 0.72)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_panel"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.018, 0.023, 0.028, 0.82)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
+size = Vector2(5, 5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+transparency = 1
+albedo_color = Color(0.05, 0.12, 0.11, 0.3)
+roughness = 0.85
+
+[sub_resource type="SphereMesh" id="SphereMesh_cursor"]
+radius = 0.05
+height = 0.1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cursor"]
+albedo_color = Color(0.0, 0.82, 0.62, 1)
+emission_enabled = true
+emission = Color(0.0, 0.55, 0.45, 1)
+emission_energy_multiplier = 0.6
+
+[sub_resource type="BoxMesh" id="BoxMesh_placed"]
+size = Vector3(0.18, 0.18, 0.18)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_placed"]
+albedo_color = Color(0.94, 0.64, 0.13, 1)
+roughness = 0.45
+
+[sub_resource type="BoxMesh" id="BoxMesh_button"]
+size = Vector3(0.24, 0.14, 0.06)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_button"]
+albedo_color = Color(0.12, 0.48, 0.86, 1)
+roughness = 0.48
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_button"]
+size = Vector3(0.28, 0.18, 0.1)
+
+[node name="RokidRayPlace" type="Node3D"]
+script = ExtResource("1_place")
+
+[node name="ARSession" type="Node" parent="."]
+script = ExtResource("3_session")
+requested_backend = 2
+platform_hint = "rokid"
+fallback_to_editor_sim = true
+
+[node name="XRFoundationRig" parent="." instance=ExtResource("2_rig")]
+
+[node name="StatusPanel" type="Node3D" parent="XRFoundationRig/XRCamera3D"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, -0.258819, 0, 0.258819, 0.965926, 0, -0.2, -1.5)
+
+[node name="PanelBack" type="MeshInstance3D" parent="XRFoundationRig/XRCamera3D/StatusPanel"]
+mesh = SubResource("QuadMesh_panel")
+surface_material_override/0 = SubResource("StandardMaterial3D_panel")
+
+[node name="StatusLabel" type="Label3D" parent="XRFoundationRig/XRCamera3D/StatusPanel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.66, 0.3, 0.01)
+text = "Rokid Ray Place"
+font_size = 17
+modulate = Color(0.9, 0.98, 1, 1)
+outline_size = 2
+outline_modulate = Color(0, 0, 0, 0.8)
+horizontal_alignment = 0
+vertical_alignment = 0
+
+[node name="XRRayInteractor" type="RayCast3D" parent="XRFoundationRig/XRCamera3D"]
+enabled = true
+target_position = Vector3(0.42, -0.18, -1.55)
+script = ExtResource("7_xri_ray")
+interaction_manager_path = NodePath("../../../XRInteractionManager")
+max_raycast_distance = 2.0
+
+[node name="ARRaycastManager" type="Node" parent="."]
+script = ExtResource("4_raycast")
+camera_path = NodePath("../XRFoundationRig/XRCamera3D")
+
+[node name="ARAnchorManager" type="Node" parent="."]
+script = ExtResource("5_anchors")
+anchors_parent_path = NodePath("../World")
+
+[node name="XRInteractionManager" type="Node" parent="."]
+script = ExtResource("6_xri_manager")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_place")
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="KeyLight" type="DirectionalLight3D" parent="World"]
+transform = Transform3D(0.866025, -0.25, 0.433013, 0, 0.866025, 0.5, -0.5, -0.433013, 0.75, 0, 3, 2)
+light_energy = 1.25
+
+[node name="EditorPreviewFloor" type="MeshInstance3D" parent="World"]
+mesh = SubResource("PlaneMesh_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor")
+
+[node name="PlacementCursor" type="MeshInstance3D" parent="World"]
+visible = false
+mesh = SubResource("SphereMesh_cursor")
+surface_material_override/0 = SubResource("StandardMaterial3D_cursor")
+
+[node name="PlacedObject" type="MeshInstance3D" parent="World"]
+visible = false
+mesh = SubResource("BoxMesh_placed")
+surface_material_override/0 = SubResource("StandardMaterial3D_placed")
+
+[node name="PlaceButton" type="Node3D" parent="World"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.42, 1.25, -1.55)
+script = ExtResource("8_xri_grab")
+interaction_manager_path = NodePath("../../XRInteractionManager")
+reparent_on_grab = false
+
+[node name="Mesh" type="MeshInstance3D" parent="World/PlaceButton"]
+mesh = SubResource("BoxMesh_button")
+surface_material_override/0 = SubResource("StandardMaterial3D_button")
+
+[node name="Body" type="StaticBody3D" parent="World/PlaceButton"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="World/PlaceButton/Body"]
+shape = SubResource("BoxShape3D_button")

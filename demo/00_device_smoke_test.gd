@@ -212,7 +212,7 @@ func _camera_metadata() -> Dictionary:
 		camera_manager.update_camera_state()
 	var intrinsics := {}
 	var has_intrinsics: bool = camera_manager.TryGetIntrinsics(intrinsics)
-	var latest_frame := camera_manager.GetLatestFrame() if camera_manager.has_method("GetLatestFrame") else {}
+	var latest_frame: Dictionary = camera_manager.GetLatestFrame() if camera_manager.has_method("GetLatestFrame") else {}
 	return {
 		"manager": true,
 		"permission_granted": camera_manager.permissionGranted,

@@ -114,6 +114,9 @@ Codex implementation status:
 - `ARCameraManager` now emits Unity-style `frameReceived(args)` and Godot-style `frame_received(args)` camera frame metadata into the C00 smoke scene; `GXF_SMOKE.camera` records permission/background/passthrough/light-estimation/intrinsics state and native frame availability without claiming CPU camera image support.
 - `ARRaycastManager` now exposes additional Unity-placement migration aliases `RaycastScreenPoint(...)`, `RaycastList(...)`, and the Unity-shaped `Raycast(screen_position, hits, trackable_types)` dispatcher for screen-point list-output workflows.
 - `XRInteractionManager`, `XRRayInteractor`, and `XRGrabInteractable` now emit Unity XRI-style camelCase signals such as `hoverEntered`, `selectEntered`, `firstSelectEntered`, and `lastSelectExited` alongside their snake_case Godot signals.
+- `XRInputProfile` now provides a lightweight XRI-style input capability descriptor for gaze/ray/controller selection paths.
+- `XRFoundation.get_device_profile()` and `XRFoundation.get_tracking_mode()` now provide small OpenXR capability-lab facades for device profile and tracking-mode reporting.
+- C02 OpenXR/Rokid runnable surfaces are now present: `demo/03_openxr_ar_capability_lab.tscn` emits `GXF_OPENXR_LAB` capability logs, and `demo/04_rokid_ray_place.tscn` emits `GXF_ROKID_PLACE` placement logs with virtual-plane fallback placement support.
 - Official Godot OpenXR Vendors 4.2.0 is now vendored under `addons/godotopenxrvendors` for Godot 4.4 Android/OpenXR exports.
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` and `GodotARKit.gdip` are now built locally against Godot 4.4.1 source headers; the archive contains `GodotARKitPlugin.mm.o` and `GodotARKitSession.mm.o` for iOS arm64 plus simulator arm64/x86_64.
 - `tools/c00/prepare_godot_source.sh` now generates the minimum Godot build headers needed by external iOS plugin builds: `version_generated.gen.h`, `disabled_classes.gen.h`, and `gdvirtual.gen.inc`.

@@ -12,6 +12,20 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 
 const checks = [
 	{
+		file: "addons/godot_xr_foundation/scripts/xri/xr_input_profile.gd",
+		requirements: [
+			["XRInputProfile class", /class_name\s+XRInputProfile/],
+			["input mode enum", /enum\s+InputMode\s*\{/],
+			["primary mode field", /primary_mode/],
+			["capability configuration", /func\s+configure_from_capabilities\s*\(/],
+			["dictionary export", /func\s+to_dictionary\s*\(\)\s*->\s*Dictionary/],
+			["static descriptor", /static\s+func\s+describe_from_capabilities\s*\(/],
+			["ray mode", /"ray"/],
+			["controller mode", /"controller"/],
+			["gaze mode", /"gaze"/],
+		],
+	},
+	{
 		file: "addons/godot_xr_foundation/scripts/xri/xr_interaction_manager.gd",
 		requirements: [
 			["XRInteractionManager class", /class_name\s+XRInteractionManager/],

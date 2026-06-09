@@ -101,6 +101,7 @@ C00 includes a thin XRI-style interaction smoke layer so Unity services that ass
 - `XRRayInteractor` exposes `GetValidTargets(...)`, `TryGetCurrent3DRaycastHit()`, `select()`, `release()`, `activate()`, and `deactivate()`.
 - `XRRayInteractor`, `XRGrabInteractable`, and `XRInteractionManager` emit both Godot-style snake_case signals and Unity XRI-style camelCase signals such as `hoverEntered`, `selectEntered`, `firstSelectEntered`, `lastSelectExited`, `activated`, and `deactivated`.
 - `XRGrabInteractable` exposes XRI-style hover/select/activate events plus `IsHovered()` and `IsSelected()`.
+- `XRInputProfile` exposes a small capability-derived descriptor for gaze/ray/controller modes, so OpenXR device demos can report the intended XRI selection path before full controller profile bindings are implemented.
 - The C00 smoke scene includes a camera ray and a small interactable target, and writes XRI state into the `GXF_SMOKE.xri` payload.
 
 Static XRI surface gate:

@@ -208,6 +208,29 @@ func get_capabilities() -> Dictionary:
 	return provider.get_capabilities({"platform_hint": resolve_platform_hint("")})
 
 
+func get_device_profile() -> StringName:
+	var capabilities := get_capabilities()
+	var profile := String(capabilities.get("device_profile", "")).strip_edges()
+	if profile != "":
+		return StringName(profile)
+	var hint := resolve_platform_hint("")
+	return StringName(hint if hint != "" else "unknown")
+
+
+func get_tracking_mode() -> StringName:
+	var capabilities := get_capabilities()
+	var mode := String(capabilities.get("tracking_mode", "")).strip_edges()
+	if mode != "":
+		return StringName(mode)
+	match get_tracking_status():
+		XRInterface.XR_NORMAL_TRACKING, XRInterface.XR_UNKNOWN_TRACKING:
+			return &"position_and_rotation"
+		XRInterface.XR_NOT_TRACKING:
+			return &"not_tracking"
+		_:
+			return &"unknown"
+
+
 func get_last_error() -> String:
 	return last_error
 

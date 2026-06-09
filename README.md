@@ -29,6 +29,8 @@ Implemented:
 - Android XR/OpenXR trackable plane discovery through `XRServer` tracker signals without hard-linking vendor classes.
 - GodotARKit iOS plugin bridge with native tracking reason, raycast, and plane evidence.
 - Demo scene where mouse clicks place anchored cubes on the simulated floor.
+- OpenXR/Rokid capability lab: `demo/03_openxr_ar_capability_lab.tscn`.
+- Rokid ray/gaze placement demo: `demo/04_rokid_ray_place.tscn`.
 
 Planned next:
 
@@ -47,6 +49,8 @@ outputs/godot_xr_foundation
 Run `demo/00_device_smoke_test.tscn` first. This is the first-cycle device gate for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.
 
 Then run `demo/main.tscn` for the placement sample.
+
+For OpenXR/Rokid bring-up, run `demo/03_openxr_ar_capability_lab.tscn` to inspect AR tier, passthrough, vendor singletons, input profile, and plane source. Then run `demo/04_rokid_ray_place.tscn` to test center ray/gaze placement against a real plane or the explicit `virtual_floor_fallback`.
 
 In the editor, the project falls back to `Editor Simulation`. Click in the viewport to place cubes on the simulated floor.
 

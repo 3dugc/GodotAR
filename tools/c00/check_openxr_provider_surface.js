@@ -40,6 +40,15 @@ const checks = [
 		],
 	},
 	{
+		file: "addons/godot_xr_foundation/scripts/xr_foundation.gd",
+		requirements: [
+			["device profile facade", /func\s+get_device_profile\s*\(/],
+			["tracking mode facade", /func\s+get_tracking_mode\s*\(/],
+			["device profile capability", /capabilities\.get\("device_profile"/],
+			["position and rotation tracking mode", /position_and_rotation/],
+		],
+	},
+	{
 		file: "tools/c00/validate_smoke_log.js",
 		requirements: [
 			["Rokid AR evidence gate", /Rokid gate requires capabilities\.openxr_ar_evidence/],
@@ -51,6 +60,59 @@ const checks = [
 		requirements: [
 			["Rokid aggregate AR evidence gate", /Rokid gate requires capabilities\.openxr_ar_evidence/],
 			["Rokid aggregate AR evidence lookup", /getCapability\(evidence,\s*"openxr_ar_evidence"\)/],
+		],
+	},
+	{
+		file: "demo/03_openxr_ar_capability_lab.gd",
+		requirements: [
+			["OpenXR lab marker log", /GXF_OPENXR_LAB/],
+			["OpenXR backend default", /XRFoundationTypes\.Backend\.OPENXR/],
+			["Rokid platform hint", /platform_hint\s*:=\s*"rokid"/],
+			["AR tier reporting", /openxr_ar_tier/],
+			["passthrough reporting", /openxr_passthrough_started/],
+			["plane source reporting", /openxr_plane_source/],
+			["vendor singleton reporting", /openxr_vendor_singletons/],
+			["input profile reporting", /XRInputProfileScript/],
+			["device profile reporting", /get_device_profile\(\)/],
+			["tracking mode reporting", /get_tracking_mode\(\)/],
+			["center raycast", /_center_screen_raycast/],
+		],
+	},
+	{
+		file: "demo/03_openxr_ar_capability_lab.tscn",
+		requirements: [
+			["OpenXR lab scene root", /OpenXRCapabilityLab/],
+			["OpenXR lab script resource", /03_openxr_ar_capability_lab\.gd/],
+			["OpenXR ARSession preset", /requested_backend\s*=\s*2/],
+			["Rokid scene platform hint", /platform_hint\s*=\s*"rokid"/],
+			["XRI ray interactor", /XRRayInteractor/],
+			["AR raycast manager", /ARRaycastManager/],
+		],
+	},
+	{
+		file: "demo/04_rokid_ray_place.gd",
+		requirements: [
+			["Rokid place marker log", /GXF_ROKID_PLACE/],
+			["OpenXR backend default", /XRFoundationTypes\.Backend\.OPENXR/],
+			["Rokid platform hint", /platform_hint\s*:=\s*"rokid"/],
+			["auto first hit placement", /auto_place_on_first_hit/],
+			["center raycast", /_center_screen_raycast/],
+			["anchor placement", /anchor_manager\.add_anchor/],
+			["device profile reporting", /get_device_profile\(\)/],
+			["tracking mode reporting", /get_tracking_mode\(\)/],
+			["placement event", /"placed"/],
+		],
+	},
+	{
+		file: "demo/04_rokid_ray_place.tscn",
+		requirements: [
+			["Rokid place scene root", /RokidRayPlace/],
+			["Rokid place script resource", /04_rokid_ray_place\.gd/],
+			["OpenXR ARSession preset", /requested_backend\s*=\s*2/],
+			["Rokid scene platform hint", /platform_hint\s*=\s*"rokid"/],
+			["AR anchor manager", /ARAnchorManager/],
+			["placement cursor", /PlacementCursor/],
+			["placed object", /PlacedObject/],
 		],
 	},
 ];
