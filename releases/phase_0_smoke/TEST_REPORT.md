@@ -117,6 +117,8 @@ Codex implementation status:
 - `XRInputProfile` now provides a lightweight XRI-style input capability descriptor for gaze/ray/controller selection paths.
 - `XRFoundation.get_device_profile()` and `XRFoundation.get_tracking_mode()` now provide small OpenXR capability-lab facades for device profile and tracking-mode reporting.
 - C02 OpenXR/Rokid runnable surfaces are now present: `demo/03_openxr_ar_capability_lab.tscn` emits `GXF_OPENXR_LAB` capability logs, and `demo/04_rokid_ray_place.tscn` emits `GXF_ROKID_PLACE` placement logs with virtual-plane fallback placement support.
+- C04 iOS/ARKit runnable surface is now present: `demo/06_ios_arkit_place.tscn` emits `GXF_ARKIT_PLACE` logs with ARKit tracking state/reason, camera frame/intrinsics metadata, plane count, screen raycast, and anchor placement evidence.
+- `GodotARKitPlugin.create_anchor()` now calls the native `GodotARKitSession.addAnchorWithTransform(...)` path, and the session uses `ARSession.addAnchor` so `ARAnchorManager.add_anchor()` is backed by a real ARKit anchor when the session is running.
 - Official Godot OpenXR Vendors 4.2.0 is now vendored under `addons/godotopenxrvendors` for Godot 4.4 Android/OpenXR exports.
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` and `GodotARKit.gdip` are now built locally against Godot 4.4.1 source headers; the archive contains `GodotARKitPlugin.mm.o` and `GodotARKitSession.mm.o` for iOS arm64 plus simulator arm64/x86_64.
 - `tools/c00/prepare_godot_source.sh` now generates the minimum Godot build headers needed by external iOS plugin builds: `version_generated.gen.h`, `disabled_classes.gen.h`, and `gdvirtual.gen.inc`.
@@ -149,6 +151,7 @@ Hardware status:
 - Godot 4.4.1 stable editor is downloaded, ad-hoc signed for this host, and runs successfully outside the Codex sandbox: `4.4.1.stable.official.49a5bc7b6`.
 - Godot source headers for `4.4.1-stable` are prepared under `.godot/cache/c00/godot-source`.
 - `GodotARKit.gdip` and `GodotARKit.xcframework` are built and pass `check_ios_plugin_artifacts.js --require-binary`.
+- C04 iOS placement static surface is guarded by `node tools/c00/check_ios_arkit_place_surface.js`; this does not replace the real iPad run gate.
 - `export_presets.cfg` is now loadable by Godot itself; `preset.0`, `preset.1`, and `preset.2` resolve to Rokid/OpenXR, Android ARCore, and iPad/ARKit respectively.
 - Real Rokid/OpenXR export now produces `builds/rokid/c00.apk`; APK static inspection confirms `--xr-platform=rokid`, OpenXR loader/vendor libraries, and no ARCore native libraries.
 - Real Android/ARCore export now produces `builds/android_arcore/c00.apk`; APK static inspection confirms `--xr-platform=arcore`, ARCore native libraries, and no OpenXR loader.
@@ -172,6 +175,10 @@ Hardware status:
 | Check | Result | Notes |
 | --- | --- | --- |
 | `node tools/c00/run_static_gates.js --gate all` | Pass | Includes `git diff --check`, ARFoundation/XRI surface checks, export preset checks, ARKit artifact checks, and Android export surface checks |
+| `node tools/c00/check_ios_arkit_place_surface.js` | Pass | Guards `demo/06_ios_arkit_place.tscn`, `GXF_ARKIT_PLACE`, ARKit camera/tracking evidence, and native `ARSession.addAnchor` bridge inside `ios/plugins/godot_arkit` |
+| `GODOT_SOURCE_DIR=.godot/cache/c00/godot-source ios/plugins/godot_arkit/build_xcframework.sh` | Pass | Rebuilt `GodotARKit.xcframework` after the ARKit plugin native anchor bridge change; no Godot engine source was modified |
+| Godot headless `demo/06_ios_arkit_place.tscn` with `--xr-platform=simulator` | Pass | `/private/tmp/godotar-ios-place.log` contains `GXF_ARKIT_PLACE` `session_started`, `planes_changed`, `anchors_changed`, and `placed`; no script errors |
+| `node tools/c00/audit_phase1_completion.js --report /private/tmp/godotar-phase1-audit-ios-place.md --json /private/tmp/godotar-phase1-audit-ios-place.json` | Not ready as expected | Static/plugin gates pass; only remaining failure is missing real Rokid/iPad/Android phase evidence |
 | `tools/c00/preflight.sh rokid` | Pass | Godot, Android SDK/JDK, debug keystore, OpenXR Vendors addon, Khronos AAR, and Rokid preset are present |
 | `tools/c00/export_with_godot.sh "C00 Rokid OpenXR" builds/rokid/c00.apk` | Pass | Export completes; nonfatal Godot export warnings remain recorded for later cleanup |
 | `node tools/c00/check_android_apk_surface.js --gate rokid --apk builds/rokid/c00.apk` | Pass | APK contains OpenXR loader/vendor artifacts and does not contain ARCore native libs |

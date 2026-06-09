@@ -86,6 +86,12 @@ struct Vector3 {
 	Vector3() = default;
 	Vector3(double p_x, double p_y, double p_z) :
 			x(p_x), y(p_y), z(p_z) {}
+	const double &operator[](int p_axis) const {
+		return p_axis == 0 ? x : (p_axis == 1 ? y : z);
+	}
+	double &operator[](int p_axis) {
+		return p_axis == 0 ? x : (p_axis == 1 ? y : z);
+	}
 };
 #endif
 EOF
@@ -108,12 +114,20 @@ cat > "$STUB_ROOT/core/math/transform_3d.h" <<'EOF'
 #define GODOT_TRANSFORM3D_STUB_H
 #include "core/math/vector3.h"
 struct Basis {
-	Vector3 x;
-	Vector3 y;
-	Vector3 z;
+	Vector3 rows[3] = {
+		Vector3(1, 0, 0),
+		Vector3(0, 1, 0),
+		Vector3(0, 0, 1)
+	};
 	Basis() = default;
 	Basis(const Vector3 &p_x, const Vector3 &p_y, const Vector3 &p_z) :
-			x(p_x), y(p_y), z(p_z) {}
+			rows{ Vector3(p_x.x, p_y.x, p_z.x), Vector3(p_x.y, p_y.y, p_z.y), Vector3(p_x.z, p_y.z, p_z.z) } {}
+	const Vector3 &operator[](int p_row) const {
+		return rows[p_row];
+	}
+	Vector3 &operator[](int p_row) {
+		return rows[p_row];
+	}
 };
 struct Transform3D {
 	Basis basis;

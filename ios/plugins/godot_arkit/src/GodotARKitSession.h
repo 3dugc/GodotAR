@@ -17,6 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSDictionary *)cameraFrame;
 - (NSDictionary *)lightEstimate;
 - (NSArray<NSDictionary *> *)hitTestFromOrigin:(simd_float3)origin direction:(simd_float3)direction maxDistance:(double)maxDistance;
+- (NSDictionary *)addAnchorWithTransform:(NSArray *)transformMatrix;
 - (NSArray<NSDictionary *> *)planes;
 
 @end

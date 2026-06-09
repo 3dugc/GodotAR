@@ -87,6 +87,26 @@ static Array double_array_from_native(NSArray *p_values) {
 	return values;
 }
 
+static Vector3 basis_column_from_transform(const Transform3D &p_transform, int p_index) {
+	return Vector3(
+			p_transform.basis[0][p_index],
+			p_transform.basis[1][p_index],
+			p_transform.basis[2][p_index]);
+}
+
+static NSArray *matrix_array_from_transform(const Transform3D &p_transform) {
+	Vector3 column0 = basis_column_from_transform(p_transform, 0);
+	Vector3 column1 = basis_column_from_transform(p_transform, 1);
+	Vector3 column2 = basis_column_from_transform(p_transform, 2);
+	Vector3 origin = p_transform.origin;
+	return @[
+		@(column0.x), @(column0.y), @(column0.z), @(0.0),
+		@(column1.x), @(column1.y), @(column1.z), @(0.0),
+		@(column2.x), @(column2.y), @(column2.z), @(0.0),
+		@(origin.x), @(origin.y), @(origin.z), @(1.0),
+	];
+}
+
 static Dictionary intrinsics_from_native(NSDictionary *p_native) {
 	Dictionary intrinsics;
 	if (p_native == nil) {
@@ -313,12 +333,29 @@ Array GodotARKitPlugin::hit_test(const Vector3 &p_origin, const Vector3 &p_direc
 Dictionary GodotARKitPlugin::create_anchor(const Transform3D &p_transform, Variant p_attached_trackable) {
 	(void)p_attached_trackable;
 
+	GodotARKitSession *arkit_session = get_session(session);
+	if (arkit_session != nil) {
+		NSDictionary *native_anchor = [arkit_session addAnchorWithTransform:matrix_array_from_transform(p_transform)];
+		if ([native_anchor[@"success"] boolValue]) {
+			Vector3 position = p_transform.origin;
+			Transform3D transform = transform_from_array(native_anchor[@"transform"], position);
+			Dictionary anchor;
+			anchor["trackable_id"] = ns_string_to_godot(native_anchor[@"trackable_id"]);
+			anchor["persistent_id"] = ns_string_to_godot(native_anchor[@"persistent_id"]);
+			anchor["transform"] = transform;
+			anchor["runtime"] = ns_string_to_godot(native_anchor[@"runtime"]);
+			anchor["raw_anchor"] = ns_string_to_godot(native_anchor[@"raw_anchor"]);
+			return anchor;
+		}
+	}
+
 	NSString *native_id = [NSString stringWithFormat:@"arkit_anchor_%f", NSDate.date.timeIntervalSince1970];
 
 	Dictionary anchor;
 	anchor["trackable_id"] = ns_string_to_godot(native_id);
 	anchor["transform"] = p_transform;
 	anchor["runtime"] = String("ARKit");
+	anchor["reason"] = String("native_anchor_not_running");
 	return anchor;
 }
 

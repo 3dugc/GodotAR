@@ -1,0 +1,119 @@
+[gd_scene load_steps=17 format=3]
+
+[ext_resource type="Script" path="res://demo/06_ios_arkit_place.gd" id="1_place"]
+[ext_resource type="PackedScene" path="res://addons/godot_xr_foundation/scenes/xr_foundation_rig.tscn" id="2_rig"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_session.gd" id="3_session"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_camera_manager.gd" id="4_camera"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_raycast_manager.gd" id="5_raycast"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_plane_manager.gd" id="6_planes"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_anchor_manager.gd" id="7_anchors"]
+
+[sub_resource type="Environment" id="Environment_ios"]
+background_mode = 1
+background_color = Color(0.018, 0.021, 0.024, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.92, 0.98, 1, 1)
+ambient_light_energy = 0.9
+
+[sub_resource type="QuadMesh" id="QuadMesh_panel"]
+size = Vector2(1.55, 0.76)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_panel"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.016, 0.02, 0.024, 0.82)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
+size = Vector2(5, 5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+transparency = 1
+albedo_color = Color(0.08, 0.11, 0.13, 0.24)
+roughness = 0.85
+
+[sub_resource type="SphereMesh" id="SphereMesh_cursor"]
+radius = 0.045
+height = 0.09
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cursor"]
+albedo_color = Color(0.12, 0.78, 0.92, 1)
+emission_enabled = true
+emission = Color(0.04, 0.42, 0.72, 1)
+emission_energy_multiplier = 0.7
+
+[sub_resource type="BoxMesh" id="BoxMesh_placed"]
+size = Vector3(0.16, 0.16, 0.16)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_placed"]
+albedo_color = Color(0.95, 0.62, 0.18, 1)
+roughness = 0.42
+
+[node name="IOSARKitPlace" type="Node3D"]
+script = ExtResource("1_place")
+
+[node name="ARSession" type="Node" parent="."]
+script = ExtResource("3_session")
+requested_backend = 4
+platform_hint = "ipad"
+fallback_to_editor_sim = true
+
+[node name="XRFoundationRig" parent="." instance=ExtResource("2_rig")]
+
+[node name="StatusPanel" type="Node3D" parent="XRFoundationRig/XRCamera3D"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, -0.258819, 0, 0.258819, 0.965926, 0, -0.2, -1.5)
+
+[node name="PanelBack" type="MeshInstance3D" parent="XRFoundationRig/XRCamera3D/StatusPanel"]
+mesh = SubResource("QuadMesh_panel")
+surface_material_override/0 = SubResource("StandardMaterial3D_panel")
+
+[node name="StatusLabel" type="Label3D" parent="XRFoundationRig/XRCamera3D/StatusPanel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.71, 0.32, 0.01)
+text = "iOS ARKit Place"
+font_size = 16
+modulate = Color(0.92, 0.98, 1, 1)
+outline_size = 2
+outline_modulate = Color(0, 0, 0, 0.82)
+horizontal_alignment = 0
+vertical_alignment = 0
+
+[node name="ARCameraManager" type="Node" parent="."]
+script = ExtResource("4_camera")
+camera_path = NodePath("../XRFoundationRig/XRCamera3D")
+requestedLightEstimation = 3
+requested_light_estimation = 3
+
+[node name="ARRaycastManager" type="Node" parent="."]
+script = ExtResource("5_raycast")
+camera_path = NodePath("../XRFoundationRig/XRCamera3D")
+
+[node name="ARPlaneManager" type="Node" parent="."]
+script = ExtResource("6_planes")
+create_anchor_nodes = false
+xr_origin_path = NodePath("../XRFoundationRig")
+
+[node name="ARAnchorManager" type="Node" parent="."]
+script = ExtResource("7_anchors")
+anchors_parent_path = NodePath("../World")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_ios")
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="KeyLight" type="DirectionalLight3D" parent="World"]
+transform = Transform3D(0.866025, -0.25, 0.433013, 0, 0.866025, 0.5, -0.5, -0.433013, 0.75, 0, 3, 2)
+light_energy = 1.15
+
+[node name="EditorPreviewFloor" type="MeshInstance3D" parent="World"]
+mesh = SubResource("PlaneMesh_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor")
+
+[node name="PlacementCursor" type="MeshInstance3D" parent="World"]
+visible = false
+mesh = SubResource("SphereMesh_cursor")
+surface_material_override/0 = SubResource("StandardMaterial3D_cursor")
+
+[node name="PlacedObject" type="MeshInstance3D" parent="World"]
+visible = false
+mesh = SubResource("BoxMesh_placed")
+surface_material_override/0 = SubResource("StandardMaterial3D_placed")

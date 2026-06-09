@@ -23,6 +23,18 @@ static NSArray *matrixArrayFromTransform(simd_float4x4 transform) {
 	];
 }
 
+static simd_float4x4 matrixFromArray(NSArray *values) {
+	if (values == nil || values.count < 16) {
+		return matrix_identity_float4x4;
+	}
+	simd_float4x4 transform = matrix_identity_float4x4;
+	transform.columns[0] = simd_make_float4([values[0] floatValue], [values[1] floatValue], [values[2] floatValue], [values[3] floatValue]);
+	transform.columns[1] = simd_make_float4([values[4] floatValue], [values[5] floatValue], [values[6] floatValue], [values[7] floatValue]);
+	transform.columns[2] = simd_make_float4([values[8] floatValue], [values[9] floatValue], [values[10] floatValue], [values[11] floatValue]);
+	transform.columns[3] = simd_make_float4([values[12] floatValue], [values[13] floatValue], [values[14] floatValue], [values[15] floatValue]);
+	return transform;
+}
+
 static NSArray *matrixArrayFromIntrinsics(matrix_float3x3 intrinsics) {
 	return @[
 		@(intrinsics.columns[0].x), @(intrinsics.columns[0].y), @(intrinsics.columns[0].z),
@@ -236,6 +248,28 @@ static NSDictionary *intrinsicsDictionaryFromCamera(ARCamera *camera) {
 	}
 
 	return @[];
+}
+
+- (NSDictionary *)addAnchorWithTransform:(NSArray *)transformMatrix {
+	if (!_running) {
+		return @{
+			@"success": @NO,
+			@"reason": @"not_running",
+			@"runtime": @"ARKit",
+		};
+	}
+
+	simd_float4x4 transform = matrixFromArray(transformMatrix);
+	ARAnchor *anchor = [[ARAnchor alloc] initWithTransform:transform];
+	[_session addAnchor:anchor];
+	return @{
+		@"success": @YES,
+		@"trackable_id": anchor.identifier.UUIDString,
+		@"persistent_id": anchor.identifier.UUIDString,
+		@"transform": matrixArrayFromTransform(anchor.transform),
+		@"runtime": @"ARKit",
+		@"raw_anchor": @"ARKitAnchor",
+	};
 }
 
 - (NSArray<NSDictionary *> *)planes {

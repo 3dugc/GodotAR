@@ -106,6 +106,7 @@ if (!source) {
 	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"get_camera_frame\")", "Source must bind get_camera_frame for frameReceived evidence.");
 	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"get_light_estimation\")", "Source must bind get_light_estimation for Unity-style light estimation evidence.");
 	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"hit_test\"", "Source must bind hit_test for ARRaycastManager migration smoke.");
+	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"create_anchor\"", "Source must bind create_anchor for ARAnchorManager migration smoke.");
 	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"get_planes\"", "Source must bind get_planes for ARPlaneManager migration smoke.");
 	requireSourceIncludes(source, "[arkit_session start]", "start_session must call the native ARKit session start path.");
 	requireSourceIncludes(source, "[arkit_session stop]", "stop_session must call the native ARKit session stop path.");
@@ -113,8 +114,10 @@ if (!source) {
 	requireSourceIncludes(source, "[arkit_session cameraFrame]", "get_camera_frame must call the native ARKit frame path.");
 	requireSourceIncludes(source, "[arkit_session lightEstimate]", "get_light_estimation must call the native ARKit light estimate path.");
 	requireSourceIncludes(source, "hitTestFromOrigin", "hit_test must call the native ARKit raycast path.");
+	requireSourceIncludes(source, "addAnchorWithTransform", "create_anchor must call the native ARKit anchor path.");
 	requireSourceIncludes(source, "[arkit_session planes]", "get_planes must call the native ARKit plane path.");
 	requireSourceIncludes(source, "transform_from_array", "Source must preserve native ARKit transform matrices for Unity-style hit/plane poses.");
+	requireSourceIncludes(source, "matrix_array_from_transform", "Source must pass Unity-style placement poses into ARKit anchors.");
 	requireSourceIncludes(source, "trackable_type_name", "Source should expose a readable trackable type name for ARFoundation migration diagnostics.");
 	requireSourceIncludes(source, "arkit_tracking_state", "get_capabilities must expose arkit_tracking_state.");
 	requireSourceIncludes(source, "arkit_tracking_reason", "get_capabilities must expose arkit_tracking_reason.");
@@ -156,6 +159,8 @@ if (!sessionSource) {
 	requireSourceIncludes(sessionSource, "ARRaycastQuery", "GodotARKitSession must use ARRaycastQuery for native raycasts.");
 	requireSourceIncludes(sessionSource, "raycast:query", "GodotARKitSession must call ARSession raycast:query.");
 	requireSourceIncludes(sessionSource, "matrixArrayFromTransform", "GodotARKitSession must export native ARKit matrices for hit/plane pose evidence.");
+	requireSourceIncludes(sessionSource, "addAnchorWithTransform", "GodotARKitSession must expose native ARKit anchor creation.");
+	requireSourceIncludes(sessionSource, "[_session addAnchor:anchor]", "GodotARKitSession must add anchors to ARSession for stable placement.");
 	requireSourceIncludes(sessionSource, "ARPlaneAnchor", "GodotARKitSession must store ARPlaneAnchor plane evidence.");
 	requireSourceIncludes(sessionSource, "didAddAnchors", "GodotARKitSession must observe added ARKit anchors.");
 	requireSourceIncludes(sessionSource, "didUpdateAnchors", "GodotARKitSession must observe updated ARKit anchors.");
@@ -178,6 +183,7 @@ if (!sessionHeader) {
 		"- (NSDictionary *)cameraFrame;",
 		"- (NSDictionary *)lightEstimate;",
 		"- (NSArray<NSDictionary *> *)hitTestFromOrigin:",
+		"- (NSDictionary *)addAnchorWithTransform:",
 		"- (NSArray<NSDictionary *> *)planes;",
 	]) {
 		requireSourceIncludes(sessionHeader, declaration, `Session header must declare ${declaration}`);

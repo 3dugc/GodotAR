@@ -31,6 +31,7 @@ Implemented:
 - Demo scene where mouse clicks place anchored cubes on the simulated floor.
 - OpenXR/Rokid capability lab: `demo/03_openxr_ar_capability_lab.tscn`.
 - Rokid ray/gaze placement demo: `demo/04_rokid_ray_place.tscn`.
+- iOS ARKit placement demo: `demo/06_ios_arkit_place.tscn`.
 
 Planned next:
 
@@ -51,6 +52,8 @@ Run `demo/00_device_smoke_test.tscn` first. This is the first-cycle device gate 
 Then run `demo/main.tscn` for the placement sample.
 
 For OpenXR/Rokid bring-up, run `demo/03_openxr_ar_capability_lab.tscn` to inspect AR tier, passthrough, vendor singletons, input profile, and plane source. Then run `demo/04_rokid_ray_place.tscn` to test center ray/gaze placement against a real plane or the explicit `virtual_floor_fallback`.
+
+For iPad/ARKit bring-up, run `demo/06_ios_arkit_place.tscn` from the exported Xcode project. It logs `GXF_ARKIT_PLACE` with ARKit tracking state/reason, camera frame/intrinsics metadata, plane count, screen raycast, and anchor placement evidence. EditorSim fallback is useful for local API checks, but the iPad gate still requires real device media/log evidence.
 
 In the editor, the project falls back to `Editor Simulation`. Click in the viewport to place cubes on the simulated floor.
 

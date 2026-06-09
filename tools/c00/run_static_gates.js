@@ -113,6 +113,11 @@ const checks = [
 			required: true,
 		},
 		{
+			name: "iOS ARKit placement demo surface",
+			command: ["node", "tools/c00/check_ios_arkit_place_surface.js"],
+			required: true,
+		},
+		{
 			name: "iPad device profile analysis surface",
 			command: ["node", "tools/c00/check_ios_device_profile_surface.js"],
 			required: true,
