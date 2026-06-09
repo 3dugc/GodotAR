@@ -25,6 +25,7 @@ RUN_COLLECT="${RUN_COLLECT:-1}"
 DRY_RUN="${DRY_RUN:-0}"
 BUILD_ARKIT_PLUGIN="${BUILD_ARKIT_PLUGIN:-auto}"
 BUILD_IPAD_APP="${BUILD_IPAD_APP:-auto}"
+CONFIGURE_IPAD_SIGNING="${CONFIGURE_IPAD_SIGNING:-auto}"
 INCLUDE_EDITOR_SIM="${INCLUDE_EDITOR_SIM:-0}"
 INCLUDE_IOS_SIMULATOR="${INCLUDE_IOS_SIMULATOR:-0}"
 INCLUDE_ANDROID_ARCORE="${INCLUDE_ANDROID_ARCORE:-1}"
@@ -88,6 +89,9 @@ iPad / ARKit:
   GODOT_TAG=4.4.1-stable             Optional source tag for automatic source preparation.
   AUTO_PREPARE_GODOT_SOURCE=auto|1|0 Default auto: prepare only when GODOT_TAG/BRANCH/COMMIT is set.
   BUILD_ARKIT_PLUGIN=auto|1|0        Default auto: build only when GODOT_SOURCE_DIR is set.
+  CONFIGURE_IPAD_SIGNING=auto|1|0    Default auto: update iPad export presets when a Team ID env var is set.
+  IPAD_TEAM_ID=<10-char-team-id>      Team ID alias for configure_ios_signing.js and xcodebuild.
+                                      TEAM_ID, DEVELOPMENT_TEAM, and APPLE_TEAM_ID also work.
   BUILD_IPAD_APP=auto|1|0            Build exported Xcode project into .app when APP_PATH is empty.
   IPAD_APP_PATH="$IPAD_APP_PATH"
   IOS_SIMULATOR_EXPORT_PATH="$IOS_SIMULATOR_EXPORT_PATH"
@@ -226,6 +230,61 @@ build_arkit_plugin_if_requested() {
 		return
 	fi
 	"$PROJECT_ROOT/ios/plugins/godot_arkit/build_xcframework.sh"
+}
+
+resolve_ipad_team_id() {
+	if [[ -n "${IPAD_TEAM_ID:-}" ]]; then
+		printf "%s\n" "$IPAD_TEAM_ID"
+		return
+	fi
+	if [[ -n "${TEAM_ID:-}" ]]; then
+		printf "%s\n" "$TEAM_ID"
+		return
+	fi
+	if [[ -n "${DEVELOPMENT_TEAM:-}" ]]; then
+		printf "%s\n" "$DEVELOPMENT_TEAM"
+		return
+	fi
+	if [[ -n "${APPLE_TEAM_ID:-}" ]]; then
+		printf "%s\n" "$APPLE_TEAM_ID"
+		return
+	fi
+}
+
+configure_ipad_signing_if_requested() {
+	local gate="$1"
+	if [[ "$gate" != "ipad" && "$gate" != "ipad-place" ]]; then
+		return
+	fi
+	if [[ "$RUN_EXPORT" == "0" || "$CONFIGURE_IPAD_SIGNING" == "0" ]]; then
+		return
+	fi
+	if [[ -n "${APP_PATH:-}" ]]; then
+		echo "APP_PATH is already set; skipping iPad export preset signing setup: $APP_PATH"
+		return
+	fi
+
+	local team_id
+	team_id="$(resolve_ipad_team_id)"
+	if [[ -z "$team_id" ]]; then
+		if [[ "$CONFIGURE_IPAD_SIGNING" == "1" ]]; then
+			echo "CONFIGURE_IPAD_SIGNING=1 requires IPAD_TEAM_ID, TEAM_ID, DEVELOPMENT_TEAM, or APPLE_TEAM_ID." >&2
+			return 2
+		fi
+		echo "No iPad Team ID env var found; skipping export preset signing setup in auto mode."
+		echo "Set IPAD_TEAM_ID, TEAM_ID, DEVELOPMENT_TEAM, or APPLE_TEAM_ID to update export_presets.cfg before export."
+		return
+	fi
+
+	echo "Configuring iPad export preset signing identifiers for $gate..."
+	if [[ "$DRY_RUN" == "1" ]]; then
+		echo "DRY RUN: node tools/c00/configure_ios_signing.js --gate $gate --team-id $team_id --bundle-id $PACKAGE"
+		return
+	fi
+	node "$PROJECT_ROOT/tools/c00/configure_ios_signing.js" \
+		--gate "$gate" \
+		--team-id "$team_id" \
+		--bundle-id "$PACKAGE"
 }
 
 build_ipad_app_if_requested() {
@@ -504,6 +563,7 @@ run_gate() {
 		build_arkit_plugin_if_requested || return $?
 	fi
 	run_preflight "$gate" || return $?
+	configure_ipad_signing_if_requested "$gate" || return $?
 	run_export "$gate" || return $?
 	if [[ "$gate" == "ipad" ]]; then
 		build_ipad_app_if_requested || return $?
@@ -548,7 +608,11 @@ run_gate_for_all() {
 	set -e
 
 	if [[ "$status" -eq 0 ]]; then
-		echo "== C00 gate passed: $gate =="
+		if [[ "$DRY_RUN" == "1" ]]; then
+			echo "== C00 gate dry-run complete: $gate =="
+		else
+			echo "== C00 gate passed: $gate =="
+		fi
 		return 0
 	fi
 

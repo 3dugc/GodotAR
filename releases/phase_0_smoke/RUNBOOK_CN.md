@@ -493,6 +493,7 @@ GODOT_SOURCE_DIR=/path/to/godot DEVICE=<device> tools/c00/run_device_cycle.sh ip
 ```
 
 如果 `export_presets.cfg` 仍使用 starter Team ID，占位值会阻塞真机安装；先运行 `node tools/c00/configure_ios_signing.js --team-id <10-char-team-id>` 或设置 `IPAD_TEAM_ID` / `TEAM_ID` / `DEVELOPMENT_TEAM` / `APPLE_TEAM_ID` 给 Xcode build helper。该 helper 只写 Team ID 和 bundle id，不写证书、密码或 provisioning profile。
+`tools/c00/run_device_cycle.sh ipad` / `ipad-place` 默认使用 `CONFIGURE_IPAD_SIGNING=auto`：导出前只要发现 `IPAD_TEAM_ID`、`TEAM_ID`、`DEVELOPMENT_TEAM` 或 `APPLE_TEAM_ID`，就会自动运行 `configure_ios_signing.js --gate <ipad-gate> --bundle-id "$PACKAGE"`。如果设备机必须在缺 Team ID 时立刻停止，设置 `CONFIGURE_IPAD_SIGNING=1`；如果本次只使用已构建的 `APP_PATH` 或想完全手动管理 preset，设置 `CONFIGURE_IPAD_SIGNING=0`。
 如果还没有 `/path/to/godot`，先运行 `tools/c00/prepare_godot_source.sh --tag <godot-tag>` 并使用脚本输出的 `GODOT_SOURCE_DIR`；或者直接设置 `GODOT_TAG=<godot-tag>` 让 runner 自动准备 `.godot/cache/c00/godot-source`。默认流程会先构建 `GodotARKit.xcframework`，再用 Godot 导出 `builds/ipad/c00.zip`，随后通过 `tools/c00/build_ios_xcode_project.sh` 自动发现导出的 `.xcodeproj` 和 scheme，用 `xcodebuild` 产出 `builds/ipad/GodotXRFoundation.app`。如果已经手工构建了 `.app`，可设置 `APP_PATH=builds/ipad/GodotXRFoundation.app` 跳过自动 Xcode 构建。
 `build_ios_xcode_project.sh` 会在 `xcodebuild` 前自动运行 `node tools/c00/check_ios_export_project.js --input <unpacked-ios-export>`，确认 Xcode project 已引用 `GodotARKit.xcframework`、`ARKit.framework`、`Metal.framework`，并且 plist 包含相机权限和 `arkit`/`metal` required device capabilities。
 

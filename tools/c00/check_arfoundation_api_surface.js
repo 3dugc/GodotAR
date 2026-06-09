@@ -274,7 +274,9 @@ const checks = [
 		requirements: [
 			["Unity latest baseline policy", /Unity 6000\.6 alpha release notes/],
 			["Unity ARFoundation 6.5 baseline", /com\.unity\.xr\.arfoundation@6\.5\.0/],
-			["Unity 6.5 package docs with 6.4 API fallback", /Unity 6\.5 package manuals are the current public package reference.*Unity 6\.4 package API pages remain/s],
+			["Unity ARFoundation 6.6 pre-release tracking", /com\.unity\.xr\.arfoundation@6\.6\.0-pre\.2/],
+			["Unity OpenXR 1.17.1 tracking", /com\.unity\.xr\.openxr@1\.17\.1/],
+			["Unity 6.5/6.6 package docs with 6.4 API fallback", /Unity 6\.5\/6\.6 package manuals are the current public package reference.*Unity 6\.4 package API pages remain/s],
 			["pre-release baseline policy", /pre-release|preview|unreleased/],
 			["ARSession.state migration row", /ARSession\.state/],
 			["notTrackingReason migration row", /notTrackingReason/],

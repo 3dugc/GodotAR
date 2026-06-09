@@ -8,7 +8,7 @@
 
 建议周期：1-2 周
 
-Unity 对齐基线：以 Unity 官方可见的最新 AR Foundation / XR Core Utilities / XR Interaction Toolkit / OpenXR 文档和 alpha/beta release notes 为目标；当前 C01 以官方 6000.6 alpha release notes 与 package docs 中的 Unity 6.x `com.unity.xr.arfoundation@6.5.0`、`com.unity.xr.interaction.toolkit@3.5.1`、`com.unity.xr.openxr@1.17.0` 观察基线为目标，并用 Unity 6.4 package API pages 在 6.5 对应 API 页面尚不可见时补足细节。`XROrigin` 是主入口，`ARSessionOrigin` 只作为 deprecated 迁移 shim。若官方出现更高 released、pre-release、preview 或 unreleased 文档，后续 spec 必须前移基线。
+Unity 对齐基线：以 Unity 官方可见的最新 AR Foundation / XR Core Utilities / XR Interaction Toolkit / OpenXR 文档和 alpha/beta release notes 为目标；当前 C01 以稳定公开 package docs 中的 Unity 6.x `com.unity.xr.arfoundation@6.5.0`、`com.unity.xr.interaction.toolkit@3.5.1`、`com.unity.xr.openxr@1.17.1` 观察基线为目标，同时追踪预发布 `com.unity.xr.arfoundation@6.6.0-pre.2`、`com.unity.xr.arcore@6.6.0-pre.2`、`com.unity.xr.arkit@6.6.0-pre.2`。在 6.5/6.6 对应 API 页面尚不可见时，用 Unity 6.4 package API pages 补足细节。`XROrigin` 是主入口，`ARSessionOrigin` 只作为 deprecated 迁移 shim。若官方出现更高 released、pre-release、preview 或 unreleased 文档，后续 spec 必须前移基线。
 
 ## 一句话成果
 

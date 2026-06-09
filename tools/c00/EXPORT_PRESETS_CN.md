@@ -156,6 +156,8 @@ IPAD_TEAM_ID=<10-char-team-id> \
 node tools/c00/configure_ios_signing.js --bundle-id org.godotengine.godotxrfoundation
 ```
 
+`tools/c00/run_device_cycle.sh ipad` 和 `ipad-place` 默认也会执行同一件事：当环境里存在 `IPAD_TEAM_ID` / `TEAM_ID` / `DEVELOPMENT_TEAM` / `APPLE_TEAM_ID` 时，runner 会在 Godot 导出前自动调用 `configure_ios_signing.js`。如果要把“缺 Team ID”变成硬失败，使用 `CONFIGURE_IPAD_SIGNING=1`；如果要完全跳过，使用 `CONFIGURE_IPAD_SIGNING=0`。
+
 只验证当前 preset 是否已经不是占位 Team ID：
 
 ```bash

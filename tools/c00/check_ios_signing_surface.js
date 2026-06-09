@@ -33,10 +33,23 @@ const checks = [
 		],
 	},
 	{
+		file: "tools/c00/run_device_cycle.sh",
+		requirements: [
+			["CONFIGURE_IPAD_SIGNING env", /CONFIGURE_IPAD_SIGNING/],
+			["iPad Team ID resolver", /resolve_ipad_team_id/],
+			["automatic signing setup step", /configure_ipad_signing_if_requested/],
+			["signing helper invocation", /configure_ios_signing\.js/],
+			["forced missing Team ID failure", /CONFIGURE_IPAD_SIGNING=1 requires/],
+			["auto mode non-secret skip", /skipping export preset signing setup in auto mode/],
+			["iPad gate before export", /configure_ipad_signing_if_requested "\$gate"[\s\S]*run_export "\$gate"/],
+		],
+	},
+	{
 		file: "tools/c00/README_CN.md",
 		requirements: [
 			["configure signing docs", /configure_ios_signing\.js/],
 			["IPAD_TEAM_ID docs", /IPAD_TEAM_ID/],
+			["run_device_cycle signing docs", /CONFIGURE_IPAD_SIGNING/],
 		],
 	},
 	{
@@ -44,6 +57,7 @@ const checks = [
 		requirements: [
 			["configure signing export docs", /configure_ios_signing\.js/],
 			["placeholder warning", /ABCDE12345/],
+			["automatic signing runner docs", /run_device_cycle\.sh ipad/],
 		],
 	},
 	{
@@ -51,6 +65,7 @@ const checks = [
 		requirements: [
 			["runbook signing command", /configure_ios_signing\.js/],
 			["runbook Team ID env", /IPAD_TEAM_ID/],
+			["runbook automatic signing mode", /CONFIGURE_IPAD_SIGNING/],
 		],
 	},
 	{
@@ -58,6 +73,7 @@ const checks = [
 		requirements: [
 			["C00 signing helper requirement", /configure_ios_signing\.js/],
 			["C00 no signing secrets policy", /不写证书、密码或 provisioning profile/],
+			["C00 automatic runner signing requirement", /CONFIGURE_IPAD_SIGNING/],
 		],
 	},
 ];

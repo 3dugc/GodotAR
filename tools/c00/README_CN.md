@@ -65,6 +65,24 @@ node tools/c00/run_static_gates.js --gate all --report releases/phase_0_smoke/ev
 
 该命令不导出、不安装、不连接设备。它汇总 Node 工具语法、shell 脚本语法、Godot project/scene 静态完整性、ARFoundation API surface、XRI API surface、Rokid/OpenXR export surface、OpenXR/Rokid provider surface、GodotARCore Android plugin surface、iPad Godot source 准备 surface、iOS plugin 配置和 ARKit Objective-C++ syntax smoke。缺少 `export_presets.cfg` 会作为 warning 记录，因为真正导出前仍需在设备机 Godot editor 里复核保存。
 
+## iPad 签名准备
+
+设备机真跑 `ipad` / `ipad-place` 前，`run_device_cycle.sh` 会在导出前尝试配置 iOS export preset 的 Team ID 和 bundle id。默认模式是 `CONFIGURE_IPAD_SIGNING=auto`：只要环境里有 `IPAD_TEAM_ID`、`TEAM_ID`、`DEVELOPMENT_TEAM` 或 `APPLE_TEAM_ID`，runner 就会自动调用 `node tools/c00/configure_ios_signing.js --gate <ipad-gate> --bundle-id "$PACKAGE"`；没有 Team ID 时只提示并继续，让首次 dry-run 不被阻断。
+
+```bash
+IPAD_TEAM_ID=<10-char-team-id> \
+DEVICE="iPad M4" \
+tools/c00/run_device_cycle.sh ipad
+```
+
+如果希望 Team ID 缺失时立即失败，设置：
+
+```bash
+CONFIGURE_IPAD_SIGNING=1 tools/c00/run_device_cycle.sh ipad "iPad M4"
+```
+
+该 helper 只写 `application/app_store_team_id` 和 `application/bundle_identifier`，不写证书、密码或 provisioning profile；Xcode 仍通过本机账号、keychain 和 provisioning 设置完成真实签名。
+
 ## 等待设备就绪
 
 连接 Rokid 或 iPad 后，可以先让脚本持续等待 transport ready：
