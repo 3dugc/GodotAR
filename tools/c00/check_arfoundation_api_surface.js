@@ -69,6 +69,25 @@ const checks = [
 		],
 	},
 	{
+		file: "addons/godot_xr_foundation/scripts/arfoundation/ar_camera_manager.gd",
+		requirements: [
+			["ARCameraManager class", /class_name\s+ARCameraManager/],
+			["Unity frameReceived signal", /signal\s+frameReceived\s*\(/],
+			["Godot frame_received signal", /signal\s+frame_received\s*\(/],
+			["Unity permissionGranted field", /var\s+permissionGranted\s*:=/],
+			["requestedLightEstimation export", /@export\s+var\s+requestedLightEstimation\s*:=/],
+			["currentLightEstimation field", /var\s+currentLightEstimation\s*:=/],
+			["requestedFacingDirection export", /@export\s+var\s+requestedFacingDirection\s*:=/],
+			["requestedBackgroundRenderingMode export", /@export\s+var\s+requestedBackgroundRenderingMode\s*:=/],
+			["TryGetIntrinsics API", /func\s+TryGetIntrinsics\s*\(/],
+			["TryAcquireLatestCpuImage API", /func\s+TryAcquireLatestCpuImage\s*\(/],
+			["GetConfigurations API", /func\s+GetConfigurations\s*\(/],
+			["GetLatestFrame API", /func\s+GetLatestFrame\s*\(/],
+			["SetCamera alias", /func\s+SetCamera\s*\(/],
+			["camera capability metadata", /camera_background_available|passthrough_available/],
+		],
+	},
+	{
 		file: "addons/godot_xr_foundation/scripts/arfoundation/ar_raycast_manager.gd",
 		requirements: [
 			["Unity screen raycast camera path", /@export\s+var\s+camera_path\s*:\s*NodePath/],
@@ -90,6 +109,8 @@ const checks = [
 	{
 		file: "demo/00_device_smoke_test.tscn",
 		requirements: [
+			["ARCameraManager node", /\[node\s+name="ARCameraManager"\s+type="Node"\s+parent="\."\]/],
+			["ARCameraManager configured camera path", /camera_path\s*=\s*NodePath\("\.\.\/XRFoundationRig\/XRCamera3D"\)/],
 			["ARRaycastManager configured camera path", /camera_path\s*=\s*NodePath\("\.\.\/XRFoundationRig\/XRCamera3D"\)/],
 		],
 	},
@@ -175,10 +196,20 @@ const checks = [
 		],
 	},
 	{
+		file: "tools/c00/validate_smoke_log.js",
+		requirements: [
+			["camera smoke metadata required", /ARCameraManager camera metadata is missing from GXF_SMOKE evidence/],
+			["camera manager flag required", /manager=true/],
+			["camera permission type required", /boolean permission_granted/],
+			["camera intrinsics type required", /boolean has_intrinsics/],
+		],
+	},
+	{
 		file: "MIGRATION_UNITY.md",
 		requirements: [
 			["ARSession.state migration row", /ARSession\.state/],
 			["notTrackingReason migration row", /notTrackingReason/],
+			["ARCameraManager migration row", /ARCameraManager\.frameReceived/],
 			["ARRaycastManager.Raycast screen migration", /Raycast\(screen_position,\s*results,\s*trackable_types\)/],
 			["ARRaycastManager camera path migration", /camera_path|SetRaycastCamera/],
 			["Unity trackablesChanged migration", /trackablesChanged/],

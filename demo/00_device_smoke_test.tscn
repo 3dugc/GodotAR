@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://demo/00_device_smoke_test.gd" id="1_smoke"]
 [ext_resource type="PackedScene" path="res://addons/godot_xr_foundation/scenes/xr_foundation_rig.tscn" id="2_rig"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/xri/xr_interaction_manager.gd" id="7_xri_manager"]
 [ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/xri/xr_ray_interactor.gd" id="8_xri_ray"]
 [ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/xri/xr_grab_interactable.gd" id="9_xri_grab"]
+[ext_resource type="Script" path="res://addons/godot_xr_foundation/scripts/arfoundation/ar_camera_manager.gd" id="10_camera"]
 
 [sub_resource type="Environment" id="Environment_smoke"]
 background_mode = 1
@@ -54,6 +55,12 @@ script = ExtResource("1_smoke")
 [node name="ARSession" type="Node" parent="."]
 script = ExtResource("3_session")
 fallback_to_editor_sim = true
+
+[node name="ARCameraManager" type="Node" parent="."]
+script = ExtResource("10_camera")
+camera_path = NodePath("../XRFoundationRig/XRCamera3D")
+requestedLightEstimation = 3
+requested_light_estimation = 3
 
 [node name="XRFoundationRig" parent="." instance=ExtResource("2_rig")]
 

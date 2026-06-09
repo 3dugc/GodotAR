@@ -8,6 +8,7 @@ const VERSION := "v0.0.1-c00-device-smoke"
 @export var fallback_to_editor_sim := true
 
 @onready var ar_session: ARSession = $ARSession
+@onready var camera_manager: Node = $ARCameraManager
 @onready var status_label: Label3D = $XRFoundationRig/XRCamera3D/StatusPanel/StatusLabel
 @onready var xr_camera: Camera3D = $XRFoundationRig/XRCamera3D
 @onready var rotating_cube: MeshInstance3D = $World/RotatingCube
@@ -103,6 +104,10 @@ func _update_status_panel() -> void:
 		"Reason: %s" % String(XRFoundation.get_not_tracking_reason_name()),
 		"FPS: %d" % fps,
 		"Planes: %d  Anchors: %d" % [planes, anchors],
+		"Camera: %s  Light: %d" % [
+			_yes_no(camera_manager.permissionGranted if camera_manager else false),
+			int(camera_manager.currentLightEstimation) if camera_manager else 0,
+		],
 		"XRI: hover %s  select %s" % [
 			"yes" if xri_active_hover != "" else "no",
 			"yes" if xri_active_selection != "" else "no",
@@ -157,6 +162,7 @@ func _emit_smoke_log(event_name: String, extra: Dictionary) -> void:
 		"tracking": String(XRFoundation.get_tracking_state_name()),
 		"not_tracking_reason": String(XRFoundation.get_not_tracking_reason_name()),
 		"capabilities": XRFoundation.get_capabilities(),
+		"camera": _camera_metadata(),
 		"trackables": _trackables_metadata(),
 		"xri": _xri_metadata(),
 		"fps": int(Engine.get_frames_per_second()),
@@ -196,6 +202,30 @@ func _xri_metadata() -> Dictionary:
 		"active_hover": xri_active_hover,
 		"active_selection": xri_active_selection,
 		"ray_hit": bool(raycast.get("success", false)),
+	}
+
+
+func _camera_metadata() -> Dictionary:
+	if camera_manager == null:
+		return {"manager": false}
+	if camera_manager.has_method("update_camera_state"):
+		camera_manager.update_camera_state()
+	var intrinsics := {}
+	var has_intrinsics: bool = camera_manager.TryGetIntrinsics(intrinsics)
+	return {
+		"manager": true,
+		"permission_granted": camera_manager.permissionGranted,
+		"camera_background": camera_manager.camera_background_available,
+		"passthrough": camera_manager.passthrough_available,
+		"requested_light_estimation": int(camera_manager.requestedLightEstimation),
+		"current_light_estimation": int(camera_manager.currentLightEstimation),
+		"requested_facing_direction": int(camera_manager.requestedFacingDirection),
+		"current_facing_direction": int(camera_manager.currentFacingDirection),
+		"requested_background_rendering_mode": int(camera_manager.requestedBackgroundRenderingMode),
+		"current_rendering_mode": int(camera_manager.currentRenderingMode),
+		"frame_received_count": camera_manager.frame_received_count,
+		"has_intrinsics": has_intrinsics,
+		"intrinsics": intrinsics,
 	}
 
 

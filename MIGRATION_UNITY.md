@@ -46,6 +46,11 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 | `ARSession.requestedTrackingMode` | `ARSession.requested_tracking_mode`, `get_requested_tracking_mode()`, or `set_requested_tracking_mode(...)` |
 | `ARSession.currentTrackingMode` | `ARSession.get_current_tracking_mode()` |
 | `ARSession.matchFrameRate` / `matchFrameRateRequested` | `XRSessionManager.match_frame_rate` / `match_frame_rate_requested`; native providers may ignore this until their frame pacing bridge is implemented |
+| `ARCameraManager.frameReceived` | `ARCameraManager.frameReceived(args)` and `frame_received(args)` signals; `args` is a Godot `Dictionary` with camera/background/light-estimation/intrinsics metadata |
+| `ARCameraManager.permissionGranted` | `ARCameraManager.permissionGranted` or `get_permission_granted()` |
+| `ARCameraManager.requestedLightEstimation` / `currentLightEstimation` | `requestedLightEstimation`, `requested_light_estimation`, `currentLightEstimation`, and `current_light_estimation`; C00 reports support through provider capabilities |
+| `ARCameraManager.TryGetIntrinsics(out XRCameraIntrinsics)` | `ARCameraManager.TryGetIntrinsics(result_dictionary)`; C00 fills projection-derived Godot camera intrinsics until native provider intrinsics are bridged |
+| `ARCameraManager.TryAcquireLatestCpuImage(out XRCpuImage)` | `ARCameraManager.TryAcquireLatestCpuImage(result_dictionary)` currently returns `false` with `reason:"cpu_image_not_exposed_in_c00"` |
 | `ARRaycastManager.Raycast(Ray, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.RaycastToList(origin, direction, results, max_results, trackable_types)`, `Raycast(origin, direction, max_results, trackable_types)`, or `TryRaycast(...)` |
 | `ARRaycastManager.Raycast(Vector2, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.Raycast(screen_position, results, trackable_types)` when `camera_path` or the active viewport camera is available; explicit-camera aliases remain available through `RaycastFromScreen(camera, ...)`, `RaycastScreenPoint(...)`, `RaycastList(...)`, or `TryScreenRaycast(...)` |
 | `ARRaycastHit.pose` | `XRHit.pose`, `XRHit.get_pose()`, `XRHit.GetPose()`, or `XRHit.to_dictionary().pose` |
@@ -73,6 +78,7 @@ C00 keeps the compatibility layer intentionally thin: it copies the Unity naming
 - `ARSession.state()` follows Unity ARFoundation semantics and returns `XRFoundationTypes.ARSessionState`, not the internal `Stopped/Starting/Running/Failed` lifecycle value.
 - `ARSession.foundation_state()` and `XRFoundation.state` expose the internal lifecycle value when gate scripts need to know whether the provider has started or failed.
 - `ARSession.notTrackingReason()` maps the current Godot/XR tracking status to `XRFoundationTypes.NotTrackingReason`.
+- `ARCameraManager` exposes Unity-style camera lifecycle fields and frame events while clearly reporting C00 limits: camera background/passthrough and light estimation come from provider capabilities, intrinsics are projection-derived unless a future native provider supplies real camera intrinsics, and CPU image acquisition is explicitly unsupported in C00.
 - Manager changed events expose Unity AR Foundation 6-style `trackablesChanged(changes)` with `changes.added`, `changes.updated`, and `changes.removed`, while still emitting legacy `planes_changed(added, updated, removed)` and `anchors_changed(added, updated, removed)` for existing Godot-side scripts.
 - Screen-space raycast can now match Unity's `Raycast(screenPoint, hitResults, trackableTypes)` call shape when `ARRaycastManager.camera_path` is configured, when `SetRaycastCamera(camera)` has been called, or when a viewport/current-scene `Camera3D` can be discovered. Explicit-camera aliases remain available for deterministic tests and nonstandard rigs.
 - Native ARKit/ARCore singleton bridges can return anchor dictionaries; `NativeXRProvider` preserves `trackable_id`, `persistent_id`, `transform`, and `tracking_state` through `ARAnchor.from_dictionary()`.
@@ -137,6 +143,7 @@ For Unity service classes that currently depend on `ARSession`, keep them talkin
 
 ```gdscript
 @onready var camera: Camera3D = $XRFoundationRig/XRCamera3D
+@onready var camera_manager: ARCameraManager = $ARCameraManager
 @onready var raycast_manager: ARRaycastManager = $ARRaycastManager
 @onready var anchor_manager: ARAnchorManager = $ARAnchorManager
 
@@ -154,6 +161,7 @@ Unity-style list output is also supported:
 
 ```gdscript
 func _ready() -> void:
+	camera_manager.SetCamera(camera)
 	raycast_manager.SetRaycastCamera(camera)
 
 func place_from_screen_unity_style(screen_position: Vector2) -> void:
@@ -168,6 +176,18 @@ func place_from_screen_unity_style(screen_position: Vector2) -> void:
 	var anchor: ARAnchor = result.get("anchor")
 	var instance := preload("res://prefabs/placed_object.tscn").instantiate()
 	anchor.node.add_child(instance)
+```
+
+Unity-style camera frame metadata can be consumed without touching ARKit/ARCore/OpenXR SDK classes:
+
+```gdscript
+func _ready() -> void:
+	camera_manager.frameReceived.connect(_on_camera_frame)
+
+func _on_camera_frame(args: Dictionary) -> void:
+	if bool(args.get("has_intrinsics", false)):
+		var intrinsics: Dictionary = args.get("intrinsics", {})
+		print(intrinsics.get("focal_length", []))
 ```
 
 ## C# Projects
@@ -197,6 +217,7 @@ The provider layer in this addon is designed so those features can be added per 
 
 - Unity AR Foundation `ARSession`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%404.2/api/UnityEngine.XR.ARFoundation.ARSession.html
 - Unity AR Foundation managers architecture: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%405.0/manual/architecture/managers.html
+- Unity AR Foundation 6 `ARCameraManager`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.1/api/UnityEngine.XR.ARFoundation.ARCameraManager.html
 - Unity AR Foundation 6 `ARPlaneManager.trackablesChanged`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.0/manual/features/plane-detection/arplanemanager.html
 - Unity AR Foundation 6 `ARRaycastManager` single raycasts: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.0/manual/features/raycasts.html
 - Unity XR Interaction Toolkit `XRRayInteractor`: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%402.5/manual/xr-ray-interactor.html

@@ -169,6 +169,19 @@ function evaluateGate(events, gate, options) {
 	if (!evidence.trackables || typeof evidence.trackables !== "object") {
 		failures.push("Trackables metadata is missing from GXF_SMOKE evidence.");
 	}
+	if (!evidence.camera || typeof evidence.camera !== "object") {
+		failures.push("ARCameraManager camera metadata is missing from GXF_SMOKE evidence.");
+	} else {
+		if (evidence.camera.manager !== true) {
+			failures.push("ARCameraManager camera metadata must include manager=true.");
+		}
+		if (typeof evidence.camera.permission_granted !== "boolean") {
+			failures.push("ARCameraManager camera metadata must include boolean permission_granted.");
+		}
+		if (typeof evidence.camera.has_intrinsics !== "boolean") {
+			failures.push("ARCameraManager camera metadata must include boolean has_intrinsics.");
+		}
+	}
 
 	if (!evidence.tracking || evidence.tracking === "None") {
 		warnings.push("Tracking state is missing or None.");

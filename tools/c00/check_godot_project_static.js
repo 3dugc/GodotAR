@@ -22,6 +22,7 @@ checkScene("demo/00_device_smoke_test.tscn", {
 	requiredNodes: [
 		"DeviceSmokeTest",
 		"DeviceSmokeTest/ARSession",
+		"DeviceSmokeTest/ARCameraManager",
 		"DeviceSmokeTest/XRFoundationRig",
 		"DeviceSmokeTest/XRFoundationRig/XRCamera3D/XRRayInteractor",
 		"DeviceSmokeTest/ARRaycastManager",
@@ -35,6 +36,7 @@ checkScene("demo/00_device_smoke_test.tscn", {
 		"res://demo/00_device_smoke_test.gd",
 		"res://addons/godot_xr_foundation/scenes/xr_foundation_rig.tscn",
 		"res://addons/godot_xr_foundation/scripts/arfoundation/ar_session.gd",
+		"res://addons/godot_xr_foundation/scripts/arfoundation/ar_camera_manager.gd",
 		"res://addons/godot_xr_foundation/scripts/arfoundation/ar_raycast_manager.gd",
 		"res://addons/godot_xr_foundation/scripts/arfoundation/ar_plane_manager.gd",
 		"res://addons/godot_xr_foundation/scripts/arfoundation/ar_anchor_manager.gd",
@@ -45,6 +47,7 @@ checkScene("demo/00_device_smoke_test.tscn", {
 	requiredNodePaths: [
 		{ node: "DeviceSmokeTest/ARPlaneManager", property: "xr_origin_path", target: "DeviceSmokeTest/XRFoundationRig" },
 		{ node: "DeviceSmokeTest/ARAnchorManager", property: "anchors_parent_path", target: "DeviceSmokeTest/XRFoundationRig" },
+		{ node: "DeviceSmokeTest/ARCameraManager", property: "camera_path", target: "DeviceSmokeTest/XRFoundationRig/XRCamera3D" },
 		{ node: "DeviceSmokeTest/XRFoundationRig/XRCamera3D/XRRayInteractor", property: "interaction_manager_path", target: "DeviceSmokeTest/XRInteractionManager" },
 		{ node: "DeviceSmokeTest/World/XRGrabInteractable", property: "interaction_manager_path", target: "DeviceSmokeTest/XRInteractionManager" },
 	],
@@ -153,7 +156,9 @@ function checkStartupHintSurface() {
 	addCheck(localEvidence, "resolved platform runtime metadata", /"resolved_platform_hint"\s*:\s*XRFoundation\.resolve_platform_hint/.test(demoText), `${demoFile}: smoke runtime metadata should include resolved_platform_hint.`);
 	addCheck(localEvidence, "project platform runtime metadata", /"project_platform_hint"\s*:\s*String\(ProjectSettings\.get_setting\("godot_xr_foundation\/platform_hint"/.test(demoText), `${demoFile}: smoke runtime metadata should include project_platform_hint.`);
 	addCheck(localEvidence, "trackables smoke metadata", /"trackables"\s*:\s*_trackables_metadata\(\)/.test(demoText), `${demoFile}: smoke payload should include trackables metadata.`);
+	addCheck(localEvidence, "camera smoke metadata", /"camera"\s*:\s*_camera_metadata\(\)/.test(demoText), `${demoFile}: smoke payload should include camera metadata.`);
 	addCheck(localEvidence, "trackables metadata helper", /func\s+_trackables_metadata\s*\(\)\s*->\s*Dictionary/.test(demoText), `${demoFile}: missing _trackables_metadata().`);
+	addCheck(localEvidence, "camera metadata helper", /func\s+_camera_metadata\s*\(\)\s*->\s*Dictionary/.test(demoText), `${demoFile}: missing _camera_metadata().`);
 	addCheck(localEvidence, "center screen raycast evidence", /func\s+_center_screen_raycast\s*\(\)\s*->\s*Array\[XRHit\]/.test(demoText), `${demoFile}: missing center screen raycast evidence helper.`);
 	evidence.push(localEvidence);
 }
