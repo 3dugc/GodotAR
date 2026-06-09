@@ -2,7 +2,7 @@
 
 ## Unity Baseline
 
-Target the newest public Unity XR design first, including pre-release, preview, alpha/beta release notes, or otherwise unreleased package documentation when Unity publishes it. As of 2026-06-09, Unity 6000.6 alpha release notes expose the newest observed XR package baseline: `com.unity.xr.arfoundation@6.5.0`, `com.unity.xr.core-utils@2.6.0`, `com.unity.xr.interaction.toolkit@3.5.0`, `com.unity.xr.openxr@1.17.0`, `com.unity.xr.arcore@6.5.0`, `com.unity.xr.arkit@6.5.0`, and `com.unity.xr.androidxr-openxr@1.3.1`. Unity 6.4 package manuals remain the detailed public API reference where 6.5 manuals are not separately published.
+Target the newest public Unity XR design first, including pre-release, preview, alpha/beta release notes, or otherwise unreleased package documentation when Unity publishes it. As of 2026-06-09, Unity 6000.6 alpha release notes and current package docs expose this XR baseline: `com.unity.xr.arfoundation@6.5.0`, `com.unity.xr.core-utils@2.6.0`, `com.unity.xr.interaction.toolkit@3.5.1`, `com.unity.xr.openxr@1.17.0`, `com.unity.xr.arcore@6.5.0`, `com.unity.xr.arkit@6.5.0`, and `com.unity.xr.androidxr-openxr@1.3.1`. Unity 6.5 package manuals are the current public package reference; Unity 6.4 package API pages remain the detailed fallback only where 6.5 API pages are not separately visible.
 
 Implementation rule: prefer the latest `XROrigin` / manager / subsystem shape, then keep deprecated Unity APIs as compatibility shims only when they materially reduce migration cost.
 

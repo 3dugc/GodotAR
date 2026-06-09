@@ -13,7 +13,7 @@ SCHEME="${SCHEME:-}"
 TARGET_NAME="${TARGET_NAME:-}"
 CONFIGURATION="${CONFIGURATION:-Debug}"
 ALLOW_PROVISIONING_UPDATES="${ALLOW_PROVISIONING_UPDATES:-1}"
-TEAM_ID="${TEAM_ID:-${DEVELOPMENT_TEAM:-}}"
+TEAM_ID="${TEAM_ID:-${DEVELOPMENT_TEAM:-${IPAD_TEAM_ID:-${APPLE_TEAM_ID:-}}}}"
 BUNDLE_ID="${BUNDLE_ID:-${PACKAGE:-org.godotengine.godotxrfoundation}}"
 CODE_SIGN_STYLE="${CODE_SIGN_STYLE:-Automatic}"
 CODE_SIGNING_ALLOWED="${CODE_SIGNING_ALLOWED:-}"
@@ -34,6 +34,7 @@ Environment:
   TARGET_NAME                    Optional Xcode target fallback when no scheme exists.
   CONFIGURATION                  Debug | Release. Default: Debug.
   TEAM_ID / DEVELOPMENT_TEAM     Optional Apple team id passed to xcodebuild.
+  IPAD_TEAM_ID / APPLE_TEAM_ID   Optional aliases for device-machine iPad signing.
   BUNDLE_ID / PACKAGE            Optional bundle id override.
   CODE_SIGN_STYLE                Default: Automatic.
   CODE_SIGNING_ALLOWED           Optional xcodebuild override, useful as NO for Simulator.

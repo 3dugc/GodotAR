@@ -128,6 +128,11 @@ const checks = [
 			required: true,
 		},
 		{
+			name: "iPad signing setup surface",
+			command: ["node", "tools/c00/check_ios_signing_surface.js"],
+			required: true,
+		},
+		{
 			name: "ARKit Objective-C++ syntax smoke",
 			command: ["bash", "tools/c00/check_arkit_plugin_static.sh"],
 			required: true,

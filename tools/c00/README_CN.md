@@ -796,6 +796,18 @@ Android ARCore gate 要求：
 ## iPad 日志采集
 
 iPad 导出 preset 请先按 `tools/c00/EXPORT_PRESETS_CN.md` 创建。
+真机安装前，把 starter 里的 `ABCDE12345` 替换成本机 Apple Developer Team ID；脚本只写 Team ID / bundle id，不写证书、密码或 provisioning profile：
+
+```bash
+IPAD_TEAM_ID=<10-char-team-id> \
+node tools/c00/configure_ios_signing.js --bundle-id org.godotengine.godotxrfoundation
+```
+
+只检查当前 preset 是否已换成真实 Team ID：
+
+```bash
+node tools/c00/configure_ios_signing.js --check-only
+```
 
 命令行导出可使用：
 
@@ -806,6 +818,7 @@ tools/c00/export_with_godot.sh "C00 iPad ARKit" builds/ipad/c00.zip
 将导出的 Xcode project zip 构建成可安装 `.app`：
 
 ```bash
+IPAD_TEAM_ID=<10-char-team-id> \
 tools/c00/build_ios_xcode_project.sh builds/ipad/c00.zip <device-uuid-or-name>
 ```
 

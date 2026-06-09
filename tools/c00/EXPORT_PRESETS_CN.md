@@ -149,6 +149,19 @@ tools/c00/run_device_cycle.sh rokid-place
 - Demo route: 需要跑 iPad/ARKit placement 时追加 `--xr-scene=ios_arkit_place`
 - Export path: `builds/ipad/c00.zip`
 
+设备机可用 signing helper 同时更新 C00/C04 iPad preset 的 Team ID 和 bundle id；它不会写证书、密码或 provisioning profile：
+
+```bash
+IPAD_TEAM_ID=<10-char-team-id> \
+node tools/c00/configure_ios_signing.js --bundle-id org.godotengine.godotxrfoundation
+```
+
+只验证当前 preset 是否已经不是占位 Team ID：
+
+```bash
+node tools/c00/configure_ios_signing.js --check-only
+```
+
 ## Preset 5: C04 iPad ARKit Place
 
 平台：iOS
@@ -192,6 +205,7 @@ tools/c00/export_with_godot.sh "C00 iPad ARKit" builds/ipad/c00.zip
 Godot iOS 导出通常生成 Xcode project zip。设备机可继续用脚本构建 `.app`：
 
 ```bash
+IPAD_TEAM_ID=<10-char-team-id> \
 tools/c00/build_ios_xcode_project.sh builds/ipad/c00.zip <device-uuid-or-name>
 ```
 
