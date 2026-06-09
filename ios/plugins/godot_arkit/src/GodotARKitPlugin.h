@@ -34,6 +34,9 @@ public:
 
 	Dictionary check_availability();
 	Dictionary get_capabilities();
+	Dictionary try_get_intrinsics();
+	Dictionary get_camera_frame();
+	Dictionary get_light_estimation();
 	Array hit_test(const Vector3 &origin, const Vector3 &direction, double max_distance);
 	Dictionary create_anchor(const Transform3D &transform, Variant attached_trackable = Variant());
 	Array get_planes();

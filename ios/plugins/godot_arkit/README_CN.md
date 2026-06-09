@@ -11,6 +11,9 @@ C00 只要求 iPad 能证明 ARKit provider 可用：
 - `GodotARKit.get_capabilities().native_plugin == true`
 - `GodotARKit.get_tracking_status()` 返回 Godot `XRInterface` tracking status，并能区分 `normal`、`limited`、`not_available`
 - `GodotARKit.get_capabilities()` 暴露 `arkit_tracking_state` 和 `arkit_tracking_reason`
+- `GodotARKit.try_get_intrinsics()` 暴露 ARKit `ARFrame.camera.intrinsics` / `imageResolution`，供 `ARCameraManager.TryGetIntrinsics(...)` 优先使用真实设备相机模型
+- `GodotARKit.get_camera_frame()` 暴露 C00 级 frame metadata：timestamp、tracking state/reason、intrinsics、light estimation
+- `GodotARKit.get_light_estimation()` 暴露 ARKit `ARFrame.lightEstimate` 的 ambient intensity / color temperature
 - `GodotARKit.hit_test()` 使用 ARKit `ARRaycastQuery` 返回 C00 级 native raycast hit 字典
 - `GodotARKit.get_planes()` 使用 ARKit `ARPlaneAnchor` 返回 C00 级 plane 字典
 - `hit_test()` / `get_planes()` 返回 native ARKit transform pose，供 `XRHit.get_pose()` 和 Unity-style placement workflow 使用
@@ -43,6 +46,9 @@ is_running() -> bool
 get_tracking_status() -> int
 check_availability() -> Dictionary
 get_capabilities() -> Dictionary
+try_get_intrinsics() -> Dictionary
+get_camera_frame() -> Dictionary
+get_light_estimation() -> Dictionary
 hit_test(origin: Vector3, direction: Vector3, max_distance: float) -> Array[Dictionary]
 create_anchor(transform: Transform3D, attached_trackable: Variant) -> Dictionary
 get_planes() -> Array[Dictionary]
@@ -57,6 +63,38 @@ get_planes() -> Array[Dictionary]
 	"arkit_tracking_status": 2,
 	"arkit_tracking_state": "normal",
 	"arkit_tracking_reason": "none"
+}
+```
+
+`try_get_intrinsics()` 返回字段会尽量贴近 Unity `XRCameraIntrinsics`：
+
+```gdscript
+{
+	"success": true,
+	"focal_length": [fx, fy],
+	"principal_point": [cx, cy],
+	"resolution": [width, height],
+	"matrix": [m00, m01, ...],
+	"source": "arkit_camera_intrinsics"
+}
+```
+
+`get_camera_frame()` 返回字段：
+
+```gdscript
+{
+	"available": true,
+	"runtime": "ARKit",
+	"timestamp_msec": 12345.0,
+	"tracking_state": "normal",
+	"tracking_reason": "none",
+	"has_intrinsics": true,
+	"intrinsics": {...},
+	"has_light_estimate": true,
+	"light_estimation": {
+		"ambient_intensity": 1000.0,
+		"ambient_color_temperature": 6500.0
+	}
 }
 ```
 

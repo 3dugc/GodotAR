@@ -159,6 +159,8 @@ function checkStartupHintSurface() {
 	addCheck(localEvidence, "camera smoke metadata", /"camera"\s*:\s*_camera_metadata\(\)/.test(demoText), `${demoFile}: smoke payload should include camera metadata.`);
 	addCheck(localEvidence, "trackables metadata helper", /func\s+_trackables_metadata\s*\(\)\s*->\s*Dictionary/.test(demoText), `${demoFile}: missing _trackables_metadata().`);
 	addCheck(localEvidence, "camera metadata helper", /func\s+_camera_metadata\s*\(\)\s*->\s*Dictionary/.test(demoText), `${demoFile}: missing _camera_metadata().`);
+	addCheck(localEvidence, "native camera intrinsics smoke metadata", /native_intrinsics_available/.test(demoText), `${demoFile}: camera metadata should include native_intrinsics_available.`);
+	addCheck(localEvidence, "native camera frame smoke metadata", /native_frame_available/.test(demoText), `${demoFile}: camera metadata should include native_frame_available.`);
 	addCheck(localEvidence, "center screen raycast evidence", /func\s+_center_screen_raycast\s*\(\)\s*->\s*Array\[XRHit\]/.test(demoText), `${demoFile}: missing center screen raycast evidence helper.`);
 	evidence.push(localEvidence);
 }

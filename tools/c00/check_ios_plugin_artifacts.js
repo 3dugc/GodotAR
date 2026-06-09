@@ -102,10 +102,16 @@ if (!source) {
 	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"is_running\")", "Source must bind is_running for runtime smoke diagnostics.");
 	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"get_tracking_status\")", "Source must bind get_tracking_status for ARFoundation state mapping.");
 	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"get_capabilities\")", "Source must bind get_capabilities for iPad C00 evidence.");
+	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"try_get_intrinsics\")", "Source must bind try_get_intrinsics for ARCameraManager migration smoke.");
+	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"get_camera_frame\")", "Source must bind get_camera_frame for frameReceived evidence.");
+	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"get_light_estimation\")", "Source must bind get_light_estimation for Unity-style light estimation evidence.");
 	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"hit_test\"", "Source must bind hit_test for ARRaycastManager migration smoke.");
 	requireSourceIncludes(source, "ClassDB::bind_method(D_METHOD(\"get_planes\"", "Source must bind get_planes for ARPlaneManager migration smoke.");
 	requireSourceIncludes(source, "[arkit_session start]", "start_session must call the native ARKit session start path.");
 	requireSourceIncludes(source, "[arkit_session stop]", "stop_session must call the native ARKit session stop path.");
+	requireSourceIncludes(source, "[arkit_session cameraIntrinsics]", "try_get_intrinsics must call the native ARKit camera intrinsics path.");
+	requireSourceIncludes(source, "[arkit_session cameraFrame]", "get_camera_frame must call the native ARKit frame path.");
+	requireSourceIncludes(source, "[arkit_session lightEstimate]", "get_light_estimation must call the native ARKit light estimate path.");
 	requireSourceIncludes(source, "hitTestFromOrigin", "hit_test must call the native ARKit raycast path.");
 	requireSourceIncludes(source, "[arkit_session planes]", "get_planes must call the native ARKit plane path.");
 	requireSourceIncludes(source, "transform_from_array", "Source must preserve native ARKit transform matrices for Unity-style hit/plane poses.");
@@ -123,6 +129,9 @@ if (!header) {
 		"bool is_running();",
 		"int get_tracking_status();",
 		"Dictionary get_capabilities();",
+		"Dictionary try_get_intrinsics();",
+		"Dictionary get_camera_frame();",
+		"Dictionary get_light_estimation();",
 		"Array hit_test(const Vector3 &origin, const Vector3 &direction, double max_distance);",
 		"Array get_planes();",
 	]) {
@@ -137,8 +146,13 @@ if (!sessionSource) {
 	requireSourceIncludes(sessionSource, "ARWorldTrackingConfiguration", "GodotARKitSession must use ARWorldTrackingConfiguration.");
 	requireSourceIncludes(sessionSource, "runWithConfiguration", "GodotARKitSession must run ARSession with a configuration.");
 	requireSourceIncludes(sessionSource, "planeDetection", "GodotARKitSession should request horizontal/vertical plane detection for C00 diagnostics.");
+	requireSourceIncludes(sessionSource, "lightEstimationEnabled", "GodotARKitSession should enable ARKit light estimation for ARCameraManager evidence.");
 	requireSourceIncludes(sessionSource, "cameraDidChangeTrackingState", "GodotARKitSession must observe ARKit tracking state changes.");
 	requireSourceIncludes(sessionSource, "didUpdateFrame", "GodotARKitSession must observe ARFrame updates.");
+	requireSourceIncludes(sessionSource, "camera.intrinsics", "GodotARKitSession must expose ARCamera intrinsics.");
+	requireSourceIncludes(sessionSource, "camera.imageResolution", "GodotARKitSession must expose ARCamera image resolution.");
+	requireSourceIncludes(sessionSource, "frame.lightEstimate", "GodotARKitSession must expose ARFrame light estimation.");
+	requireSourceIncludes(sessionSource, "cameraFrame", "GodotARKitSession must expose camera frame metadata.");
 	requireSourceIncludes(sessionSource, "ARRaycastQuery", "GodotARKitSession must use ARRaycastQuery for native raycasts.");
 	requireSourceIncludes(sessionSource, "raycast:query", "GodotARKitSession must call ARSession raycast:query.");
 	requireSourceIncludes(sessionSource, "matrixArrayFromTransform", "GodotARKitSession must export native ARKit matrices for hit/plane pose evidence.");
@@ -160,6 +174,9 @@ if (!sessionHeader) {
 		"- (BOOL)isRunning;",
 		"- (NSInteger)trackingStatus;",
 		"- (NSDictionary *)capabilities;",
+		"- (NSDictionary *)cameraIntrinsics;",
+		"- (NSDictionary *)cameraFrame;",
+		"- (NSDictionary *)lightEstimate;",
 		"- (NSArray<NSDictionary *> *)hitTestFromOrigin:",
 		"- (NSArray<NSDictionary *> *)planes;",
 	]) {

@@ -232,6 +232,12 @@ function evaluateGate(events, gate, options) {
 		if (!getCapability(evidence, "arkit_tracking_reason")) {
 			failures.push("iPad gate requires capabilities.arkit_tracking_reason so ARKit tracking limits can be diagnosed.");
 		}
+		if (!evidence.camera || typeof evidence.camera.native_intrinsics_available !== "boolean") {
+			failures.push("iPad gate requires ARCameraManager camera metadata to include boolean native_intrinsics_available.");
+		}
+		if (!evidence.camera || typeof evidence.camera.native_frame_available !== "boolean") {
+			failures.push("iPad gate requires ARCameraManager camera metadata to include boolean native_frame_available.");
+		}
 	}
 
 	if (gate === "android-arcore") {

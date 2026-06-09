@@ -23,6 +23,35 @@ static NSArray *matrixArrayFromTransform(simd_float4x4 transform) {
 	];
 }
 
+static NSArray *matrixArrayFromIntrinsics(matrix_float3x3 intrinsics) {
+	return @[
+		@(intrinsics.columns[0].x), @(intrinsics.columns[0].y), @(intrinsics.columns[0].z),
+		@(intrinsics.columns[1].x), @(intrinsics.columns[1].y), @(intrinsics.columns[1].z),
+		@(intrinsics.columns[2].x), @(intrinsics.columns[2].y), @(intrinsics.columns[2].z),
+	];
+}
+
+static NSDictionary *intrinsicsDictionaryFromCamera(ARCamera *camera) {
+	if (camera == nil) {
+		return @{
+			@"success": @NO,
+			@"reason": @"camera_unavailable",
+			@"source": @"arkit_camera_intrinsics",
+		};
+	}
+
+	matrix_float3x3 intrinsics = camera.intrinsics;
+	CGSize resolution = camera.imageResolution;
+	return @{
+		@"success": @YES,
+		@"focal_length": @[@(intrinsics.columns[0].x), @(intrinsics.columns[1].y)],
+		@"principal_point": @[@(intrinsics.columns[2].x), @(intrinsics.columns[2].y)],
+		@"resolution": @[@((NSInteger)resolution.width), @((NSInteger)resolution.height)],
+		@"matrix": matrixArrayFromIntrinsics(intrinsics),
+		@"source": @"arkit_camera_intrinsics",
+	};
+}
+
 - (instancetype)init {
 	self = [super init];
 	if (self) {
@@ -57,6 +86,7 @@ static NSArray *matrixArrayFromTransform(simd_float4x4 transform) {
 	if (@available(iOS 11.3, *)) {
 		configuration.planeDetection = ARPlaneDetectionHorizontal | ARPlaneDetectionVertical;
 	}
+	configuration.lightEstimationEnabled = YES;
 	[_session runWithConfiguration:configuration];
 	_running = YES;
 	[self updateTrackingFromFrame:_session.currentFrame];
@@ -87,6 +117,7 @@ static NSArray *matrixArrayFromTransform(simd_float4x4 transform) {
 
 - (NSDictionary *)capabilities {
 	BOOL supported = [self isSupported];
+	ARFrame *frame = _session.currentFrame;
 	return @{
 		@"session": @(supported),
 		@"tracking": @(_trackingStatus == 2),
@@ -95,6 +126,7 @@ static NSArray *matrixArrayFromTransform(simd_float4x4 transform) {
 		@"raycast": @(supported),
 		@"plane_detection": @(supported),
 		@"anchors": @(supported),
+		@"light_estimation": @(supported),
 		@"native_plugin": @YES,
 		@"ar_product_path": @(supported),
 		@"arkit_supported": @(supported),
@@ -102,6 +134,65 @@ static NSArray *matrixArrayFromTransform(simd_float4x4 transform) {
 		@"arkit_tracking_status": @(_trackingStatus),
 		@"arkit_tracking_state": [self trackingStateName],
 		@"arkit_tracking_reason": [self trackingStateReason],
+		@"arkit_camera_frame_available": @(frame != nil),
+		@"arkit_camera_intrinsics": @(frame != nil && frame.camera != nil),
+	};
+}
+
+- (NSDictionary *)cameraIntrinsics {
+	ARFrame *frame = _session.currentFrame;
+	if (!_running || frame == nil) {
+		return @{
+			@"success": @NO,
+			@"reason": _running ? @"waiting_for_frame" : @"not_running",
+			@"source": @"arkit_camera_intrinsics",
+		};
+	}
+	return intrinsicsDictionaryFromCamera(frame.camera);
+}
+
+- (NSDictionary *)lightEstimate {
+	ARFrame *frame = _session.currentFrame;
+	if (!_running || frame == nil || frame.lightEstimate == nil) {
+		return @{
+			@"available": @NO,
+			@"reason": _running ? @"waiting_for_light_estimate" : @"not_running",
+			@"source": @"arkit_light_estimate",
+		};
+	}
+
+	ARLightEstimate *estimate = frame.lightEstimate;
+	return @{
+		@"available": @YES,
+		@"ambient_intensity": @(estimate.ambientIntensity),
+		@"ambient_color_temperature": @(estimate.ambientColorTemperature),
+		@"source": @"arkit_light_estimate",
+	};
+}
+
+- (NSDictionary *)cameraFrame {
+	ARFrame *frame = _session.currentFrame;
+	if (!_running || frame == nil) {
+		return @{
+			@"available": @NO,
+			@"reason": _running ? @"waiting_for_frame" : @"not_running",
+			@"runtime": @"ARKit",
+		};
+	}
+
+	NSDictionary *intrinsics = [self cameraIntrinsics];
+	NSDictionary *lightEstimate = [self lightEstimate];
+	return @{
+		@"available": @YES,
+		@"runtime": @"ARKit",
+		@"timestamp": @(frame.timestamp),
+		@"timestamp_msec": @(frame.timestamp * 1000.0),
+		@"tracking_state": [self trackingStateName],
+		@"tracking_reason": [self trackingStateReason],
+		@"has_intrinsics": @([intrinsics[@"success"] boolValue]),
+		@"intrinsics": intrinsics,
+		@"has_light_estimate": @([lightEstimate[@"available"] boolValue]),
+		@"light_estimation": lightEstimate,
 	};
 }
 

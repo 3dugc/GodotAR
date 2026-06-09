@@ -85,6 +85,10 @@ const checks = [
 			["GetLatestFrame API", /func\s+GetLatestFrame\s*\(/],
 			["SetCamera alias", /func\s+SetCamera\s*\(/],
 			["camera capability metadata", /camera_background_available|passthrough_available/],
+			["native camera frame metadata", /native_camera_frame/],
+			["native camera singleton lookup", /func\s+_find_native_camera_singleton\s*\(/],
+			["native intrinsics lookup", /func\s+_try_get_native_intrinsics\s*\(/],
+			["ARKit singleton support", /GodotARKit/],
 		],
 	},
 	{
@@ -202,6 +206,8 @@ const checks = [
 			["camera manager flag required", /manager=true/],
 			["camera permission type required", /boolean permission_granted/],
 			["camera intrinsics type required", /boolean has_intrinsics/],
+			["native intrinsics type required", /boolean native_intrinsics_available/],
+			["native frame type required", /boolean native_frame_available/],
 		],
 	},
 	{

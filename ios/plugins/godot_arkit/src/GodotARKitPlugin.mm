@@ -79,6 +79,70 @@ static Transform3D transform_from_array(NSArray *p_values, const Vector3 &p_fall
 	return transform;
 }
 
+static Array double_array_from_native(NSArray *p_values) {
+	Array values;
+	for (NSNumber *value in p_values) {
+		values.push_back([value doubleValue]);
+	}
+	return values;
+}
+
+static Dictionary intrinsics_from_native(NSDictionary *p_native) {
+	Dictionary intrinsics;
+	if (p_native == nil) {
+		intrinsics["success"] = false;
+		intrinsics["reason"] = String("native_intrinsics_unavailable");
+		intrinsics["source"] = String("arkit_camera_intrinsics");
+		return intrinsics;
+	}
+	intrinsics["success"] = [p_native[@"success"] boolValue];
+	intrinsics["focal_length"] = double_array_from_native(p_native[@"focal_length"] ?: @[]);
+	intrinsics["principal_point"] = double_array_from_native(p_native[@"principal_point"] ?: @[]);
+	intrinsics["resolution"] = double_array_from_native(p_native[@"resolution"] ?: @[]);
+	intrinsics["matrix"] = double_array_from_native(p_native[@"matrix"] ?: @[]);
+	intrinsics["reason"] = ns_string_to_godot(p_native[@"reason"]);
+	intrinsics["source"] = ns_string_to_godot(p_native[@"source"]);
+	return intrinsics;
+}
+
+static Dictionary light_estimation_from_native(NSDictionary *p_native) {
+	Dictionary estimate;
+	if (p_native == nil) {
+		estimate["available"] = false;
+		estimate["reason"] = String("native_light_estimate_unavailable");
+		estimate["source"] = String("arkit_light_estimate");
+		return estimate;
+	}
+	estimate["available"] = [p_native[@"available"] boolValue];
+	estimate["ambient_intensity"] = [p_native[@"ambient_intensity"] doubleValue];
+	estimate["ambient_color_temperature"] = [p_native[@"ambient_color_temperature"] doubleValue];
+	estimate["reason"] = ns_string_to_godot(p_native[@"reason"]);
+	estimate["source"] = ns_string_to_godot(p_native[@"source"]);
+	return estimate;
+}
+
+static Dictionary camera_frame_from_native(NSDictionary *p_native) {
+	Dictionary frame;
+	if (p_native == nil) {
+		frame["available"] = false;
+		frame["reason"] = String("native_camera_frame_unavailable");
+		frame["runtime"] = String("ARKit");
+		return frame;
+	}
+	frame["available"] = [p_native[@"available"] boolValue];
+	frame["reason"] = ns_string_to_godot(p_native[@"reason"]);
+	frame["runtime"] = ns_string_to_godot(p_native[@"runtime"]);
+	frame["timestamp"] = [p_native[@"timestamp"] doubleValue];
+	frame["timestamp_msec"] = [p_native[@"timestamp_msec"] doubleValue];
+	frame["tracking_state"] = ns_string_to_godot(p_native[@"tracking_state"]);
+	frame["tracking_reason"] = ns_string_to_godot(p_native[@"tracking_reason"]);
+	frame["has_intrinsics"] = [p_native[@"has_intrinsics"] boolValue];
+	frame["intrinsics"] = intrinsics_from_native(p_native[@"intrinsics"]);
+	frame["has_light_estimate"] = [p_native[@"has_light_estimate"] boolValue];
+	frame["light_estimation"] = light_estimation_from_native(p_native[@"light_estimation"]);
+	return frame;
+}
+
 GodotARKitPlugin *GodotARKitPlugin::get_singleton() {
 	return godot_arkit_singleton;
 }
@@ -94,6 +158,9 @@ void GodotARKitPlugin::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("check_availability"), &GodotARKitPlugin::check_availability);
 	ClassDB::bind_method(D_METHOD("get_capabilities"), &GodotARKitPlugin::get_capabilities);
+	ClassDB::bind_method(D_METHOD("try_get_intrinsics"), &GodotARKitPlugin::try_get_intrinsics);
+	ClassDB::bind_method(D_METHOD("get_camera_frame"), &GodotARKitPlugin::get_camera_frame);
+	ClassDB::bind_method(D_METHOD("get_light_estimation"), &GodotARKitPlugin::get_light_estimation);
 	ClassDB::bind_method(D_METHOD("hit_test", "origin", "direction", "max_distance"), &GodotARKitPlugin::hit_test);
 	ClassDB::bind_method(D_METHOD("create_anchor", "transform", "attached_trackable"), &GodotARKitPlugin::create_anchor, DEFVAL(Variant()));
 	ClassDB::bind_method(D_METHOD("get_planes"), &GodotARKitPlugin::get_planes);
@@ -170,7 +237,7 @@ Dictionary GodotARKitPlugin::get_capabilities() {
 	capabilities["plane_detection"] = supported;
 	capabilities["anchors"] = supported;
 	capabilities["persistent_anchors"] = false;
-	capabilities["light_estimation"] = false;
+	capabilities["light_estimation"] = supported;
 	capabilities["depth"] = false;
 	capabilities["image_tracking"] = false;
 	capabilities["native_plugin"] = true;
@@ -184,9 +251,35 @@ Dictionary GodotARKitPlugin::get_capabilities() {
 		capabilities["arkit_tracking_status"] = (int64_t)[native_capabilities[@"arkit_tracking_status"] integerValue];
 		capabilities["arkit_tracking_state"] = ns_string_to_godot(native_capabilities[@"arkit_tracking_state"]);
 		capabilities["arkit_tracking_reason"] = ns_string_to_godot(native_capabilities[@"arkit_tracking_reason"]);
+		capabilities["arkit_camera_frame_available"] = [native_capabilities[@"arkit_camera_frame_available"] boolValue];
+		capabilities["arkit_camera_intrinsics"] = [native_capabilities[@"arkit_camera_intrinsics"] boolValue];
 	}
 
 	return capabilities;
+}
+
+Dictionary GodotARKitPlugin::try_get_intrinsics() {
+	GodotARKitSession *arkit_session = get_session(session);
+	if (arkit_session == nil) {
+		return intrinsics_from_native(nil);
+	}
+	return intrinsics_from_native([arkit_session cameraIntrinsics]);
+}
+
+Dictionary GodotARKitPlugin::get_camera_frame() {
+	GodotARKitSession *arkit_session = get_session(session);
+	if (arkit_session == nil) {
+		return camera_frame_from_native(nil);
+	}
+	return camera_frame_from_native([arkit_session cameraFrame]);
+}
+
+Dictionary GodotARKitPlugin::get_light_estimation() {
+	GodotARKitSession *arkit_session = get_session(session);
+	if (arkit_session == nil) {
+		return light_estimation_from_native(nil);
+	}
+	return light_estimation_from_native([arkit_session lightEstimate]);
 }
 
 Array GodotARKitPlugin::hit_test(const Vector3 &p_origin, const Vector3 &p_direction, double p_max_distance) {

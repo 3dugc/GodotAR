@@ -50,6 +50,8 @@ var camera_background_available := false
 var passthrough_available := false
 var frame_received_count := 0
 var latest_frame := {}
+var native_camera_frame := {}
+var native_intrinsics_available := false
 
 var _last_frame_event_msec := 0
 
@@ -72,6 +74,7 @@ func _process(_delta: float) -> void:
 
 func update_camera_state() -> Dictionary:
 	var capabilities := XRFoundation.get_capabilities()
+	native_camera_frame = _get_native_camera_frame()
 	camera_background_available = bool(capabilities.get("camera_background", false))
 	passthrough_available = bool(capabilities.get("passthrough", false))
 	permissionGranted = (
@@ -79,14 +82,16 @@ func update_camera_state() -> Dictionary:
 		or passthrough_available
 		or bool(capabilities.get("native_plugin", false))
 		or bool(capabilities.get("simulation", false))
+		or bool(native_camera_frame.get("available", false))
 	)
-	currentLightEstimation = requestedLightEstimation if bool(capabilities.get("light_estimation", false)) else LightEstimation.NONE
+	var native_light_estimate := bool(native_camera_frame.get("has_light_estimate", false))
+	currentLightEstimation = requestedLightEstimation if (bool(capabilities.get("light_estimation", false)) or native_light_estimate) else LightEstimation.NONE
 	current_light_estimation = currentLightEstimation
 	currentFacingDirection = requestedFacingDirection
 	current_facing_direction = currentFacingDirection
 	currentRenderingMode = _resolve_rendering_mode()
 	current_rendering_mode = currentRenderingMode
-	latest_frame = _make_frame_args(capabilities)
+	latest_frame = _make_frame_args(capabilities, native_camera_frame)
 	return latest_frame
 
 
@@ -119,6 +124,12 @@ func SetCamera(camera: Camera3D) -> void:
 
 func TryGetIntrinsics(result: Dictionary) -> bool:
 	result.clear()
+	if _try_get_native_intrinsics(result):
+		native_intrinsics_available = true
+		return true
+	native_intrinsics_available = false
+	result.clear()
+
 	var camera := get_camera()
 	if camera == null:
 		return false
@@ -190,7 +201,7 @@ func _emit_frame_received() -> void:
 	frameReceived.emit(args)
 
 
-func _make_frame_args(capabilities: Dictionary) -> Dictionary:
+func _make_frame_args(capabilities: Dictionary, native_frame: Dictionary = {}) -> Dictionary:
 	var intrinsics := {}
 	var has_intrinsics: bool = TryGetIntrinsics(intrinsics)
 	return {
@@ -206,6 +217,10 @@ func _make_frame_args(capabilities: Dictionary) -> Dictionary:
 		"current_rendering_mode": int(currentRenderingMode),
 		"has_intrinsics": has_intrinsics,
 		"intrinsics": intrinsics,
+		"native_intrinsics_available": native_intrinsics_available,
+		"native_frame_available": bool(native_frame.get("available", false)),
+		"native_frame": native_frame,
+		"light_estimation": native_frame.get("light_estimation", {}),
 		"light_estimation_supported": bool(capabilities.get("light_estimation", false)),
 		"runtime": String(capabilities.get("runtime", "")),
 	}
@@ -227,3 +242,54 @@ func _find_camera_in_tree(root: Node) -> Camera3D:
 		if camera:
 			return camera
 	return null
+
+
+func _try_get_native_intrinsics(result: Dictionary) -> bool:
+	var singleton := _find_native_camera_singleton()
+	if singleton == null:
+		return false
+
+	for method_name in ["try_get_intrinsics", "get_camera_intrinsics", "get_intrinsics"]:
+		if not singleton.has_method(method_name):
+			continue
+		var native_result: Variant = singleton.call(method_name)
+		if native_result is Dictionary and _intrinsics_dictionary_has_shape(native_result):
+			result.merge(native_result, true)
+			if not result.has("source") or String(result.get("source", "")).is_empty():
+				result["source"] = "native_camera_intrinsics"
+			return bool(result.get("success", true))
+
+	var frame := _get_native_camera_frame()
+	if bool(frame.get("has_intrinsics", false)) and frame.get("intrinsics") is Dictionary:
+		var frame_intrinsics: Dictionary = frame.get("intrinsics")
+		if _intrinsics_dictionary_has_shape(frame_intrinsics):
+			result.merge(frame_intrinsics, true)
+			return bool(result.get("success", true))
+	return false
+
+
+func _get_native_camera_frame() -> Dictionary:
+	var singleton := _find_native_camera_singleton()
+	if singleton == null:
+		return {}
+	for method_name in ["get_camera_frame", "get_latest_camera_frame", "get_ar_camera_frame"]:
+		if singleton.has_method(method_name):
+			var frame: Variant = singleton.call(method_name)
+			if frame is Dictionary:
+				return frame
+	return {}
+
+
+func _find_native_camera_singleton() -> Object:
+	for singleton_name in ["GodotARKit", "GodotARCore", "ARKit", "ARCore", "ARKitPlugin", "ARCorePlugin"]:
+		if Engine.has_singleton(StringName(singleton_name)):
+			return Engine.get_singleton(StringName(singleton_name))
+	return null
+
+
+func _intrinsics_dictionary_has_shape(data: Dictionary) -> bool:
+	return (
+		data.has("focal_length")
+		and data.has("principal_point")
+		and data.has("resolution")
+	)
