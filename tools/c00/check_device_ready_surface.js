@@ -25,6 +25,8 @@ const checks = [
 			["host permission blocked evidence", /host_permission_blocked/],
 			["Android host permission helper", /isAndroidHostPermissionBlocked/],
 			["iPad host permission helper", /isIpadHostPermissionBlocked/],
+			["definite iPad host permission helper", /isDefiniteIpadHostPermissionBlocked/],
+			["iPad permission denied pattern", /permission denied/],
 		],
 	},
 	{
@@ -45,6 +47,7 @@ const checks = [
 			["Xcode pairing guidance", /Xcode Devices and Simulators/],
 			["iOS analyzer host permission evidence", /host_permission_blocked/],
 			["iOS analyzer host permission helper", /isHostPermissionBlocked/],
+			["iOS definite host permission helper", /isDefiniteIpadHostPermissionBlocked/],
 		],
 	},
 	{

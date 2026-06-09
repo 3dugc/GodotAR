@@ -276,7 +276,12 @@ function isIpadHostPermissionBlocked(profile, collect, analyze, analysis) {
 		JSON.stringify(profile || {}),
 		JSON.stringify(analysis || {}),
 	].join("\n");
-	return /Operation not permitted|XPCError|connection was invalidated|CoreDeviceService|Cannot create temporary directory for Instruments Analysis Core|com\.apple\.dt\.InstrumentsCLI|permission to save the file/i.test(text);
+	return isDefiniteIpadHostPermissionBlocked(text);
+}
+
+
+function isDefiniteIpadHostPermissionBlocked(text) {
+	return /Operation not permitted|XPCError|connection was invalidated|Cannot create temporary directory for Instruments Analysis Core|com\.apple\.dt\.InstrumentsCLI|permission to save the file|permission denied/i.test(String(text || ""));
 }
 
 
