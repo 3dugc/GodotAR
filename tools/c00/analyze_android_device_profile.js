@@ -154,6 +154,7 @@ function analyzeProfile(profile, gateName) {
 		pass: failures.length === 0,
 		failures,
 		warnings,
+		next_actions: androidNextActions({ profile, gateName, targetPackage, xrPackages, notableFeatures, deviceText }),
 		evidence: {
 			device: deviceText || "unknown",
 			connected_devices: (profile.adb && Array.isArray(profile.adb.connected_devices)) ? profile.adb.connected_devices : [],
@@ -183,6 +184,41 @@ function analyzeProfile(profile, gateName) {
 }
 
 
+function androidNextActions(context) {
+	const actions = [];
+	const profile = context.profile || {};
+	const adb = profile.adb || {};
+	const gateName = context.gateName;
+	const label = gateName === "rokid" ? "Rokid/OpenXR" : "Android/ARCore";
+
+	if (adb.available !== true) {
+		actions.push("Install Android platform-tools or set ADB_BIN to the project-local adb executable.");
+		return actions;
+	}
+	if (adb.has_connected_device !== true) {
+		actions.push(`Connect the ${label} device over USB-C, enable Developer Options and USB debugging, then accept the RSA trust prompt.`);
+		actions.push("Re-run `adb devices -l` and wait until the device state is exactly `device` before launching the gate.");
+		return actions;
+	}
+	if (!context.targetPackage || context.targetPackage.installed !== true) {
+		actions.push("Run the corresponding device gate so it can install the exported APK before collecting runtime smoke evidence.");
+	}
+	if (gateName === "rokid" && !hasMatch(context.xrPackages, /openxr|rokid|pico|quest|oculus|meta|lynx|vive|wave/i)) {
+		actions.push("Install or enable the device OpenXR runtime/vendor service; final proof still comes from GXF_SMOKE OpenXR capability evidence.");
+	}
+	if (gateName === "android-arcore" && !hasMatch(context.xrPackages, /google\.ar\.core|arcore/i)) {
+		actions.push("Install or update Google Play Services for AR before running the Android ARCore gate.");
+	}
+	if (!hasMatch(context.notableFeatures, /camera/i)) {
+		actions.push("Confirm the device exposes camera features; ARKit/ARCore/OpenXR passthrough gates need camera/runtime access.");
+	}
+	if (actions.length === 0) {
+		actions.push("If the gate still fails, inspect the smoke log and device profile evidence for runtime package or permission errors.");
+	}
+	return actions;
+}
+
+
 function writeReport(summary) {
 	if (!reportPath) {
 		return;
@@ -207,6 +243,10 @@ function renderMarkdown(summary) {
 	lines.push("## Warnings");
 	lines.push("");
 	pushList(lines, summary.warnings);
+	lines.push("");
+	lines.push("## Next Actions");
+	lines.push("");
+	pushList(lines, summary.next_actions);
 	lines.push("");
 	lines.push("## Evidence");
 	lines.push("");

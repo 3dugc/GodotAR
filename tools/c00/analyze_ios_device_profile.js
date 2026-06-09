@@ -115,6 +115,7 @@ function analyzeProfile(profile) {
 		pass: failures.length === 0,
 		failures,
 		warnings,
+		next_actions: iosNextActions({ profile, selectedDevice, targetApp, availability, lockState }),
 		evidence: {
 			device: summarizeDevice(selectedDevice),
 			device_availability: availability || "unknown",
@@ -132,6 +133,39 @@ function analyzeProfile(profile) {
 			failures.push(message);
 		}
 	}
+}
+
+
+function iosNextActions(context) {
+	const actions = [];
+	const profile = context.profile || {};
+	const selectedDevice = context.selectedDevice || {};
+	const availability = String(context.availability || "").toLowerCase();
+
+	if (!context.selectedDevice) {
+		actions.push(`Connect and unlock the iPad, trust this Mac, then confirm it appears in \`xcrun devicectl list devices\` as ${profile.device || "the requested device"}.`);
+		return actions;
+	}
+	if (availability === "offline" || availability === "unavailable") {
+		actions.push("Reconnect the iPad over USB-C, unlock it, keep the screen awake, and accept any Trust This Computer prompt.");
+		actions.push("Open Xcode Devices and Simulators once to let CoreDevice finish pairing and developer service setup.");
+	}
+	if (selectedDevice.ddiServicesAvailable === false) {
+		actions.push("Xcode reports ddiServicesAvailable=false; update/install the matching iPadOS device support in Xcode, then reconnect the iPad.");
+	}
+	if (selectedDevice.developerModeStatus && String(selectedDevice.developerModeStatus).toLowerCase() !== "enabled") {
+		actions.push("Enable Developer Mode on the iPad and reboot when prompted.");
+	}
+	if (context.lockState === "locked") {
+		actions.push("Unlock the iPad before running the ARKit gate.");
+	}
+	if (!context.targetApp) {
+		actions.push("The target app is not installed yet; this is okay before the gate, but the iPad must become available so the runner can install the .app.");
+	}
+	if (actions.length === 0) {
+		actions.push("If the iPad gate still fails, inspect the raw devicectl/xctrace command evidence in the profile JSON.");
+	}
+	return actions;
 }
 
 
@@ -254,6 +288,10 @@ function renderMarkdown(summary) {
 	lines.push("## Warnings");
 	lines.push("");
 	pushList(lines, summary.warnings);
+	lines.push("");
+	lines.push("## Next Actions");
+	lines.push("");
+	pushList(lines, summary.next_actions);
 	lines.push("");
 	lines.push("## Evidence");
 	lines.push("");

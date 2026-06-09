@@ -102,6 +102,7 @@ tools/c00/wait_for_device_ready.sh --gate ipad --device "iPad M4" --timeout 300 
 ```
 
 Rokid/Android ready 条件是 ADB 出现 `device` 状态的已授权设备；iPad ready 条件是 devicectl/xctrace 不再显示 `offline` / `unavailable`。`--run-gate` 会在 ready 后调用 `tools/c00/run_device_cycle.sh`，并继续按本 runbook 的证据规则归档。
+readiness 和 device profile 报告里的 `Next Actions` 是现场恢复清单：例如接入/授权 ADB、解锁并信任 iPad、打开 Xcode Devices and Simulators、处理 `ddiServicesAvailable=false` 或等待 gate 安装目标 app。
 
 ## 一键执行
 

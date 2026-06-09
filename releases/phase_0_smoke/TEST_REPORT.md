@@ -132,6 +132,7 @@ Codex implementation status:
 - ARKit plugin init/deinit linkage is now verified against Godot's generated iOS plugin call path; the rebuilt `GodotARKit.xcframework` passes symbol checks and a no-sign Xcode device build.
 - Android/Rokid collection now treats lack of an ADB `device` state as an explicit diagnostic failure while still writing device profile and analysis evidence.
 - iPad collection now preserves diagnostics after app install failure, records `xcrun xctrace list devices`, and treats `offline` / `unavailable` iPad state as an explicit profile-analysis failure.
+- Device readiness and device profile analysis reports now include `next_actions` / `Next Actions`, so ADB transport, iPad `offline` / `unavailable`, iPad `ddiServicesAvailable=false`, missing target app, and runtime package issues produce actionable recovery steps in the evidence artifact itself.
 
 Hardware status:
 
@@ -176,6 +177,7 @@ Hardware status:
 | `IOS_BUILD_PLATFORM=simulator tools/c00/build_ios_xcode_project.sh builds/ios_simulator/c00.zip` with signing disabled | Pass | Simulator Xcode build succeeds after project-only export fallback, MetalFX simulator patch, and Godot template architecture detection; resulting app executable is `x86_64` |
 | `APP_PATH=builds/ios_simulator/GodotXRFoundation.app tools/c00/collect_ios_simulator_smoke.sh ...` | Fail as expected / diagnostic produced | Current Apple Silicon simulator requires `arm64`, but the app executable is `x86_64`; collector writes `releases/phase_0_smoke/evidence/ios-simulator-20260609-034114.md` before install |
 | `tools/c00/run_phase1_device_lab.sh --gate rokid --wait-devices --wait-timeout 1 --no-static --no-readiness --no-audit` | Fail as expected / diagnostic produced | Sandbox-external ADB readiness check reports no `device` entries, caps the sleep to the remaining timeout, and skips the device cycle |
+| `tools/c00/wait_for_device_ready.sh --gate all --device "iPad M4" --timeout 1` | Fail as expected / diagnostic produced | Evidence `releases/phase_0_smoke/evidence/device-ready-all-20260609-084212.md` includes Next Actions for missing Rokid/Android ADB devices and iPad `unavailable` / `ddiServicesAvailable=false` |
 | `CAPTURE_MEDIA=0 DURATION=1 APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid ...` | Fail as expected / diagnostic produced | Current host has no ADB `device` state; collector writes `has_connected_device:false`, skips install/launch, appends device profile and analysis |
 | `DEVICECTL_TIMEOUT=5 CAPTURE_MEDIA=0 APP_PATH=builds/ipad/GodotXRFoundation-nosign.app tools/c00/collect_ios_smoke.sh "iPad M4" ...` | Fail as expected / diagnostic produced | Current iPad is `unavailable` in devicectl and `Devices Offline` in xctrace; collector preserves install failure, device profile, and profile analysis |
 

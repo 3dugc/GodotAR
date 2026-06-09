@@ -91,6 +91,7 @@ function checkAndroidReady(gateName) {
 		pass: failures.length === 0,
 		failures,
 		warnings,
+		next_actions: androidReadinessNextActions(gateName, { adb, devices, parsedDevices, availableDevices, serial, targetDevice }),
 		evidence: {
 			adb,
 			serial: serial || "",
@@ -160,12 +161,84 @@ function checkIpadReady() {
 		pass: failures.length === 0,
 		failures,
 		warnings,
+		next_actions: ipadReadinessNextActions({ device, profile, analysis }),
 		evidence: {
 			device,
 			profile: summarizeIpadProfile(profile),
 			analysis: analysis.evidence || {},
 		},
 	};
+}
+
+
+function androidReadinessNextActions(gateName, context) {
+	const actions = [];
+	const parsedDevices = context.parsedDevices || [];
+	const states = new Set(parsedDevices.map((item) => item.state));
+	const label = gateName === "rokid" ? "Rokid/OpenXR" : "Android/ARCore";
+
+	if (!context.adb) {
+		actions.push("Install Android platform-tools or set ADB_BIN to the adb executable from the C00 Android SDK.");
+		return actions;
+	}
+	if (context.devices && context.devices.ok === false) {
+		actions.push("Run the readiness command from a normal terminal so adb can start its local server, then retry.");
+		actions.push("If adb is wedged, run `adb kill-server` and retry with the project-local platform-tools adb.");
+		return actions;
+	}
+	if (parsedDevices.length === 0) {
+		actions.push(`Connect the ${label} device over USB-C, enable Developer Options and USB debugging, then accept the RSA trust prompt on the device.`);
+		actions.push("Re-run `adb devices -l` and wait until the device state is exactly `device`.");
+		return actions;
+	}
+	if (states.has("unauthorized")) {
+		actions.push("Unlock the Android/Rokid device and accept the USB debugging RSA prompt; if no prompt appears, revoke USB debugging authorizations and reconnect.");
+	}
+	if (states.has("offline")) {
+		actions.push("Reconnect the USB cable or restart adb with `adb kill-server && adb start-server` until the device leaves the `offline` state.");
+	}
+	if (context.serial && (!context.targetDevice || context.targetDevice.state !== "device")) {
+		actions.push(`Confirm ADB_SERIAL=${context.serial} matches the serial printed by \`adb devices -l\`, or remove ADB_SERIAL to use the first ready device.`);
+	}
+	if (actions.length === 0 && context.availableDevices.length === 0) {
+		actions.push("Wait for adb transport to settle, then retry readiness before running the device gate.");
+	}
+	return actions;
+}
+
+
+function ipadReadinessNextActions(context) {
+	const actions = [];
+	const profile = context.profile || {};
+	const analysis = context.analysis || {};
+	const evidence = analysis.evidence || {};
+	const selectedDevice = profile.selected_device || {};
+	const availability = String(evidence.device_availability || "").toLowerCase();
+
+	if (!profile.selected_device) {
+		actions.push(`Connect the iPad, unlock it, trust this Mac, then confirm it appears in \`xcrun devicectl list devices\` using the same --device value: ${context.device}.`);
+		return actions;
+	}
+	if (availability === "offline" || availability === "unavailable") {
+		actions.push("Unlock the iPad, keep the screen awake, reconnect USB-C, and accept any Trust This Computer prompt.");
+		actions.push("Open Xcode Devices and Simulators once so CoreDevice can finish pairing and developer services setup.");
+	}
+	if (selectedDevice.ddiServicesAvailable === false) {
+		actions.push("Xcode reports ddiServicesAvailable=false; install/update the matching iPadOS device support in Xcode, then reconnect the iPad.");
+	}
+	if (selectedDevice.developerModeStatus && String(selectedDevice.developerModeStatus).toLowerCase() !== "enabled") {
+		actions.push("Enable Developer Mode on the iPad and reboot when iPadOS asks for it.");
+	}
+	if (evidence.lock_state === "locked") {
+		actions.push("Unlock the iPad before running the ARKit gate.");
+	}
+	if (evidence.target_bundle_installed === false) {
+		actions.push("This is expected before the install step; once the device is available, run the iPad gate so it can install the .app.");
+	}
+	if (actions.length === 0 && analysis.pass !== true) {
+		actions.push("Retry readiness from a normal terminal and inspect the devicectl/xctrace stderr in the evidence block.");
+	}
+	return actions;
 }
 
 
@@ -280,6 +353,10 @@ function renderMarkdown(summary) {
 		lines.push("### Warnings");
 		lines.push("");
 		pushList(lines, result.warnings);
+		lines.push("");
+		lines.push("### Next Actions");
+		lines.push("");
+		pushList(lines, result.next_actions);
 		lines.push("");
 		lines.push("### Evidence");
 		lines.push("");

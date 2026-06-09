@@ -90,6 +90,8 @@ releases/phase_0_smoke/evidence/device-ready-<gate>-<timestamp>.md
 releases/phase_0_smoke/evidence/device-ready-<gate>-<timestamp>.json
 ```
 
+readiness 和 device profile 报告包含 `Next Actions` / `next_actions`，会针对 ADB 无设备、Rokid 未授权、iPad `offline` / `unavailable`、`ddiServicesAvailable=false`、目标 app 尚未安装等状态给出现场恢复步骤。
+
 ## 离线依赖包导入
 
 如果设备机访问 Godot downloads、GitHub 或 Android SDK repository 不稳定，可以先在任意网络可用机器准备一个离线依赖包目录，再在设备机导入。推荐目录内容：

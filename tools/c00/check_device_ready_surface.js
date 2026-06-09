@@ -19,6 +19,25 @@ const checks = [
 			["iPad profile analyzer", /analyze_ios_device_profile\.js/],
 			["xctrace evidence summary", /xctrace_devices/],
 			["Android parsed devices", /parseAdbDevices/],
+			["readiness next actions", /next_actions/],
+			["Android recovery guidance", /androidReadinessNextActions/],
+			["iPad recovery guidance", /ipadReadinessNextActions/],
+		],
+	},
+	{
+		file: "tools/c00/analyze_android_device_profile.js",
+		requirements: [
+			["Android analyzer next actions", /next_actions/],
+			["Android recovery helper", /androidNextActions/],
+			["USB debugging guidance", /USB debugging/],
+		],
+	},
+	{
+		file: "tools/c00/analyze_ios_device_profile.js",
+		requirements: [
+			["iOS analyzer next actions", /next_actions/],
+			["iOS recovery helper", /iosNextActions/],
+			["Xcode pairing guidance", /Xcode Devices and Simulators/],
 		],
 	},
 	{
@@ -37,12 +56,14 @@ const checks = [
 		requirements: [
 			["device readiness docs", /wait_for_device_ready\.sh/],
 			["run-gate docs", /--run-gate/],
+			["next actions docs", /Next Actions/],
 		],
 	},
 	{
 		file: "releases/phase_0_smoke/RUNBOOK_CN.md",
 		requirements: [
 			["device readiness runbook", /wait_for_device_ready\.sh/],
+			["next actions runbook", /Next Actions/],
 		],
 	},
 ];
