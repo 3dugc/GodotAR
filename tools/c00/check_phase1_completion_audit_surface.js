@@ -31,8 +31,13 @@ if (failures.length === 0) {
 		"check_arcore_gate_surface.js",
 		"preflight.sh",
 		"verify_phase_evidence.js",
+		"--include-place-demos",
+		"--skip-place-demos",
+		"rokid-place",
+		"ipad-place",
 		"NOT_READY",
 		"PARTIAL",
+		"includePlaceDemos",
 		"phaseReady",
 		"C00_COMPLETION_AUDIT.md",
 	]);

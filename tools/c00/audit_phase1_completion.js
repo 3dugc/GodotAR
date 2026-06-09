@@ -20,8 +20,9 @@ if (args.help || args.h) {
 const evidenceDir = path.resolve(args.dir || DEFAULT_EVIDENCE_DIR);
 const reportPath = path.resolve(args.report || DEFAULT_REPORT);
 const jsonPath = args.json ? path.resolve(String(args.json)) : DEFAULT_JSON;
-const skipPreflight = Boolean(args["skip-preflight"]);
-const skipEvidence = Boolean(args["skip-evidence"]);
+const skipPreflight = flagEnabled(args["skip-preflight"]);
+const skipEvidence = flagEnabled(args["skip-evidence"]);
+const includePlaceDemos = !flagEnabled(args["skip-place-demos"]);
 const timeoutMs = Number(args.timeout || 120000);
 
 const audit = runAudit();
@@ -75,14 +76,22 @@ function usage() {
 		"  --json <file>              JSON audit report. Default: releases/phase_0_smoke/C00_COMPLETION_AUDIT.json",
 		"  --skip-preflight           Skip device-machine preflight commands.",
 		"  --skip-evidence            Skip final device evidence verification.",
+		"  --include-place-demos      Require Rokid/iPad placement demo preflight and evidence. Default.",
+		"  --skip-place-demos         Only require base Rokid/iPad/Android smoke gates.",
 		"  --timeout <ms>             Per-command timeout. Default: 120000.",
 		"",
 		"The audit exits 0 only when C00/phase-1 is actually ready: static gates pass,",
 		"Rokid/OpenXR + iPad/ARKit + Android/ARCore preflight pass, ARKit binary artifacts",
 		"are present, and final device evidence verifies through verify_phase_evidence.js.",
+		"By default this also requires C02/C04 Rokid/iPad placement demo evidence.",
 		"With --skip-preflight or --skip-evidence, passing checks report PARTIAL and do not",
 		"mean phase 1 is complete.",
 	].join("\n"));
+}
+
+
+function flagEnabled(value) {
+	return value === true || value === "" || value === "1" || value === "true" || value === "yes";
 }
 
 
@@ -150,8 +159,12 @@ function runAudit() {
 		failure: "Restore Android ARCore evidence checks before publishing phase 1.",
 	});
 
+	const preflightGates = ["rokid", "ipad", "android-arcore"];
+	if (includePlaceDemos) {
+		preflightGates.push("rokid-place", "ipad-place");
+	}
 	if (!skipPreflight) {
-		for (const gate of ["rokid", "ipad", "android-arcore"]) {
+		for (const gate of preflightGates) {
 			addCommand(checks, {
 				id: `preflight-${gate}`,
 				group: "device-machine",
@@ -166,10 +179,15 @@ function runAudit() {
 
 	if (!skipEvidence) {
 		const phaseReport = path.join(os.tmpdir(), `godotar-c00-phase-evidence-${Date.now()}.md`);
+		const evidenceGates = ["rokid", "ipad", "android-arcore"];
+		if (includePlaceDemos) {
+			evidenceGates.push("rokid-place", "ipad-place");
+		}
+		const gateArgs = evidenceGates.flatMap((gate) => ["--gate", gate]);
 		addCommand(checks, {
 			id: "phase-evidence",
 			group: "device-evidence",
-			title: "Rokid/iPad/Android phase evidence",
+			title: includePlaceDemos ? "Rokid/iPad/Android phase evidence plus placement demos" : "Rokid/iPad/Android phase evidence",
 			required: true,
 			command: [
 				"node",
@@ -178,8 +196,11 @@ function runAudit() {
 				evidenceDir,
 				"--report",
 				phaseReport,
+				...gateArgs,
 			],
-			success: "Rokid/OpenXR, iPad/ARKit, and Android/ARCore logs/media/device profiles all verify.",
+			success: includePlaceDemos
+				? "Rokid/OpenXR, iPad/ARKit, Android/ARCore, and C02/C04 placement logs/media/device profiles all verify."
+				: "Rokid/OpenXR, iPad/ARKit, and Android/ARCore logs/media/device profiles all verify.",
 			failure: "Collect or import real device evidence, then rerun this audit.",
 		});
 	}
@@ -206,6 +227,7 @@ function runAudit() {
 		jsonPath,
 		skipPreflight,
 		skipEvidence,
+		includePlaceDemos,
 		failures,
 		warnings,
 		checks,
@@ -305,6 +327,9 @@ function renderMarkdown(audit) {
 		lines.push(check.outputPreview);
 		lines.push("```");
 		lines.push("");
+	}
+	while (lines[lines.length - 1] === "") {
+		lines.pop();
 	}
 	return lines.join("\n") + "\n";
 }

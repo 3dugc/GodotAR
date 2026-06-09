@@ -31,7 +31,9 @@ tools/c00/preflight.sh
 
 ```bash
 tools/c00/preflight.sh rokid
+tools/c00/preflight.sh rokid-place
 tools/c00/preflight.sh ipad
+tools/c00/preflight.sh ipad-place
 tools/c00/preflight.sh android-arcore
 ```
 
@@ -201,8 +203,10 @@ ONLINE_DEPS=templates tools/c00/run_phase1_device_lab.sh --online-deps-only --ga
 - 写出并读取 `.godot/cache/c00/device-env.sh`。
 - 生成 device readiness report。
 - 跑 C00 static gates。
-- 调用 `tools/c00/run_device_cycle.sh all` 执行 iPad/ARKit、Rokid/OpenXR、Android/ARCore。
-- 调用 `tools/c00/audit_phase1_completion.js` 生成最终完成审计。
+- 调用 `tools/c00/run_device_cycle.sh all` 执行 iPad/ARKit、iPad C04 placement、Rokid/OpenXR、Rokid C02 placement、Android/ARCore。
+- 调用 `tools/c00/audit_phase1_completion.js --include-place-demos` 生成最终完成审计。
+
+`run_phase1_device_lab.sh` 默认要求 C02/C04 placement demo gate。临时只想调基础 smoke 时可以加 `--no-place-demos`，但这不能证明第一阶段完整完成。
 
 第一次接设备机时先 dry-run：
 
@@ -234,7 +238,8 @@ releases/phase_0_smoke/C00_COMPLETION_AUDIT.json
 - Rokid/OpenXR provider AR evidence surface。
 - Android ARCore gate surface。
 - `tools/c00/preflight.sh rokid/ipad/android-arcore` 是否在当前设备机通过。
-- `tools/c00/verify_phase_evidence.js` 是否验证到 Rokid/OpenXR、iPad/ARKit、Android/ARCore 的日志、媒体和设备画像。
+- `tools/c00/preflight.sh rokid-place/ipad-place` 是否在当前设备机通过。
+- `tools/c00/verify_phase_evidence.js` 是否验证到 Rokid/OpenXR、iPad/ARKit、Android/ARCore，以及 C02/C04 placement demo 的日志、媒体和设备画像。
 
 只要 iPad/Rokid/Android 任一条真机证据缺失，审计会输出 `NOT_READY` 并以非零状态退出；这就是预期行为，不能用模拟器结果替代真机通过。临时只想看代码面是否完整时可以跳过设备预检或证据聚合：
 
@@ -506,7 +511,7 @@ DEVICE=<ipad-uuid-or-name> \
 tools/c00/run_device_cycle.sh all
 ```
 
-`all` 模式会按 iPad、Rokid、Android ARCore 顺序执行。默认即使某个 gate 失败也会继续跑后续 gate，最后自动执行 `verify_phase_evidence.js` 生成 C00 总报告。设置 `INCLUDE_EDITOR_SIM=1` 可在设备 gate 前先跑本地 EditorSim gate；设置 `INCLUDE_IOS_SIMULATOR=1` 可额外跑 iOS Simulator 辅助 gate。
+`all` 模式会按 iPad、iPad placement、Rokid、Rokid placement、Android ARCore 顺序执行。默认即使某个 gate 失败也会继续跑后续 gate，最后自动执行 `verify_phase_evidence.js` 生成 C00 总报告。设置 `INCLUDE_EDITOR_SIM=1` 可在设备 gate 前先跑本地 EditorSim gate；设置 `INCLUDE_IOS_SIMULATOR=1` 可额外跑 iOS Simulator 辅助 gate。
 
 常用开关：
 
@@ -525,7 +530,7 @@ tools/c00/run_device_cycle.sh all
 - `MANUAL_MEDIA_PATH=/path/to/file`：iPad 自动截图不可用时，提供手动截图或录屏。
 - `ALLOW_MISSING_MEDIA=1`：继续生成报告，但把缺失媒体证据降级为 warning。
 - `INCLUDE_ANDROID_ARCORE=0`：`all` 模式临时跳过 Android ARCore gate。
-- `INCLUDE_PLACE_DEMOS=1`：`all` 模式额外运行 `ipad-place` 和 `rokid-place`，验证专项 demo 的 plane/raycast/anchor/placed evidence。
+- `INCLUDE_PLACE_DEMOS=0`：`all` 模式临时跳过 `ipad-place` 和 `rokid-place`；第一阶段完整审计默认要求它们。
 - `CONTINUE_ON_FAILURE=0`：`all` 模式遇到第一个失败 gate 就停止。
 - `RUN_PHASE_VERIFY=0`：`all` 模式跳过最终 C00 聚合验证。
 - `PHASE_REPORT=releases/phase_0_smoke/C00_PHASE_REPORT.md`：覆盖 C00 总报告输出路径。

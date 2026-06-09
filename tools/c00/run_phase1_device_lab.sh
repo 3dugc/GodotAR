@@ -18,6 +18,7 @@ RUN_READINESS="${RUN_READINESS:-1}"
 RUN_STATIC_GATES="${RUN_STATIC_GATES:-1}"
 RUN_DEVICE_CYCLE="${RUN_DEVICE_CYCLE:-1}"
 RUN_COMPLETION_AUDIT="${RUN_COMPLETION_AUDIT:-1}"
+INCLUDE_PLACE_DEMOS="${INCLUDE_PLACE_DEMOS:-1}"
 WAIT_FOR_DEVICES="${WAIT_FOR_DEVICES:-0}"
 WAIT_TIMEOUT_SECONDS="${WAIT_TIMEOUT_SECONDS:-300}"
 WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-5}"
@@ -39,8 +40,10 @@ Options:
                           Online dependency subset: auto or comma/space list of templates,jdk,android-sdk,android-export.
   --online-deps-only      Run online dependency setup only, then exit.
   --env-file <file>       Environment file written/read by bundle importer. Default: $ENV_FILE
-  --gate <gate>           Device cycle gate: all, rokid, ipad, android-arcore, editor, ios-simulator. Default: all
+  --gate <gate>           Device cycle gate: all, rokid, rokid-place, ipad, ipad-place, android-arcore, editor, ios-simulator, ios-simulator-place. Default: all
   --device <id-or-name>   iPad device id/name forwarded to run_device_cycle.sh.
+  --include-place-demos   In all mode, run and audit C02/C04 rokid-place/ipad-place gates. Default.
+  --no-place-demos        In all mode, only run/audit base smoke gates.
   --wait-devices          Wait for selected devices to become ready before running the device cycle.
   --wait-timeout <sec>    Device readiness wait timeout. Default: $WAIT_TIMEOUT_SECONDS
   --wait-interval <sec>   Device readiness polling interval. Default: $WAIT_INTERVAL_SECONDS
@@ -64,6 +67,7 @@ Environment:
   RUN_STATIC_GATES=1|0
   RUN_DEVICE_CYCLE=1|0
   RUN_COMPLETION_AUDIT=1|0
+  INCLUDE_PLACE_DEMOS=1|0
   WAIT_FOR_DEVICES=1|0
   WAIT_TIMEOUT_SECONDS=300
   WAIT_INTERVAL_SECONDS=5
@@ -108,6 +112,14 @@ while [[ "$#" -gt 0 ]]; do
 		--device)
 			DEVICE="$2"
 			shift 2
+			;;
+		--include-place-demos)
+			INCLUDE_PLACE_DEMOS=1
+			shift
+			;;
+		--no-place-demos)
+			INCLUDE_PLACE_DEMOS=0
+			shift
 			;;
 		--wait-devices)
 			WAIT_FOR_DEVICES=1
@@ -161,7 +173,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 case "$GATE" in
-	all|editor|ios-simulator|rokid|ipad|android-arcore)
+	all|editor|ios-simulator|ios-simulator-place|rokid|rokid-place|ipad|ipad-place|android-arcore)
 		;;
 	*)
 		echo "ERROR: unsupported gate: $GATE" >&2
@@ -205,11 +217,11 @@ source_env_if_present() {
 }
 
 needs_ios_dependencies() {
-	[[ "$GATE" == "all" || "$GATE" == "ipad" || "$GATE" == "ios-simulator" ]]
+	[[ "$GATE" == "all" || "$GATE" == "ipad" || "$GATE" == "ipad-place" || "$GATE" == "ios-simulator" || "$GATE" == "ios-simulator-place" ]]
 }
 
 needs_android_dependencies() {
-	[[ "$GATE" == "all" || "$GATE" == "rokid" || "$GATE" == "android-arcore" ]]
+	[[ "$GATE" == "all" || "$GATE" == "rokid" || "$GATE" == "rokid-place" || "$GATE" == "android-arcore" ]]
 }
 
 online_dep_enabled() {
@@ -408,7 +420,7 @@ main() {
 				--timeout "$WAIT_TIMEOUT_SECONDS"
 				--interval "$WAIT_INTERVAL_SECONDS"
 			)
-			if [[ "$GATE" == "ipad" || "$GATE" == "all" ]]; then
+			if [[ "$GATE" == "ipad" || "$GATE" == "ipad-place" || "$GATE" == "all" ]]; then
 				if [[ -n "$DEVICE" ]]; then
 					wait_args+=(--device "$DEVICE")
 				fi
@@ -420,7 +432,7 @@ main() {
 		fi
 
 		local cycle_args=("$PROJECT_ROOT/tools/c00/run_device_cycle.sh" "$GATE")
-		if [[ "$GATE" == "ipad" || "$GATE" == "all" ]]; then
+		if [[ "$GATE" == "ipad" || "$GATE" == "ipad-place" || "$GATE" == "all" ]]; then
 			if [[ -n "$DEVICE" ]]; then
 				cycle_args+=("$DEVICE")
 			fi
@@ -430,9 +442,9 @@ main() {
 		elif [[ "$DRY_RUN" == "1" ]]; then
 			echo
 			echo "== Phase 1 device lab: device cycle =="
-			DRY_RUN=1 "${cycle_args[@]}" || status=$?
+			INCLUDE_PLACE_DEMOS="$INCLUDE_PLACE_DEMOS" DRY_RUN=1 "${cycle_args[@]}" || status=$?
 		else
-			DRY_RUN=0 "${cycle_args[@]}" || status=$?
+			INCLUDE_PLACE_DEMOS="$INCLUDE_PLACE_DEMOS" DRY_RUN=0 "${cycle_args[@]}" || status=$?
 		fi
 		if [[ "$status" != "0" && "$CONTINUE_AFTER_CYCLE" != "1" ]]; then
 			exit "$status"
@@ -440,10 +452,18 @@ main() {
 	fi
 
 	if [[ "$RUN_COMPLETION_AUDIT" == "1" ]]; then
+		local audit_args=(
+			node "$PROJECT_ROOT/tools/c00/audit_phase1_completion.js"
+			--report "$(project_path "$AUDIT_REPORT")"
+			--json "$(project_path "$AUDIT_JSON")"
+		)
+		if [[ "$INCLUDE_PLACE_DEMOS" == "0" ]]; then
+			audit_args+=(--skip-place-demos)
+		else
+			audit_args+=(--include-place-demos)
+		fi
 		run_step "completion audit" \
-			node "$PROJECT_ROOT/tools/c00/audit_phase1_completion.js" \
-			--report "$(project_path "$AUDIT_REPORT")" \
-			--json "$(project_path "$AUDIT_JSON")" || status=$?
+			"${audit_args[@]}" || status=$?
 	fi
 
 	echo

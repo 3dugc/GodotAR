@@ -1,6 +1,6 @@
 # C00 Phase 1 Completion Audit
 
-Generated: 2026-06-09T03:06:28.393Z
+Generated: 2026-06-09T03:36:29.410Z
 
 Result: NOT_READY
 
@@ -25,11 +25,13 @@ Phase 1 is not ready. Do not publish C00 as complete until every required item b
 | PASS | device-machine | rokid preflight | rokid export/device prerequisites are present on this machine. |
 | PASS | device-machine | ipad preflight | ipad export/device prerequisites are present on this machine. |
 | PASS | device-machine | android-arcore preflight | android-arcore export/device prerequisites are present on this machine. |
-| FAIL | device-evidence | Rokid/iPad/Android phase evidence | Collect or import real device evidence, then rerun this audit. |
+| PASS | device-machine | rokid-place preflight | rokid-place export/device prerequisites are present on this machine. |
+| PASS | device-machine | ipad-place preflight | ipad-place export/device prerequisites are present on this machine. |
+| FAIL | device-evidence | Rokid/iPad/Android phase evidence plus placement demos | Collect or import real device evidence, then rerun this audit. |
 
 ## Blocking Items
 
-- Rokid/iPad/Android phase evidence: Collect or import real device evidence, then rerun this audit.
+- Rokid/iPad/Android phase evidence plus placement demos: Collect or import real device evidence, then rerun this audit.
 
 ## Command Output Preview
 
@@ -68,6 +70,7 @@ Command: `node tools/c00/run_static_gates.js --gate all --format json`
       "status": "PASS",
 ... (473 more lines)
 ```
+
 ### ARFoundation migration API surface
 
 Command: `node tools/c00/check_arfoundation_api_surface.js`
@@ -356,9 +359,81 @@ Export presets
 ... (32 more lines)
 ```
 
-### Rokid/iPad/Android phase evidence
+### rokid-place preflight
 
-Command: `node tools/c00/verify_phase_evidence.js --dir /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/evidence --report /var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1780974404475.md`
+Command: `bash tools/c00/preflight.sh rokid-place`
+
+```text
+C00 device smoke preflight
+Project: /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR
+
+Gate: rokid-place
+
+OK   node             /usr/local/bin/node
+OK   GODOT_BIN        /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot
+OK   ADB_BIN          /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/android-sdk/platform-tools/adb
+
+Plugin landing zones
+OK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/android/plugins
+OK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/addons/godotopenxrvendors
+OK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/addons/godotopenxrvendors/.bin/android/debug/godotopenxr-khronos-debug.aar
+OK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/addons/godotopenxrvendors/.bin/android/release/godotopenxr-khronos-release.aar
+OK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/addons/godot_openxr_vendors_export/plugin.cfg
+
+Export presets
+{
+  "file": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/export_presets.cfg",
+  "gate": "rokid-place",
+  "pass": true,
+  "failures": [],
+  "warnings": [],
+  "presets": [
+    {
+      "gate": "rokid-place",
+      "section": "preset.3",
+      "name": "C02 Rokid OpenXR Place",
+... (42 more lines)
+```
+
+### ipad-place preflight
+
+Command: `bash tools/c00/preflight.sh ipad-place`
+
+```text
+C00 device smoke preflight
+Project: /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR
+
+Gate: ipad-place
+
+OK   node             /usr/local/bin/node
+OK   GODOT_BIN        /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot
+OK   xcrun            /usr/bin/xcrun
+OK   xcodebuild       /usr/bin/xcodebuild
+
+Plugin landing zones
+OK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/ios/plugins
+
+Native plugin artifacts
+OK   Godot source headers /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-source
+{
+  "pass": true,
+  "file": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/ios/plugins/godot_arkit/GodotARKit.gdip",
+  "pluginDir": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/ios/plugins/godot_arkit",
+  "requireBinary": false,
+  "failures": [],
+  "warnings": [],
+  "config": {
+    "name": "GodotARKit",
+    "binary": "GodotARKit.xcframework",
+    "initialization": "init_godot_arkit",
+    "deinitialization": "deinit_godot_arkit"
+  },
+... (79 more lines)
+```
+
+### Rokid/iPad/Android phase evidence plus placement demos
+
+Command: `node tools/c00/verify_phase_evidence.js --dir /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/evidence --report /var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1780976210644.md --gate rokid --gate ipad --gate android-arcore --gate rokid-place --gate ipad-place`
 
 ```text
 {
@@ -366,10 +441,12 @@ Command: `node tools/c00/verify_phase_evidence.js --dir /Users/dirui/Documents/C
   "gates": [
     "rokid",
     "ipad",
-    "android-arcore"
+    "android-arcore",
+    "rokid-place",
+    "ipad-place"
   ],
   "evidenceDir": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/evidence",
-  "report": "/var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1780974404475.md",
+  "report": "/var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1780976210644.md",
   "failures": [
     "rokid: No GXF_SMOKE, GXF_ROKID_PLACE, or GXF_ARKIT_PLACE events found.",
     "rokid: rokid gate requires a screenshot artifact.",
@@ -384,10 +461,8 @@ Command: `node tools/c00/verify_phase_evidence.js --dir /Users/dirui/Documents/C
     "android-arcore: android-arcore gate requires a screenshot artifact.",
     "android-arcore: android-arcore gate requires a screen recording artifact.",
     "android-arcore: android-arcore gate requires a device profile Markdown artifact.",
-    "android-arcore: android-arcore gate requires a device profile JSON artifact."
-  ],
-  "warnings": [
-    "rokid: Device profile analysis: ro.product.model is missing.",
-    "rokid: Device profile analysis: display size or density is missing.",
-... (236 more lines)
+    "android-arcore: android-arcore gate requires a device profile JSON artifact.",
+    "rokid-place: Missing smoke log. Expected rokid-place-*.log or --rokid-place-log.",
+    "rokid-place: rokid-place gate requires a screenshot artifact.",
+... (322 more lines)
 ```

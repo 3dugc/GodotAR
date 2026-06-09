@@ -38,7 +38,7 @@ const checks = [
 		file: "tools/c00/run_device_cycle.sh",
 		requirements: [
 			["Android ARCore included in all mode by default", /INCLUDE_ANDROID_ARCORE="\$\{INCLUDE_ANDROID_ARCORE:-1\}"/],
-			["Aggregate verifier receives Android ARCore gate", /gate_args\+=\(--gate android-arcore\)/],
+			["Aggregate verifier receives Android ARCore gate", /printf\s+"%s\\n"\s+--gate\s+android-arcore/],
 			["Aggregate gate override", /PHASE_GATES="\$\{PHASE_GATES:-auto\}"/],
 		],
 	},

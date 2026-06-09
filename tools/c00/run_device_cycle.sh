@@ -560,26 +560,14 @@ run_gate_for_all() {
 	return 0
 }
 
-run_phase_verify() {
-	if [[ "$RUN_PHASE_VERIFY" == "0" ]]; then
-		return 0
-	fi
-	if [[ "$DRY_RUN" == "1" ]]; then
-		echo
-		echo "DRY RUN: tools/c00/verify_phase_evidence.js --report $(project_path "$PHASE_REPORT")"
-		return 0
-	fi
-
-	echo
-	echo "== C00 phase evidence verify =="
-	local gate_args=()
+phase_gate_args() {
 	if [[ "$PHASE_GATES" == "auto" ]]; then
-		gate_args+=(--gate rokid --gate ipad)
+		printf "%s\n" --gate rokid --gate ipad
 		if [[ "$INCLUDE_PLACE_DEMOS" == "1" ]]; then
-			gate_args+=(--gate rokid-place --gate ipad-place)
+			printf "%s\n" --gate rokid-place --gate ipad-place
 		fi
 		if [[ "$INCLUDE_ANDROID_ARCORE" == "1" ]]; then
-			gate_args+=(--gate android-arcore)
+			printf "%s\n" --gate android-arcore
 		fi
 	else
 		local phase_gate
@@ -587,10 +575,31 @@ run_phase_verify() {
 		for phase_gate in "${phase_gates[@]}"; do
 			phase_gate="${phase_gate//[[:space:]]/}"
 			if [[ -n "$phase_gate" ]]; then
-				gate_args+=(--gate "$phase_gate")
+				printf "%s\n" --gate "$phase_gate"
 			fi
 		done
 	fi
+}
+
+run_phase_verify() {
+	if [[ "$RUN_PHASE_VERIFY" == "0" ]]; then
+		return 0
+	fi
+
+	local gate_args=()
+	while IFS= read -r arg; do
+		gate_args+=("$arg")
+	done < <(phase_gate_args)
+	if [[ "$DRY_RUN" == "1" ]]; then
+		echo
+		printf "DRY RUN: tools/c00/verify_phase_evidence.js --report %q" "$(project_path "$PHASE_REPORT")"
+		printf " %q" "${gate_args[@]}"
+		printf "\n"
+		return 0
+	fi
+
+	echo
+	echo "== C00 phase evidence verify =="
 	node "$PROJECT_ROOT/tools/c00/verify_phase_evidence.js" \
 		--report "$(project_path "$PHASE_REPORT")" \
 		"${gate_args[@]}"
