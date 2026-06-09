@@ -38,6 +38,12 @@ if (failures.length === 0) {
 		"ONLINE_DEPS",
 		"online_dep_enabled",
 		"templates,jdk,android-sdk,android-export",
+		"WAIT_FOR_DEVICES",
+		"WAIT_TIMEOUT_SECONDS",
+		"WAIT_INTERVAL_SECONDS",
+		"--wait-devices",
+		"wait_for_device_ready.sh",
+		"Skipping device cycle because device readiness did not pass.",
 		"write_device_env_from_current_machine",
 		"DRY_RUN",
 		"CONTINUE_AFTER_CYCLE",
@@ -92,16 +98,20 @@ if (failures.length === 0) {
 		"run_phase1_device_lab.sh",
 		"--bundle",
 		"--dry-run",
+		"--wait-devices",
+		"wait_for_device_ready.sh",
 	]);
 
 	requireContains(files.runbook, [
 		"run_phase1_device_lab.sh",
 		"completion audit",
+		"--wait-devices",
 	]);
 
 	requireContains(files.spec, [
 		"run_phase1_device_lab.sh",
 		"设备机",
+		"--wait-devices",
 	]);
 }
 

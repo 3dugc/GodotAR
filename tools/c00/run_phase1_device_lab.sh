@@ -18,6 +18,9 @@ RUN_READINESS="${RUN_READINESS:-1}"
 RUN_STATIC_GATES="${RUN_STATIC_GATES:-1}"
 RUN_DEVICE_CYCLE="${RUN_DEVICE_CYCLE:-1}"
 RUN_COMPLETION_AUDIT="${RUN_COMPLETION_AUDIT:-1}"
+WAIT_FOR_DEVICES="${WAIT_FOR_DEVICES:-0}"
+WAIT_TIMEOUT_SECONDS="${WAIT_TIMEOUT_SECONDS:-300}"
+WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-5}"
 DRY_RUN="${DRY_RUN:-0}"
 CONTINUE_AFTER_CYCLE="${CONTINUE_AFTER_CYCLE:-1}"
 
@@ -38,6 +41,9 @@ Options:
   --env-file <file>       Environment file written/read by bundle importer. Default: $ENV_FILE
   --gate <gate>           Device cycle gate: all, rokid, ipad, android-arcore, editor, ios-simulator. Default: all
   --device <id-or-name>   iPad device id/name forwarded to run_device_cycle.sh.
+  --wait-devices          Wait for selected devices to become ready before running the device cycle.
+  --wait-timeout <sec>    Device readiness wait timeout. Default: $WAIT_TIMEOUT_SECONDS
+  --wait-interval <sec>   Device readiness polling interval. Default: $WAIT_INTERVAL_SECONDS
   --dry-run               Print the device-lab sequence without invoking Godot/Xcode/ADB/devicectl.
   --no-import             Skip offline dependency bundle import.
   --no-online-deps        Skip online dependency installation. Default.
@@ -58,6 +64,9 @@ Environment:
   RUN_STATIC_GATES=1|0
   RUN_DEVICE_CYCLE=1|0
   RUN_COMPLETION_AUDIT=1|0
+  WAIT_FOR_DEVICES=1|0
+  WAIT_TIMEOUT_SECONDS=300
+  WAIT_INTERVAL_SECONDS=5
   CONTINUE_AFTER_CYCLE=1|0
 
 This is the phase-1 device-machine wrapper. It intentionally exits non-zero
@@ -98,6 +107,18 @@ while [[ "$#" -gt 0 ]]; do
 			;;
 		--device)
 			DEVICE="$2"
+			shift 2
+			;;
+		--wait-devices)
+			WAIT_FOR_DEVICES=1
+			shift
+			;;
+		--wait-timeout)
+			WAIT_TIMEOUT_SECONDS="$2"
+			shift 2
+			;;
+		--wait-interval)
+			WAIT_INTERVAL_SECONDS="$2"
 			shift 2
 			;;
 		--dry-run)
@@ -379,13 +400,34 @@ main() {
 	fi
 
 	if [[ "$RUN_DEVICE_CYCLE" == "1" ]]; then
+		local cycle_ready=1
+		if [[ "$WAIT_FOR_DEVICES" == "1" ]]; then
+			local wait_args=(
+				"$PROJECT_ROOT/tools/c00/wait_for_device_ready.sh"
+				--gate "$GATE"
+				--timeout "$WAIT_TIMEOUT_SECONDS"
+				--interval "$WAIT_INTERVAL_SECONDS"
+			)
+			if [[ "$GATE" == "ipad" || "$GATE" == "all" ]]; then
+				if [[ -n "$DEVICE" ]]; then
+					wait_args+=(--device "$DEVICE")
+				fi
+			fi
+			run_step "wait for device readiness" "${wait_args[@]}" || {
+				status=$?
+				cycle_ready=0
+			}
+		fi
+
 		local cycle_args=("$PROJECT_ROOT/tools/c00/run_device_cycle.sh" "$GATE")
 		if [[ "$GATE" == "ipad" || "$GATE" == "all" ]]; then
 			if [[ -n "$DEVICE" ]]; then
 				cycle_args+=("$DEVICE")
 			fi
 		fi
-		if [[ "$DRY_RUN" == "1" ]]; then
+		if [[ "$cycle_ready" != "1" ]]; then
+			echo "Skipping device cycle because device readiness did not pass."
+		elif [[ "$DRY_RUN" == "1" ]]; then
 			echo
 			echo "== Phase 1 device lab: device cycle =="
 			DRY_RUN=1 "${cycle_args[@]}" || status=$?
@@ -413,9 +455,18 @@ main() {
 		echo "Phase 1 device lab selected steps finished. Completion audit was skipped, so phase 1 is not proven complete."
 	else
 		echo "Phase 1 device lab finished with NOT_READY status. Inspect:"
-		echo "  $(project_path "$READINESS_REPORT")"
-		echo "  $(project_path "$STATIC_REPORT")"
-		echo "  $(project_path "$AUDIT_REPORT")"
+		if [[ "$RUN_READINESS" == "1" ]]; then
+			echo "  $(project_path "$READINESS_REPORT")"
+		fi
+		if [[ "$RUN_STATIC_GATES" == "1" ]]; then
+			echo "  $(project_path "$STATIC_REPORT")"
+		fi
+		if [[ "$WAIT_FOR_DEVICES" == "1" ]]; then
+			echo "  releases/phase_0_smoke/evidence/device-ready-${GATE}-*.md"
+		fi
+		if [[ "$RUN_COMPLETION_AUDIT" == "1" ]]; then
+			echo "  $(project_path "$AUDIT_REPORT")"
+		fi
 	fi
 	exit "$status"
 }

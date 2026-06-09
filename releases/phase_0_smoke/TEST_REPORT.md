@@ -94,6 +94,7 @@ Codex implementation status:
 - `tools/c00/run_phase1_device_lab.sh` now provides the device-machine phase-1 wrapper: optional offline dependency import, readiness report, static gates, `run_device_cycle.sh all`, and completion audit in the spec order, with `--dry-run` support.
 - `tools/c00/run_phase1_device_lab.sh --online-deps` now provides the matching online dependency path: resumable Godot export template install, OpenJDK 17 install, Android SDK package install, Android export environment/build-template configuration, and `.godot/cache/c00/device-env.sh` refresh before readiness/preflight.
 - Slow device-machine networks can now run `--online-deps-only` with `ONLINE_DEPS=templates,jdk,android-sdk,android-export` subsets, or pass `--online-deps-list`, so large C00 dependencies can be resumed and verified in smaller publishable steps.
+- `tools/c00/run_phase1_device_lab.sh --wait-devices` now waits for selected real devices to become ready before running the install/launch cycle; if readiness times out it preserves device-ready evidence, skips the device cycle, and continues to the completion audit instead of confusing offline hardware with an app runtime failure.
 - Native singleton providers can now report tracking status without an `XRInterface`; `GodotARKit` exposes `is_running()` and `get_tracking_status()` for the C00 panel and logs.
 - `GodotARKit.get_tracking_status()` now maps real ARKit state to Godot tracking status: normal tracking, limited/unknown tracking, or not tracking.
 - `OpenXRProvider` now reports Unity OpenXR Feature-style runtime diagnostics: selected blend mode, vendor singletons, feature flags, AR tier, and fallback path.
@@ -152,6 +153,7 @@ Hardware status:
 - `tools/c00/preflight.sh`, `tools/c00/bootstrap_device_machine.sh`, and `tools/c00/run_device_cycle.sh` now auto-source `.godot/cache/c00/device-env.sh` when present, with `C00_DEVICE_ENV_FILE` / `C00_AUTO_SOURCE_DEVICE_ENV` overrides for alternate device-machine setups.
 - Offline device-machine setup is still supported through `tools/c00/import_device_dependency_bundle.sh --bundle <device-bundle-dir>`. Put `Godot_v4.4.1-stable_export_templates.tpz`, Android SDK `platform-tools`/`build-tools`, a real JDK, optional `Godot.app`, and optional `godot-source` into the bundle, then either source `.godot/cache/c00/device-env.sh` manually or let the C00 entry scripts auto-source it.
 - No Rokid/Android device is currently attached through ADB. The detected `iPad M4` is currently reported by `devicectl` as `unavailable`.
+- On 2026-06-09, sandbox-external readiness checks confirmed ADB is operational but has no connected `device` entries, and Xcode sees `iPad M4` as `unavailable` / `Devices Offline`.
 - Do not mark this report as passed until the device evidence below is filled.
 
 ## Local Verification On 2026-06-09
@@ -173,6 +175,7 @@ Hardware status:
 | `tools/c00/build_ios_xcode_project.sh builds/ipad/c00.zip` with `IOS_BUILD_PLATFORM=ios CODE_SIGNING_ALLOWED=NO` | Pass | Generic iOS device build produces `builds/ipad/GodotXRFoundation-nosign.app` |
 | `IOS_BUILD_PLATFORM=simulator tools/c00/build_ios_xcode_project.sh builds/ios_simulator/c00.zip` with signing disabled | Pass | Simulator Xcode build succeeds after project-only export fallback, MetalFX simulator patch, and Godot template architecture detection; resulting app executable is `x86_64` |
 | `APP_PATH=builds/ios_simulator/GodotXRFoundation.app tools/c00/collect_ios_simulator_smoke.sh ...` | Fail as expected / diagnostic produced | Current Apple Silicon simulator requires `arm64`, but the app executable is `x86_64`; collector writes `releases/phase_0_smoke/evidence/ios-simulator-20260609-034114.md` before install |
+| `tools/c00/run_phase1_device_lab.sh --gate rokid --wait-devices --wait-timeout 1 --no-static --no-readiness --no-audit` | Fail as expected / diagnostic produced | Sandbox-external ADB readiness check reports no `device` entries, caps the sleep to the remaining timeout, and skips the device cycle |
 | `CAPTURE_MEDIA=0 DURATION=1 APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid ...` | Fail as expected / diagnostic produced | Current host has no ADB `device` state; collector writes `has_connected_device:false`, skips install/launch, appends device profile and analysis |
 | `DEVICECTL_TIMEOUT=5 CAPTURE_MEDIA=0 APP_PATH=builds/ipad/GodotXRFoundation-nosign.app tools/c00/collect_ios_smoke.sh "iPad M4" ...` | Fail as expected / diagnostic produced | Current iPad is `unavailable` in devicectl and `Devices Offline` in xctrace; collector preserves install failure, device profile, and profile analysis |
 

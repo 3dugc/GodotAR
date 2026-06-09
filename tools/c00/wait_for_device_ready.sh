@@ -124,7 +124,12 @@ while true; do
 		echo "Device readiness timed out after ${TIMEOUT_SECONDS}s. Last report: $REPORT" >&2
 		exit "$status"
 	fi
-	echo "Device not ready yet; sleeping ${INTERVAL_SECONDS}s..."
-	sleep "$INTERVAL_SECONDS"
+	remaining=$(( deadline - now ))
+	sleep_seconds="$INTERVAL_SECONDS"
+	if [[ "$remaining" -lt "$sleep_seconds" ]]; then
+		sleep_seconds="$remaining"
+	fi
+	echo "Device not ready yet; sleeping ${sleep_seconds}s..."
+	sleep "$sleep_seconds"
 	attempt=$(( attempt + 1 ))
 done

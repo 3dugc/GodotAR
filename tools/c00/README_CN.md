@@ -146,6 +146,18 @@ tools/c00/run_phase1_device_lab.sh \
   --device <ipad-uuid-or-name>
 ```
 
+如果设备机已经在旁边等待接入 Rokid/iPad，可以让一键入口先等待设备 ready，再进入安装/启动 gate：
+
+```bash
+tools/c00/run_phase1_device_lab.sh \
+  --bundle /Volumes/USB/device-bundle \
+  --device "iPad M4" \
+  --wait-devices \
+  --wait-timeout 600
+```
+
+`--wait-devices` 会调用 `tools/c00/wait_for_device_ready.sh`。如果设备一直不可用，它会跳过 device cycle，保留 readiness report，并继续生成 completion audit，避免把“设备未连接/离线”误判成应用运行失败。
+
 如果设备机能访问外网，但下载容易中断，可以不用离线包，直接让一键入口按 spec 顺序续传并安装依赖：
 
 ```bash

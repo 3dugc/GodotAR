@@ -26,6 +26,8 @@ const checks = [
 		requirements: [
 			["readiness checker invocation", /check_device_ready\.js/],
 			["timeout loop", /Device readiness timed out/],
+			["remaining timeout sleep cap", /deadline - now/],
+			["bounded readiness sleep", /sleep_seconds/],
 			["optional gate runner", /--run-gate/],
 			["run_device_cycle dispatch", /run_device_cycle\.sh/],
 		],

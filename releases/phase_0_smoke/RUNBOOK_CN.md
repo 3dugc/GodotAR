@@ -113,6 +113,18 @@ tools/c00/run_phase1_device_lab.sh \
   --device <ipad-uuid-or-name>
 ```
 
+如果你希望设备接上后自动进入 gate，而不是手动轮询 readiness，可以加等待参数：
+
+```bash
+tools/c00/run_phase1_device_lab.sh \
+  --bundle /Volumes/USB/device-bundle \
+  --device "iPad M4" \
+  --wait-devices \
+  --wait-timeout 600
+```
+
+设备在超时时间内仍不可用时，wrapper 会保留 readiness report、跳过安装/启动 cycle，并继续生成 completion audit。这样报告会明确停在“设备离线/不可用”，不会把 transport 问题混成应用启动失败。
+
 如果没有离线包但网络可用，使用在线依赖续传入口：
 
 ```bash
