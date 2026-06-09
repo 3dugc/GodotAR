@@ -14,6 +14,7 @@ Default route: `res://demo/00_device_smoke_test.tscn`
 | --- | --- | --- | --- |
 | Editor smoke | EditorSim | Pass | Latest local run: `releases/phase_0_smoke/evidence/editor-20260609-090834.md` |
 | iOS Simulator development gate | EditorSim | Build pass / install blocked by Godot simulator template arch | `releases/phase_0_smoke/evidence/ios-simulator-20260609-034114.md` |
+| iOS Simulator C04 placement dev gate | EditorSim | Pass | `releases/phase_0_smoke/evidence/editor-20260609-112045.log` validated with `--gate ios-simulator-place` |
 | Rokid AR gate | OpenXR | Pending device run | Screenshot/log |
 | iPad AR gate | ARKit | Pending device run | Screenshot/log |
 | Android ARCore availability | ARCore | Pending device run | Screenshot/log |
@@ -49,6 +50,8 @@ Codex implementation status:
 - `validate_smoke_log.js` and `verify_phase_evidence.js` now reject Godot `SCRIPT ERROR`, parse, compile, and failed script load lines, so a scene with broken migration scripts cannot pass by printing partial `GXF_SMOKE`.
 - iOS Simulator and Android Emulator are documented as auxiliary cycle outputs for export/startup/log validation only; they cannot satisfy the C00 ARKit/OpenXR publish gate.
 - `tools/c00/collect_ios_simulator_smoke.sh` and `tools/c00/run_device_cycle.sh ios-simulator` now provide a runnable iOS Simulator development gate that expects `backend:"EditorSim"` and validates the iOS export/startup/log path before iPad hardware.
+- `tools/c00/run_device_cycle.sh ios-simulator-place` now provides a C04 placement development gate that routes to `ios_arkit_place`, expects `backend:"EditorSim"`, and validates `GXF_ARKIT_PLACE` placed/raycast/plane/anchor evidence without replacing the real `ipad-place` gate.
+- C02/C04 placement logs now include runtime metadata, including Godot version, XR command-line args, rendering settings, OpenXR/XR shader settings, and viewport XR state.
 - `tools/c00/collect_ios_simulator_smoke.sh` now checks the simulator `.app` executable architecture before install and writes a clear `missing_simulator_arch` evidence report when the Godot simulator template does not contain a slice accepted by the current simulator runtime.
 - Godot plugin-first boundary documented. No Godot engine patch is used in C00.
 - `tools/c00/bootstrap_device_machine.sh` now generates a C00 readiness report for device machines and can optionally create the export preset starter.

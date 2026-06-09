@@ -71,7 +71,7 @@ function parseArgs(argv) {
 function usage() {
 	console.error([
 		"Usage:",
-		"  node tools/c00/validate_smoke_log.js --gate <rokid|rokid-place|ipad|ipad-place|android-arcore|editor|ios-simulator|android-emulator> --log <file> [--report <file>]",
+		"  node tools/c00/validate_smoke_log.js --gate <rokid|rokid-place|ipad|ipad-place|android-arcore|editor|ios-simulator|ios-simulator-place|android-emulator> --log <file> [--report <file>]",
 		"",
 		"Options:",
 		"  --allow-openxr-without-ar-blend   Downgrade Rokid ar_product_path=false from failure to warning.",
@@ -302,7 +302,7 @@ function selectEvidence(candidates, gate) {
 			candidates.find((event) => event.__source === "GXF_ROKID_PLACE") ||
 			null;
 	}
-	if (gate === "ipad-place") {
+	if (gate === "ipad-place" || gate === "ios-simulator-place") {
 		return candidates.find((event) => event.__source === "GXF_ARKIT_PLACE" && event.event === "placed") ||
 			candidates.find((event) => event.__source === "GXF_ARKIT_PLACE") ||
 			null;
@@ -317,7 +317,7 @@ function isSmokeEvidence(evidence) {
 
 
 function requiresCameraEvidence(gate, evidence) {
-	return isSmokeEvidence(evidence) || gate === "ipad-place";
+	return isSmokeEvidence(evidence) || gate === "ipad-place" || gate === "ios-simulator-place";
 }
 
 
@@ -333,7 +333,7 @@ function validatePlacementEvidence(evidence, gate, failures) {
 	if (centerHit.hit !== true) {
 		failures.push(`${gate} gate requires center_screen_raycast.hit=true.`);
 	}
-	if (gate === "ipad-place") {
+	if (gate === "ipad-place" || gate === "ios-simulator-place") {
 		const planeCount = Number(evidence.planes && evidence.planes.count || 0);
 		const anchorCount = Number(evidence.anchors && evidence.anchors.count || 0);
 		const hasCreatedAnchor = Boolean(evidence.anchor && evidence.anchor.created);
@@ -359,6 +359,7 @@ function backendForGate(gate) {
 			return "ARCore";
 		case "editor":
 		case "ios-simulator":
+		case "ios-simulator-place":
 		case "android-emulator":
 			return "EditorSim";
 		default:
@@ -418,6 +419,8 @@ function platformHintsForGate(gate) {
 		case "ios-simulator":
 		case "android-emulator":
 			return ["simulator", "simulation", "sim", "editor", "editorsim", "editor_sim"];
+		case "ios-simulator-place":
+			return ["simulator", "simulation", "sim", "editor", "editorsim", "editor_sim", "ipad", "iphone", "ios", "arkit"];
 		default:
 			return [];
 	}

@@ -237,6 +237,36 @@ tools/c00/run_device_cycle.sh ios-simulator
 
 通过标准是 `backend:"EditorSim"`；它不能替代 iPad/ARKit 真机 gate。
 
+C04 placement 对应的 simulator 开发门：
+
+```bash
+tools/c00/export_with_godot.sh "C04 iPad ARKit Place" builds/ios_simulator/c04-place.zip
+```
+
+```bash
+IOS_BUILD_PLATFORM=simulator \
+ALLOW_PROVISIONING_UPDATES=0 \
+CODE_SIGN_STYLE= \
+CODE_SIGNING_ALLOWED=NO \
+APP_OUTPUT_PATH=builds/ios_simulator/GodotXRFoundation-C04.app \
+tools/c00/build_ios_xcode_project.sh builds/ios_simulator/c04-place.zip
+```
+
+```bash
+IOS_SIM_GATE=ios-simulator-place \
+IOS_SIM_XR_SCENE=ios_arkit_place \
+APP_PATH=builds/ios_simulator/GodotXRFoundation-C04.app \
+tools/c00/collect_ios_simulator_smoke.sh booted org.godotengine.godotxrfoundation 30
+```
+
+等价一键命令：
+
+```bash
+tools/c00/run_device_cycle.sh ios-simulator-place
+```
+
+该 gate 通过 `EditorSim` 验证 C04 placement 场景、`GXF_ARKIT_PLACE`、raycast/anchor 和 iOS simulator app 启动链路；它不能替代 `tools/c00/run_device_cycle.sh ipad-place`。
+
 ## 不通过 preset 硬编码的原因
 
 Rokid/OpenXR loader、ARCore plugin、ARKit plugin、Team ID、签名和 export template 路径都依赖本机环境和 Godot 版本。C00 当前提交的是稳定的导出命名、starter 生成脚本、检查脚本和 gate 判定；真正的 `export_presets.cfg` 建议在有 Godot 编辑器和设备的机器上生成、复核后再提交。

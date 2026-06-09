@@ -35,7 +35,7 @@ if (args.help || args.h) {
 	process.exit(0);
 }
 
-if (!["all", "rokid", "rokid-place", "ipad", "ipad-place", "ios-simulator", "android-arcore", "editor"].includes(gate)) {
+if (!["all", "rokid", "rokid-place", "ipad", "ipad-place", "ios-simulator", "ios-simulator-place", "android-arcore", "editor"].includes(gate)) {
 	usage();
 	process.exit(2);
 }
@@ -51,7 +51,7 @@ const gates = gate === "all"
 	? ["rokid", "rokid-place", "ipad", "ipad-place", "android-arcore"]
 	: gate === "editor"
 		? []
-		: [gate === "ios-simulator" ? "ipad" : gate];
+		: [gate === "ios-simulator" ? "ipad" : (gate === "ios-simulator-place" ? "ipad-place" : gate)];
 const failures = [];
 const warnings = [];
 const evidence = [];

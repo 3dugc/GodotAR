@@ -19,14 +19,14 @@ source_device_env_if_present() {
 usage() {
 	cat <<EOF
 Usage:
-  tools/c00/preflight.sh [all|editor|rokid|ipad|ios-simulator|android-arcore]
+  tools/c00/preflight.sh [all|editor|rokid|rokid-place|ipad|ipad-place|ios-simulator|ios-simulator-place|android-arcore]
 
 Default: all
 EOF
 }
 
 case "$GATE" in
-	all|editor|rokid|ipad|ios-simulator|android-arcore)
+	all|editor|rokid|rokid-place|ipad|ipad-place|ios-simulator|ios-simulator-place|android-arcore)
 		;;
 	-h|--help)
 		usage
@@ -41,15 +41,15 @@ esac
 source_device_env_if_present
 
 needs_android_tools() {
-	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ] || [ "$GATE" = "android-arcore" ]
+	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ] || [ "$GATE" = "rokid-place" ] || [ "$GATE" = "android-arcore" ]
 }
 
 needs_ios_tools() {
-	[ "$GATE" = "all" ] || [ "$GATE" = "ipad" ] || [ "$GATE" = "ios-simulator" ]
+	[ "$GATE" = "all" ] || [ "$GATE" = "ipad" ] || [ "$GATE" = "ipad-place" ] || [ "$GATE" = "ios-simulator" ] || [ "$GATE" = "ios-simulator-place" ]
 }
 
 using_existing_ios_app() {
-	{ [ "$GATE" = "ipad" ] || [ "$GATE" = "ios-simulator" ]; } && [ -n "${APP_PATH:-}" ]
+	{ [ "$GATE" = "ipad" ] || [ "$GATE" = "ipad-place" ] || [ "$GATE" = "ios-simulator" ] || [ "$GATE" = "ios-simulator-place" ]; } && [ -n "${APP_PATH:-}" ]
 }
 
 needs_godot_binary() {
@@ -60,7 +60,7 @@ needs_godot_binary() {
 }
 
 needs_openxr() {
-	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ]
+	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ] || [ "$GATE" = "rokid-place" ]
 }
 
 needs_arcore() {
@@ -71,14 +71,14 @@ needs_export_preset() {
 	if using_existing_ios_app; then
 		return 1
 	fi
-	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ] || [ "$GATE" = "ipad" ] || [ "$GATE" = "ios-simulator" ] || [ "$GATE" = "android-arcore" ]
+	[ "$GATE" = "all" ] || [ "$GATE" = "rokid" ] || [ "$GATE" = "rokid-place" ] || [ "$GATE" = "ipad" ] || [ "$GATE" = "ipad-place" ] || [ "$GATE" = "ios-simulator" ] || [ "$GATE" = "ios-simulator-place" ] || [ "$GATE" = "android-arcore" ]
 }
 
 needs_arkit_static_check() {
 	if using_existing_ios_app; then
 		return 1
 	fi
-	[ "$GATE" = "all" ] || [ "$GATE" = "ipad" ] || [ "$GATE" = "ios-simulator" ]
+	[ "$GATE" = "all" ] || [ "$GATE" = "ipad" ] || [ "$GATE" = "ipad-place" ] || [ "$GATE" = "ios-simulator" ] || [ "$GATE" = "ios-simulator-place" ]
 }
 
 needs_ios_plugin_artifacts() {

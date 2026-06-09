@@ -589,6 +589,14 @@ tools/c00/run_device_cycle.sh ios-simulator
 
 该 gate 会用 `--xr-platform=simulator` 启动 iOS app，并要求 `validate_smoke_log.js --gate ios-simulator` 看到 `backend:"EditorSim"`。它证明 iOS 导出、simulator app 启动和统一接口日志链路，不证明 ARKit 真机 tracking。
 
+C04 placement 也有对应的开发期辅助 gate：
+
+```bash
+tools/c00/run_device_cycle.sh ios-simulator-place
+```
+
+它使用 `C04 iPad ARKit Place` preset 和 `--xr-scene=ios_arkit_place` 路由，验证 `GXF_ARKIT_PLACE`、`event:"placed"`、`center_screen_raycast.hit=true`、plane/anchor 模拟数据和 `backend:"EditorSim"`。该 gate 只证明 C04 上层 ARFoundation-style placement 场景和 iOS simulator 启动链路可运行，不能替代 `ipad-place` 真机 gate。
+
 如果 export preset 和启动命令都包含 `--xr-platform=...`，运行时以后出现的参数为准；因此 iOS Simulator 可以覆盖 iPad preset 中的 `--xr-platform=ipad`。
 
 ## Export Preset 检查
@@ -859,6 +867,14 @@ GODOT_SOURCE_DIR=/path/to/godot DEVICE=<device> tools/c00/run_device_cycle.sh ip
 
 该 gate 使用 `C04 iPad ARKit Place` preset，默认构建 `builds/ipad/GodotXRFoundation-C04.app`，并通过 `IOS_GATE=ipad-place IOS_XR_SCENE=ios_arkit_place` 启动。validator 要求 `GXF_ARKIT_PLACE`、`event:"placed"`、`planes.count >= 1`、`anchors.count >= 1` 或 `anchor.created=true`、`center_screen_raycast.hit=true`、`backend:"ARKit"`。
 
+在没有真机时，可以先跑 C04 simulator placement 辅助门：
+
+```bash
+tools/c00/run_device_cycle.sh ios-simulator-place
+```
+
+它要求 `backend:"EditorSim"`，用于验证 C04 boot route、上层 manager、raycast、anchor 和 placement 日志；发布验收仍必须使用上面的 `ipad-place`。
+
 ## 手动日志验证
 
 如果你从 Xcode、Console.app、Android Studio 或其他工具导出了日志，可以直接验证：
@@ -868,6 +884,7 @@ node tools/c00/validate_smoke_log.js --gate rokid --log path/to/rokid.log --repo
 node tools/c00/validate_smoke_log.js --gate rokid-place --log path/to/rokid-place.log --report releases/phase_0_smoke/evidence/rokid-place.md
 node tools/c00/validate_smoke_log.js --gate ipad --log path/to/ipad.log --report releases/phase_0_smoke/evidence/ipad.md
 node tools/c00/validate_smoke_log.js --gate ipad-place --log path/to/ipad-place.log --report releases/phase_0_smoke/evidence/ipad-place.md
+node tools/c00/validate_smoke_log.js --gate ios-simulator-place --log path/to/ios-simulator-place.log --report releases/phase_0_smoke/evidence/ios-simulator-place.md
 node tools/c00/validate_smoke_log.js --gate android-arcore --log path/to/android-arcore.log --report releases/phase_0_smoke/evidence/android-arcore.md
 ```
 

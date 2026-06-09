@@ -15,7 +15,7 @@ if (args.help || args.h) {
 	process.exit(0);
 }
 
-if (!["all", "editor", "rokid", "ipad", "ios-simulator", "android-arcore"].includes(gate)) {
+if (!["all", "editor", "rokid", "rokid-place", "ipad", "ipad-place", "ios-simulator", "ios-simulator-place", "android-arcore"].includes(gate)) {
 	usage();
 	process.exit(2);
 }
@@ -186,7 +186,7 @@ function parseArgs(argv) {
 function usage() {
 	console.error([
 		"Usage:",
-		"  node tools/c00/run_static_gates.js [--gate all|editor|rokid|ipad|ios-simulator|android-arcore] [--report <file>] [--format json|markdown]",
+		"  node tools/c00/run_static_gates.js [--gate all|editor|rokid|rokid-place|ipad|ipad-place|ios-simulator|ios-simulator-place|android-arcore] [--report <file>] [--format json|markdown]",
 		"",
 		"Runs C00 static gates that do not require a Godot export or connected devices.",
 	].join("\n"));
@@ -282,7 +282,7 @@ function commandExists(commandName) {
 
 
 function needsOpenXR(targetGate) {
-	return targetGate === "all" || targetGate === "rokid";
+	return targetGate === "all" || targetGate === "rokid" || targetGate === "rokid-place";
 }
 
 
@@ -292,12 +292,12 @@ function needsARCore(targetGate) {
 
 
 function needsAndroidExport(targetGate) {
-	return targetGate === "all" || targetGate === "rokid" || targetGate === "android-arcore";
+	return targetGate === "all" || targetGate === "rokid" || targetGate === "rokid-place" || targetGate === "android-arcore";
 }
 
 
 function needsIOS(targetGate) {
-	return targetGate === "all" || targetGate === "ipad" || targetGate === "ios-simulator";
+	return targetGate === "all" || targetGate === "ipad" || targetGate === "ipad-place" || targetGate === "ios-simulator" || targetGate === "ios-simulator-place";
 }
 
 

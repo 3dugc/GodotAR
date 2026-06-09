@@ -69,10 +69,13 @@ if (failures.length === 0) {
 		"C00_AUTO_SOURCE_DEVICE_ENV",
 		"source_device_env_if_present",
 		"INCLUDE_PLACE_DEMOS",
+		"ios-simulator-place",
 		"rokid-place",
 		"ipad-place",
 		"ROKID_PLACE_PRESET",
 		"IPAD_PLACE_PRESET",
+		"IOS_SIMULATOR_PLACE_EXPORT_PATH",
+		"IOS_SIMULATOR_PLACE_APP_PATH",
 		"build_ios_xcode_project.sh will try the project-only export fallback",
 		"build_status",
 	]);
@@ -82,6 +85,7 @@ if (failures.length === 0) {
 		"GXF_ARKIT_PLACE",
 		"rokid-place",
 		"ipad-place",
+		"ios-simulator-place",
 	]);
 
 	requireContains("tools/c00/check_export_presets.js", [
@@ -101,6 +105,8 @@ if (failures.length === 0) {
 	]);
 
 	requireContains("tools/c00/collect_ios_simulator_smoke.sh", [
+		"IOS_SIM_GATE",
+		"IOS_SIM_XR_SCENE",
 		"SIMULATOR_REQUIRED_ARCHS",
 		"app_executable_path",
 		"simulator_required_archs",

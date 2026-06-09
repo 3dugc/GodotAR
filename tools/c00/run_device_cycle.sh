@@ -48,16 +48,19 @@ IPAD_PLACE_EXPORT_PATH="${IPAD_PLACE_EXPORT_PATH:-builds/ipad/c04-place.zip}"
 IPAD_PLACE_APP_PATH="${IPAD_PLACE_APP_PATH:-builds/ipad/GodotXRFoundation-C04.app}"
 IOS_SIMULATOR_EXPORT_PATH="${IOS_SIMULATOR_EXPORT_PATH:-builds/ios_simulator/c00.zip}"
 IOS_SIMULATOR_APP_PATH="${IOS_SIMULATOR_APP_PATH:-builds/ios_simulator/GodotXRFoundation.app}"
+IOS_SIMULATOR_PLACE_EXPORT_PATH="${IOS_SIMULATOR_PLACE_EXPORT_PATH:-builds/ios_simulator/c04-place.zip}"
+IOS_SIMULATOR_PLACE_APP_PATH="${IOS_SIMULATOR_PLACE_APP_PATH:-builds/ios_simulator/GodotXRFoundation-C04.app}"
 SIMULATOR_DEVICE="${SIMULATOR_DEVICE:-booted}"
 
 usage() {
 	cat <<EOF
 Usage:
-  tools/c00/run_device_cycle.sh <editor|ios-simulator|rokid|rokid-place|ipad|ipad-place|android-arcore|all> [ipad-device]
+  tools/c00/run_device_cycle.sh <editor|ios-simulator|ios-simulator-place|rokid|rokid-place|ipad|ipad-place|android-arcore|all> [ipad-device]
 
 Examples:
   tools/c00/run_device_cycle.sh editor
   APP_PATH=builds/ios_simulator/GodotXRFoundation.app tools/c00/run_device_cycle.sh ios-simulator
+  APP_PATH=builds/ios_simulator/GodotXRFoundation-C04.app tools/c00/run_device_cycle.sh ios-simulator-place
   tools/c00/run_device_cycle.sh rokid
   tools/c00/run_device_cycle.sh rokid-place
   GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh ipad
@@ -89,6 +92,8 @@ iPad / ARKit:
   IPAD_APP_PATH="$IPAD_APP_PATH"
   IOS_SIMULATOR_EXPORT_PATH="$IOS_SIMULATOR_EXPORT_PATH"
   IOS_SIMULATOR_APP_PATH="$IOS_SIMULATOR_APP_PATH"
+  IOS_SIMULATOR_PLACE_EXPORT_PATH="$IOS_SIMULATOR_PLACE_EXPORT_PATH"
+  IOS_SIMULATOR_PLACE_APP_PATH="$IOS_SIMULATOR_PLACE_APP_PATH"
   SIMULATOR_DEVICE=booted              iOS Simulator UDID or booted alias.
   SCHEME=<xcode-scheme>              Optional Xcode scheme for the exported project.
   TARGET_NAME=<xcode-target>         Optional target fallback when no scheme exists.
@@ -106,6 +111,7 @@ All:
   INCLUDE_PLACE_DEMOS=1           Also run ipad-place and rokid-place cycle demo gates.
   INCLUDE_EDITOR_SIM=1             Run the local EditorSim gate before device gates.
   INCLUDE_IOS_SIMULATOR=1          Run iOS Simulator development gate before device gates.
+                                  With INCLUDE_PLACE_DEMOS=1, also runs ios-simulator-place.
   CONTINUE_ON_FAILURE=auto|1|0     Default auto continues in all mode so every device can produce evidence.
   RUN_PHASE_VERIFY=1               Run verify_phase_evidence.js after all gates.
   PHASE_REPORT="$PHASE_REPORT"
@@ -119,7 +125,7 @@ if [[ "$GATE" == "-h" || "$GATE" == "--help" ]]; then
 fi
 
 case "$GATE" in
-	editor|ios-simulator|rokid|rokid-place|ipad|ipad-place|android-arcore|all)
+	editor|ios-simulator|ios-simulator-place|rokid|rokid-place|ipad|ipad-place|android-arcore|all)
 		;;
 	*)
 		usage >&2
@@ -337,6 +343,9 @@ run_export() {
 			ios-simulator)
 				echo "DRY RUN: tools/c00/export_with_godot.sh \"$IPAD_PRESET\" \"$IOS_SIMULATOR_EXPORT_PATH\""
 				;;
+			ios-simulator-place)
+				echo "DRY RUN: tools/c00/export_with_godot.sh \"$IPAD_PLACE_PRESET\" \"$IOS_SIMULATOR_PLACE_EXPORT_PATH\""
+				;;
 			editor)
 				echo "DRY RUN: editor gate export skipped"
 				;;
@@ -378,6 +387,13 @@ run_export() {
 			fi
 			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$IPAD_PRESET" "$IOS_SIMULATOR_EXPORT_PATH"
 			;;
+		ios-simulator-place)
+			if [[ -n "${APP_PATH:-}" ]]; then
+				echo "APP_PATH is already set; skipping iOS Simulator placement export: $APP_PATH"
+				return
+			fi
+			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$IPAD_PLACE_PRESET" "$IOS_SIMULATOR_PLACE_EXPORT_PATH"
+			;;
 		editor)
 			echo "EditorSim gate does not require export."
 			;;
@@ -396,6 +412,9 @@ run_collect() {
 				;;
 			ios-simulator)
 				echo "DRY RUN: APP_PATH=${APP_PATH:-$IOS_SIMULATOR_APP_PATH} tools/c00/collect_ios_simulator_smoke.sh $SIMULATOR_DEVICE $PACKAGE $DURATION"
+				;;
+			ios-simulator-place)
+				echo "DRY RUN: IOS_SIM_GATE=ios-simulator-place IOS_SIM_XR_SCENE=ios_arkit_place APP_PATH=${APP_PATH:-$IOS_SIMULATOR_PLACE_APP_PATH} tools/c00/collect_ios_simulator_smoke.sh $SIMULATOR_DEVICE $PACKAGE $DURATION"
 				;;
 			rokid)
 				echo "DRY RUN: APK_PATH=${APK_PATH:-$(project_path "$ROKID_APK_PATH")} tools/c00/collect_android_smoke.sh rokid $PACKAGE $DURATION"
@@ -426,6 +445,14 @@ run_collect() {
 				exit 2
 			fi
 			"$PROJECT_ROOT/tools/c00/collect_ios_simulator_smoke.sh" "$SIMULATOR_DEVICE" "$PACKAGE" "$DURATION"
+			;;
+		ios-simulator-place)
+			if [[ -z "${APP_PATH:-}" ]]; then
+				echo "APP_PATH is empty; expected iOS Simulator placement .app from the build step." >&2
+				exit 2
+			fi
+			IOS_SIM_GATE=ios-simulator-place IOS_SIM_XR_SCENE=ios_arkit_place \
+				"$PROJECT_ROOT/tools/c00/collect_ios_simulator_smoke.sh" "$SIMULATOR_DEVICE" "$PACKAGE" "$DURATION"
 			;;
 		rokid)
 			local apk_path="${APK_PATH:-$(project_path "$ROKID_APK_PATH")}"
@@ -473,7 +500,7 @@ run_gate() {
 			unset APP_PATH
 		fi
 	fi
-	if [[ "$gate" == "ipad" || "$gate" == "ipad-place" || "$gate" == "ios-simulator" ]]; then
+	if [[ "$gate" == "ipad" || "$gate" == "ipad-place" || "$gate" == "ios-simulator" || "$gate" == "ios-simulator-place" ]]; then
 		build_arkit_plugin_if_requested || return $?
 	fi
 	run_preflight "$gate" || return $?
@@ -496,6 +523,19 @@ run_gate() {
 	fi
 	if [[ "$gate" == "ios-simulator" ]]; then
 		build_ios_simulator_app_if_requested || return $?
+	fi
+	if [[ "$gate" == "ios-simulator-place" ]]; then
+		local saved_simulator_export_path="$IOS_SIMULATOR_EXPORT_PATH"
+		local saved_simulator_app_path="$IOS_SIMULATOR_APP_PATH"
+		IOS_SIMULATOR_EXPORT_PATH="$IOS_SIMULATOR_PLACE_EXPORT_PATH"
+		IOS_SIMULATOR_APP_PATH="$IOS_SIMULATOR_PLACE_APP_PATH"
+		local simulator_build_status=0
+		build_ios_simulator_app_if_requested || simulator_build_status=$?
+		IOS_SIMULATOR_EXPORT_PATH="$saved_simulator_export_path"
+		IOS_SIMULATOR_APP_PATH="$saved_simulator_app_path"
+		if [[ "$simulator_build_status" -ne 0 ]]; then
+			return "$simulator_build_status"
+		fi
 	fi
 	run_collect "$gate" || return $?
 }
@@ -569,6 +609,12 @@ if [[ "$GATE" == "all" ]]; then
 		run_gate_for_all ios-simulator || phase_status="$?"
 		if [[ "$phase_status" != "0" && "$CONTINUE_ON_FAILURE" == "0" ]]; then
 			exit "$phase_status"
+		fi
+		if [[ "$INCLUDE_PLACE_DEMOS" == "1" ]]; then
+			run_gate_for_all ios-simulator-place || phase_status="$?"
+			if [[ "$phase_status" != "0" && "$CONTINUE_ON_FAILURE" == "0" ]]; then
+				exit "$phase_status"
+			fi
 		fi
 	fi
 	run_gate_for_all ipad || phase_status="$?"

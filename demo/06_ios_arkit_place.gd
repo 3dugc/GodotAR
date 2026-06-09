@@ -172,6 +172,9 @@ func _emit_place_log(event_name: String, extra: Dictionary) -> void:
 		"cycle": CYCLE_ID,
 		"version": VERSION,
 		"event": event_name,
+		"runtime": _runtime_metadata(),
+		"os": OS.get_name(),
+		"model": OS.get_model_name(),
 		"platform_hint": XRFoundation.resolve_platform_hint(platform_hint),
 		"device_profile": String(XRFoundation.get_device_profile()),
 		"tracking_mode": String(XRFoundation.get_tracking_mode()),
@@ -283,6 +286,22 @@ func _on_camera_frame_received(_args: Dictionary) -> void:
 	_frame_event_count += 1
 
 
+func _runtime_metadata() -> Dictionary:
+	var viewport := get_viewport()
+	return {
+		"app_name": String(ProjectSettings.get_setting("application/config/name", "")),
+		"godot": Engine.get_version_info(),
+		"cmdline_xr_args": XRFoundation.get_xr_cmdline_args(),
+		"resolved_platform_hint": XRFoundation.resolve_platform_hint(platform_hint),
+		"project_platform_hint": String(ProjectSettings.get_setting("godot_xr_foundation/platform_hint", "")),
+		"rendering_method": String(ProjectSettings.get_setting("rendering/renderer/rendering_method", "")),
+		"openxr_enabled": bool(ProjectSettings.get_setting("xr/openxr/enabled", false)),
+		"xr_shaders_enabled": bool(ProjectSettings.get_setting("xr/shaders/enabled", false)),
+		"viewport_use_xr": viewport.use_xr if viewport else false,
+		"viewport_transparent_bg": viewport.transparent_bg if viewport else false,
+	}
+
+
 func _on_planes_changed(changes: ARTrackablesChangedEventArgs) -> void:
 	_emit_light_log("planes_changed", _trackable_changes_metadata(changes))
 
@@ -312,6 +331,7 @@ func _emit_light_log(event_name: String, extra: Dictionary) -> void:
 		"cycle": CYCLE_ID,
 		"version": VERSION,
 		"event": event_name,
+		"runtime": _runtime_metadata(),
 		"platform_hint": XRFoundation.resolve_platform_hint(platform_hint),
 		"backend": String(XRFoundation.get_backend_name()),
 		"provider": String(XRFoundation.get_provider_name()),

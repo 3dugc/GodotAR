@@ -309,6 +309,14 @@ tools/c00/collect_ios_simulator_smoke.sh booted org.godotengine.godotxrfoundatio
 
 该 gate 会通过 `--xr-platform=simulator` 选择 `EditorSim` backend，用来验证 iOS 导出、simulator app 启动、日志和截图链路。报告路径仍在 `releases/phase_0_smoke/evidence/ios-simulator-*.md`，但不会进入 C00 真机总验收。
 
+C04 placement 开发期辅助 gate：
+
+```bash
+tools/c00/run_device_cycle.sh ios-simulator-place
+```
+
+该 gate 使用 `C04 iPad ARKit Place` preset、`--xr-scene=ios_arkit_place` 和 `IOS_SIM_GATE=ios-simulator-place`，要求 `GXF_ARKIT_PLACE` placement 证据通过 `EditorSim`。它只用于确认 C04 场景、ARFoundation-style manager、raycast/anchor 和 iOS simulator 启动链路，不替代 iPad 真机 `ipad-place`。
+
 如果 export preset 和启动命令都包含 `--xr-platform=...`，运行时以后出现的参数为准；这允许 simulator gate 复用 iPad preset，同时在启动时覆盖成 `--xr-platform=simulator`。
 
 ## Rokid / OpenXR

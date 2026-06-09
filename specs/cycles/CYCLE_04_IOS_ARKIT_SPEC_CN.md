@@ -75,6 +75,7 @@ demo/06_ios_arkit_place.tscn
 | Raycast | iOS | 点击平面 | 返回 hit |
 | Anchor | iOS | 放置 cube | 物体稳定在真实空间 |
 | Pause/resume | iOS | 切后台再回来 | session 恢复 |
+| Simulator placement dev gate | iOS Simulator | `tools/c00/run_device_cycle.sh ios-simulator-place` | `GXF_ARKIT_PLACE`、`event:"placed"`、`center_screen_raycast.hit=true`、EditorSim plane/anchor evidence；不替代真机 |
 | C04 demo static surface | Editor/CI | `node tools/c00/check_ios_arkit_place_surface.js` | `demo/06_ios_arkit_place.tscn`、`GXF_ARKIT_PLACE`、ARKit camera/tracking/anchor evidence surface 存在 |
 
 ## 发表要求

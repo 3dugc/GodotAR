@@ -8,14 +8,17 @@ DURATION="${3:-${DURATION:-30}}"
 APP_PATH="${APP_PATH:-${IOS_SIMULATOR_APP_PATH:-$PROJECT_ROOT/builds/ios_simulator/GodotXRFoundation.app}}"
 EXTRA_VALIDATE_ARGS="${EXTRA_VALIDATE_ARGS:-}"
 IOS_SIM_XR_PLATFORM="${IOS_SIM_XR_PLATFORM:-simulator}"
+IOS_SIM_XR_SCENE="${IOS_SIM_XR_SCENE:-}"
+IOS_SIM_GATE="${IOS_SIM_GATE:-ios-simulator}"
 CAPTURE_MEDIA="${CAPTURE_MEDIA:-1}"
 ALLOW_MISSING_MEDIA="${ALLOW_MISSING_MEDIA:-0}"
 SIMULATOR_REQUIRED_ARCHS="${SIMULATOR_REQUIRED_ARCHS:-auto}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="$PROJECT_ROOT/releases/phase_0_smoke/evidence"
-LOG_PATH="$OUT_DIR/ios-simulator-${STAMP}.log"
-REPORT_PATH="$OUT_DIR/ios-simulator-${STAMP}.md"
-SCREENSHOT_PATH="$OUT_DIR/ios-simulator-${STAMP}.png"
+EVIDENCE_PREFIX="${IOS_SIM_GATE//[^A-Za-z0-9_-]/-}"
+LOG_PATH="$OUT_DIR/${EVIDENCE_PREFIX}-${STAMP}.log"
+REPORT_PATH="$OUT_DIR/${EVIDENCE_PREFIX}-${STAMP}.md"
+SCREENSHOT_PATH="$OUT_DIR/${EVIDENCE_PREFIX}-${STAMP}.png"
 
 usage() {
 	cat <<EOF
@@ -26,6 +29,8 @@ Environment:
   SIMULATOR_DEVICE=booted
   BUNDLE_ID=org.godotengine.godotxrfoundation
   IOS_SIM_XR_PLATFORM=simulator
+  IOS_SIM_XR_SCENE=                 Optional boot router scene alias, for example ios_arkit_place.
+  IOS_SIM_GATE=ios-simulator        Development validator gate. Use ios-simulator-place for C04 placement.
   CAPTURE_MEDIA=1
   ALLOW_MISSING_MEDIA=0
   SIMULATOR_REQUIRED_ARCHS=auto | arm64 | x86_64 | "arm64 x86_64"
@@ -157,13 +162,17 @@ echo "Installing simulator app: $APP_PATH"
 xcrun simctl install "$SIMULATOR_DEVICE" "$APP_PATH"
 
 echo "Launching $BUNDLE_ID on $SIMULATOR_DEVICE for ${DURATION}s -> $LOG_PATH"
+LAUNCH_ARGS=("--xr-platform=${IOS_SIM_XR_PLATFORM}")
+if [[ -n "$IOS_SIM_XR_SCENE" ]]; then
+	LAUNCH_ARGS+=("--xr-scene=${IOS_SIM_XR_SCENE}")
+fi
 set +e
 xcrun simctl launch \
 	--console-pty \
 	--terminate-running-process \
 	"$SIMULATOR_DEVICE" \
 	"$BUNDLE_ID" \
-	"--xr-platform=${IOS_SIM_XR_PLATFORM}" > "$LOG_PATH" 2>&1 &
+	"${LAUNCH_ARGS[@]}" > "$LOG_PATH" 2>&1 &
 LAUNCH_PID="$!"
 sleep "$DURATION"
 kill "$LAUNCH_PID" >/dev/null 2>&1 || true
@@ -186,12 +195,12 @@ fi
 
 echo "Validating iOS Simulator development gate"
 node "$PROJECT_ROOT/tools/c00/validate_smoke_log.js" \
-	--gate ios-simulator \
+	--gate "$IOS_SIM_GATE" \
 	--log "$LOG_PATH" \
 	--report "$REPORT_PATH" \
 	$EXTRA_VALIDATE_ARGS
 
-EVIDENCE_ARGS=(--gate ios-simulator --screenshot "$SCREENSHOT_PATH" --report "$REPORT_PATH")
+EVIDENCE_ARGS=(--gate "$IOS_SIM_GATE" --screenshot "$SCREENSHOT_PATH" --report "$REPORT_PATH")
 if [[ "$ALLOW_MISSING_MEDIA" == "1" ]]; then
 	EVIDENCE_ARGS+=(--allow-missing-media)
 fi
