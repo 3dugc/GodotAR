@@ -83,6 +83,7 @@ max_raycast_distance = 1.75
 
 [node name="ARRaycastManager" type="Node" parent="."]
 script = ExtResource("4_raycast")
+camera_path = NodePath("../XRFoundationRig/XRCamera3D")
 
 [node name="ARPlaneManager" type="Node" parent="."]
 script = ExtResource("5_planes")

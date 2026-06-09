@@ -46,8 +46,8 @@ Godot's `XROrigin3D` is the tracking-space root. Keep imported Unity content und
 | `ARSession.requestedTrackingMode` | `ARSession.requested_tracking_mode`, `get_requested_tracking_mode()`, or `set_requested_tracking_mode(...)` |
 | `ARSession.currentTrackingMode` | `ARSession.get_current_tracking_mode()` |
 | `ARSession.matchFrameRate` / `matchFrameRateRequested` | `XRSessionManager.match_frame_rate` / `match_frame_rate_requested`; native providers may ignore this until their frame pacing bridge is implemented |
-| `ARRaycastManager.Raycast(Ray, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.RaycastToList(origin, direction, results, max_results, trackable_types)` or `TryRaycast(...)` |
-| `ARRaycastManager.Raycast(Vector2, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.RaycastFromScreen(camera, screen_position, results, trackable_types)`, `RaycastScreenPoint(...)`, `RaycastList(...)`, or `TryScreenRaycast(...)`; Godot requires an explicit `Camera3D` |
+| `ARRaycastManager.Raycast(Ray, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.RaycastToList(origin, direction, results, max_results, trackable_types)`, `Raycast(origin, direction, max_results, trackable_types)`, or `TryRaycast(...)` |
+| `ARRaycastManager.Raycast(Vector2, List<ARRaycastHit>, TrackableType)` | `ARRaycastManager.Raycast(screen_position, results, trackable_types)` when `camera_path` or the active viewport camera is available; explicit-camera aliases remain available through `RaycastFromScreen(camera, ...)`, `RaycastScreenPoint(...)`, `RaycastList(...)`, or `TryScreenRaycast(...)` |
 | `ARRaycastHit.pose` | `XRHit.pose`, `XRHit.get_pose()`, `XRHit.GetPose()`, or `XRHit.to_dictionary().pose` |
 | `ARRaycastHit.trackableId` / `trackableType` | `XRHit.trackableId` / `trackableType`, `GetTrackableId()`, `GetTrackableType()`, or the snake_case `trackable_id` / `trackable_type` fields |
 | `ARAnchorManager.AddAnchor(...)` | `ARAnchorManager.AddAnchor(...)` or `add_anchor(...)` |
@@ -74,7 +74,7 @@ C00 keeps the compatibility layer intentionally thin: it copies the Unity naming
 - `ARSession.foundation_state()` and `XRFoundation.state` expose the internal lifecycle value when gate scripts need to know whether the provider has started or failed.
 - `ARSession.notTrackingReason()` maps the current Godot/XR tracking status to `XRFoundationTypes.NotTrackingReason`.
 - Manager changed events expose Unity AR Foundation 6-style `trackablesChanged(changes)` with `changes.added`, `changes.updated`, and `changes.removed`, while still emitting legacy `planes_changed(added, updated, removed)` and `anchors_changed(added, updated, removed)` for existing Godot-side scripts.
-- Screen-space raycast needs a `Camera3D` argument because Godot does not have Unity's implicit active AR camera.
+- Screen-space raycast can now match Unity's `Raycast(screenPoint, hitResults, trackableTypes)` call shape when `ARRaycastManager.camera_path` is configured, when `SetRaycastCamera(camera)` has been called, or when a viewport/current-scene `Camera3D` can be discovered. Explicit-camera aliases remain available for deterministic tests and nonstandard rigs.
 - Native ARKit/ARCore singleton bridges can return anchor dictionaries; `NativeXRProvider` preserves `trackable_id`, `persistent_id`, `transform`, and `tracking_state` through `ARAnchor.from_dictionary()`.
 - `match_frame_rate_requested` is surfaced as a migration option now; actual native frame pacing should be implemented in the ARKit/ARCore/OpenXR providers when those SDK bridges expose preferred frame timing.
 
@@ -153,9 +153,12 @@ func place_from_screen(screen_position: Vector2) -> void:
 Unity-style list output is also supported:
 
 ```gdscript
+func _ready() -> void:
+	raycast_manager.SetRaycastCamera(camera)
+
 func place_from_screen_unity_style(screen_position: Vector2) -> void:
 	var hits: Array = []
-	if not raycast_manager.RaycastFromScreen(camera, screen_position, hits):
+	if not raycast_manager.Raycast(screen_position, hits):
 		return
 
 	var result := anchor_manager.TryAddAnchorAsync(hits[0].get_pose())
@@ -195,5 +198,5 @@ The provider layer in this addon is designed so those features can be added per 
 - Unity AR Foundation `ARSession`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%404.2/api/UnityEngine.XR.ARFoundation.ARSession.html
 - Unity AR Foundation managers architecture: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%405.0/manual/architecture/managers.html
 - Unity AR Foundation 6 `ARPlaneManager.trackablesChanged`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.0/manual/features/plane-detection/arplanemanager.html
-- Unity AR Foundation `ARRaycastManager`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%405.0/api/UnityEngine.XR.ARFoundation.ARRaycastManager.html
+- Unity AR Foundation 6 `ARRaycastManager` single raycasts: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.0/manual/features/raycasts.html
 - Unity XR Interaction Toolkit `XRRayInteractor`: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%402.5/manual/xr-ray-interactor.html

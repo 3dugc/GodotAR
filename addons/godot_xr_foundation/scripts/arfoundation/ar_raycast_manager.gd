@@ -5,6 +5,7 @@ signal raycast_hit(hit: XRHit)
 
 @export var max_distance := 20.0
 @export_flags_3d_physics var physics_mask := 0xffffffff
+@export var camera_path: NodePath
 
 
 func raycast(origin: Vector3, direction: Vector3, max_results: int = 1, trackable_types: int = 0xffffffff) -> Array[XRHit]:
@@ -42,6 +43,11 @@ func screen_raycast_to_list(camera: Camera3D, screen_position: Vector2, results:
 	return not hits.is_empty()
 
 
+func unity_screen_raycast(screen_position: Vector2, results: Array, trackable_types: int = 0xffffffff) -> bool:
+	var camera := get_raycast_camera()
+	return screen_raycast_to_list(camera, screen_position, results, 0, trackable_types)
+
+
 func raycast_from_screen(camera: Camera3D, screen_position: Vector2, results: Array, trackable_types: int = 0xffffffff) -> bool:
 	return screen_raycast_to_list(camera, screen_position, results, 0, trackable_types)
 
@@ -70,8 +76,19 @@ func RaycastScreen(camera: Camera3D, screen_position: Vector2, results: Array, t
 	return raycast_from_screen(camera, screen_position, results, trackable_types)
 
 
-func Raycast(origin: Vector3, direction: Vector3, max_results: int = 1, trackable_types: int = 0xffffffff) -> Array[XRHit]:
-	return raycast(origin, direction, max_results, trackable_types)
+func Raycast(query: Variant, arg2: Variant = null, arg3: Variant = null, arg4: Variant = null) -> Variant:
+	if query is Vector2 and arg2 is Array:
+		var trackable_types := int(arg3) if arg3 != null else 0xffffffff
+		return unity_screen_raycast(query, arg2, trackable_types)
+	if query is Camera3D and arg2 is Vector2 and arg3 is Array:
+		var camera_trackable_types := int(arg4) if arg4 != null else 0xffffffff
+		return screen_raycast_to_list(query, arg2, arg3, 0, camera_trackable_types)
+	if query is Vector3 and arg2 is Vector3:
+		var max_results := int(arg3) if arg3 != null else 1
+		var ray_trackable_types := int(arg4) if arg4 != null else 0xffffffff
+		return raycast(query, arg2, max_results, ray_trackable_types)
+	var empty: Array[XRHit] = []
+	return empty
 
 
 func ScreenRaycast(camera: Camera3D, screen_position: Vector2, max_results: int = 1, trackable_types: int = 0xffffffff) -> Array[XRHit]:
@@ -84,6 +101,49 @@ func TryRaycast(origin: Vector3, direction: Vector3, results: Array, max_results
 
 func TryScreenRaycast(camera: Camera3D, screen_position: Vector2, results: Array, max_results: int = 0, trackable_types: int = 0xffffffff) -> bool:
 	return screen_raycast_to_list(camera, screen_position, results, max_results, trackable_types)
+
+
+func TryUnityScreenRaycast(screen_position: Vector2, results: Array, trackable_types: int = 0xffffffff) -> bool:
+	return unity_screen_raycast(screen_position, results, trackable_types)
+
+
+func get_raycast_camera() -> Camera3D:
+	if camera_path != NodePath():
+		var configured := get_node_or_null(camera_path)
+		if configured is Camera3D:
+			return configured
+	var viewport := get_viewport()
+	if viewport:
+		var viewport_camera := viewport.get_camera_3d()
+		if viewport_camera:
+			return viewport_camera
+	var tree := get_tree()
+	if tree and tree.current_scene:
+		return _find_camera_in_tree(tree.current_scene)
+	return null
+
+
+func SetRaycastCamera(camera: Camera3D) -> void:
+	if camera == null:
+		camera_path = NodePath()
+		return
+	camera_path = get_path_to(camera)
+
+
+func GetRaycastCamera() -> Camera3D:
+	return get_raycast_camera()
+
+
+func _find_camera_in_tree(root: Node) -> Camera3D:
+	if root == null:
+		return null
+	if root is Camera3D:
+		return root
+	for child in root.get_children():
+		var camera := _find_camera_in_tree(child)
+		if camera:
+			return camera
+	return null
 
 
 func _filter_hits(hits: Array[XRHit], trackable_types: int) -> Array[XRHit]:

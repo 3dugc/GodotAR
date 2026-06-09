@@ -71,12 +71,26 @@ const checks = [
 	{
 		file: "addons/godot_xr_foundation/scripts/arfoundation/ar_raycast_manager.gd",
 		requirements: [
+			["Unity screen raycast camera path", /@export\s+var\s+camera_path\s*:\s*NodePath/],
+			["Unity screen raycast helper", /func\s+unity_screen_raycast\s*\(/],
 			["raycast from screen helper", /func\s+raycast_from_screen\s*\(/],
 			["RaycastFromScreen alias", /func\s+RaycastFromScreen\s*\(/],
 			["RaycastScreen alias", /func\s+RaycastScreen\s*\(/],
 			["RaycastScreenPoint alias", /func\s+RaycastScreenPoint\s*\(/],
 			["RaycastList alias", /func\s+RaycastList\s*\(/],
+			["Unity flexible Raycast dispatcher", /func\s+Raycast\s*\(\s*query\s*:\s*Variant/],
+			["Unity screen Raycast list dispatch", /query\s+is\s+Vector2\s+and\s+arg2\s+is\s+Array/],
 			["TryScreenRaycast list API", /func\s+TryScreenRaycast\s*\(/],
+			["TryUnityScreenRaycast list API", /func\s+TryUnityScreenRaycast\s*\(/],
+			["Raycast camera getter", /func\s+get_raycast_camera\s*\(/],
+			["SetRaycastCamera alias", /func\s+SetRaycastCamera\s*\(/],
+			["GetRaycastCamera alias", /func\s+GetRaycastCamera\s*\(/],
+		],
+	},
+	{
+		file: "demo/00_device_smoke_test.tscn",
+		requirements: [
+			["ARRaycastManager configured camera path", /camera_path\s*=\s*NodePath\("\.\.\/XRFoundationRig\/XRCamera3D"\)/],
 		],
 	},
 	{
@@ -165,7 +179,8 @@ const checks = [
 		requirements: [
 			["ARSession.state migration row", /ARSession\.state/],
 			["notTrackingReason migration row", /notTrackingReason/],
-			["ARRaycastManager.Raycast screen migration", /RaycastFromScreen|TryScreenRaycast/],
+			["ARRaycastManager.Raycast screen migration", /Raycast\(screen_position,\s*results,\s*trackable_types\)/],
+			["ARRaycastManager camera path migration", /camera_path|SetRaycastCamera/],
 			["Unity trackablesChanged migration", /trackablesChanged/],
 			["ARTrackablesChangedEventArgs migration", /ARTrackablesChangedEventArgs/],
 			["trackables changed legacy events", /planes_changed|anchors_changed/],

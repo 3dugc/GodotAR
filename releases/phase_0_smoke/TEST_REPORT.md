@@ -10,7 +10,7 @@ Scene: `res://demo/00_device_smoke_test.tscn`
 
 | Gate | Required backend | Result | Evidence |
 | --- | --- | --- | --- |
-| Editor smoke | EditorSim | Pass | `releases/phase_0_smoke/evidence/editor-20260608-233913.md` |
+| Editor smoke | EditorSim | Pass | Latest local run: `releases/phase_0_smoke/evidence/editor-20260609-085939.md` |
 | iOS Simulator development gate | EditorSim | Build pass / install blocked by Godot simulator template arch | `releases/phase_0_smoke/evidence/ios-simulator-20260609-034114.md` |
 | Rokid AR gate | OpenXR | Pending device run | Screenshot/log |
 | iPad AR gate | ARKit | Pending device run | Screenshot/log |
@@ -32,6 +32,8 @@ Codex implementation status:
 - Unity-compatible `ARSession.state()` now returns `ARSessionState` semantics, while `ARSession.foundation_state()` keeps access to the internal lifecycle state.
 - Unity-style `ARSession.notTrackingReason`, `requestedTrackingMode`, and `matchFrameRateRequested` compatibility surface added.
 - Unity-style migration helpers added for placement workflows: `ARRaycastManager.TryRaycast`, `ARRaycastManager.RaycastToList`, `ARRaycastManager.TryScreenRaycast`, `XRHit.get_pose()`, `ARAnchorManager.TryAddAnchorAsync`, and `ARAnchorManager.TryRemoveAnchor`.
+- `ARRaycastManager` now supports Unity-style screen point list output via `Raycast(screen_position, hits, trackable_types)` when `camera_path`, `SetRaycastCamera(camera)`, or the active viewport camera can resolve the AR camera.
+- Latest local EditorSim validation loaded the smoke scene successfully and reported a center-screen AR raycast hit against the simulated floor after the Unity-style screen point dispatcher change.
 - `ARPlaneManager.planes_changed` and `ARAnchorManager.anchors_changed` list-style events added for Unity manager migration.
 - `NativeXRProvider` now preserves native anchor dictionary ids and persistent ids from ARKit/ARCore singleton bridges instead of replacing them with generated ids.
 - `tools/c00/check_arfoundation_api_surface.js` now guards the migration API surface without requiring a Godot binary.
@@ -106,7 +108,7 @@ Codex implementation status:
 - `ARPlaneManager` now exposes `requested_detection_mode`, detection-mode string mapping, `GetTrackable(...)`, `TryGetTrackable(...)`, and `TryGetPlane(...)` migration aliases.
 - `ARAnchorManager` now exposes `GetTrackable(...)`, `TryGetTrackable(...)`, and `TryGetAnchor(...)` migration aliases.
 - `XRHit` now exposes Unity-style `pose`, `trackableId`, `trackableType`, `GetTrackableId()`, and `GetTrackableType()` aliases alongside the existing Godot snake_case fields.
-- `ARRaycastManager` now exposes additional Unity-placement migration aliases `RaycastScreenPoint(...)` and `RaycastList(...)` for screen-point list-output workflows that still require Godot's explicit `Camera3D`.
+- `ARRaycastManager` now exposes additional Unity-placement migration aliases `RaycastScreenPoint(...)`, `RaycastList(...)`, and the Unity-shaped `Raycast(screen_position, hits, trackable_types)` dispatcher for screen-point list-output workflows.
 - `XRInteractionManager`, `XRRayInteractor`, and `XRGrabInteractable` now emit Unity XRI-style camelCase signals such as `hoverEntered`, `selectEntered`, `firstSelectEntered`, and `lastSelectExited` alongside their snake_case Godot signals.
 - Official Godot OpenXR Vendors 4.2.0 is now vendored under `addons/godotopenxrvendors` for Godot 4.4 Android/OpenXR exports.
 - `ios/plugins/godot_arkit/GodotARKit.xcframework` and `GodotARKit.gdip` are now built locally against Godot 4.4.1 source headers; the archive contains `GodotARKitPlugin.mm.o` and `GodotARKitSession.mm.o` for iOS arm64 plus simulator arm64/x86_64.
