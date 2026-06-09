@@ -46,7 +46,8 @@ node tools/c00/write_export_presets_template.js \
 - OpenXR / vendor loader: C00 Rokid gate 当前启用 `xr_features/openxr_vendor_khronos=true`
 - Godot OpenXR Vendors plugin: 安装到 `addons/godotopenxrvendors`；同一个 preset 只启用一个目标 vendor。
 - Extra Args / `command_line/extra_args`: `--xr-platform=rokid`
-- Main scene: `res://demo/00_device_smoke_test.tscn`
+- Main scene: `res://demo/boot.tscn`，默认路由到 `res://demo/00_device_smoke_test.tscn`
+- Demo route: 需要跑 Rokid placement 时追加 `--xr-scene=rokid_place`
 - Package name: 建议 `org.godotengine.godotxrfoundation`
 - Export path: `builds/rokid/c00.apk`
 
@@ -86,7 +87,7 @@ APK_PATH=builds/rokid/c00.apk tools/c00/collect_android_smoke.sh rokid org.godot
 - Use Gradle Build: enabled
 - Native ARCore plugin enabled: `plugins/GodotARCore=true`
 - Extra Args / `command_line/extra_args`: 必须包含 `--xr-platform=arcore`
-- Main scene: `res://demo/00_device_smoke_test.tscn`
+- Main scene: `res://demo/boot.tscn`，默认路由到 `res://demo/00_device_smoke_test.tscn`
 - Package name: 建议 `org.godotengine.godotxrfoundation`
 - Export path: `builds/android_arcore/c00.apk`
 
@@ -119,9 +120,10 @@ APK_PATH=builds/android_arcore/c00.apk tools/c00/collect_android_smoke.sh androi
 - Team ID / signing: `application/app_store_team_id` 必须非空；`ABCDE12345` 只是 starter 占位，真机安装前要替换成本机 Apple Developer Team ID
 - Base icon: `icons/icon_1024x1024="res://assets/app_icon.svg"`，Godot 会用它生成 iOS 所需尺寸
 - `application/export_project_only=true`：Godot 阶段只稳定产出 Xcode project，真机签名/安装交给 `tools/c00/build_ios_xcode_project.sh`
-- `export_filter="scenes"` 且 `export_files=PackedStringArray("res://demo/00_device_smoke_test.tscn")`：只导出 smoke app 依赖，避免 `.godot/` 和历史构建产物进入包
+- `export_filter="scenes"` 且 `export_files` 包含 `res://demo/boot.tscn`、C00 smoke、OpenXR lab、Rokid placement、iOS ARKit placement 场景：只导出每期可运行 demo 依赖，避免 `.godot/` 和历史构建产物进入包
 - `exclude_filter` 至少排除 `android/build/*,builds/*,exports/*,releases/*,tools/*`，作为额外保险
-- Main scene: `res://demo/00_device_smoke_test.tscn`
+- Main scene: `res://demo/boot.tscn`，默认路由到 `res://demo/00_device_smoke_test.tscn`
+- Demo route: 需要跑 iPad/ARKit placement 时追加 `--xr-scene=ios_arkit_place`
 - Export path: `builds/ipad/c00.zip`
 
 构建 ARKit 插件：

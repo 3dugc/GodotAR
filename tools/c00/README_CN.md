@@ -50,9 +50,9 @@ tools/c00/preflight.sh android-arcore
 - `export_presets.cfg` 是否包含目标 C00 preset。
 - Godot 官方 export templates 是否已安装到 `~/Library/Application Support/Godot/export_templates/4.4.1.stable`，至少需要 `ios.zip` 和 `android_source.zip`。
 - Android/Rokid 导出所需 Android SDK `platform-tools`、`build-tools/apksigner`、Java SDK 和 `keytool` 是否可用。
-- `project.godot`、C00 主场景、rig 场景、脚本资源和关键 NodePath 是否完整。
+- `project.godot`、C00 boot 主场景、smoke/rig 场景、脚本资源和关键 NodePath 是否完整。
 - ARFoundation / XRI / OpenXR provider 静态 surface 是否稳定。
-- C00 smoke scene 是否是 Godot 主场景。
+- C00 boot scene 是否是 Godot 主场景，且是否默认路由到 smoke scene。
 - `project.godot` 是否开启 OpenXR。
 
 一键静态 gate：

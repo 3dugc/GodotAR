@@ -4,7 +4,8 @@ const fs = require("fs");
 const path = require("path");
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
-const MAIN_SCENE = "res://demo/00_device_smoke_test.tscn";
+const MAIN_SCENE = "res://demo/boot.tscn";
+const DEFAULT_BOOT_SCENE = "res://demo/00_device_smoke_test.tscn";
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
 	usage();
@@ -17,7 +18,17 @@ const evidence = [];
 
 checkProjectSettings();
 checkAddon();
+checkBootRouterSurface();
 checkStartupHintSurface();
+checkScene("demo/boot.tscn", {
+	requiredNodes: [
+		"Boot",
+	],
+	requiredExtResourcePaths: [
+		"res://demo/boot.gd",
+	],
+	requiredNodePaths: [],
+});
 checkScene("demo/00_device_smoke_test.tscn", {
 	requiredNodes: [
 		"DeviceSmokeTest",
@@ -97,7 +108,7 @@ function checkProjectSettings() {
 		return;
 	}
 
-	requireText(text, 'run/main_scene="res://demo/00_device_smoke_test.tscn"', `${file}: main_scene must be ${MAIN_SCENE}.`, localEvidence);
+	requireText(text, 'run/main_scene="res://demo/boot.tscn"', `${file}: main_scene must be ${MAIN_SCENE}.`, localEvidence);
 	requireText(text, 'config/icon="res://assets/app_icon.svg"', `${file}: C00 app icon should be set for iOS export.`, localEvidence);
 	requireText(text, 'XRFoundation="*res://addons/godot_xr_foundation/scripts/xr_foundation.gd"', `${file}: XRFoundation autoload is missing.`, localEvidence);
 	requireText(text, "res://addons/godot_xr_foundation/plugin.cfg", `${file}: XR Foundation addon plugin should be enabled.`, localEvidence);
@@ -108,6 +119,7 @@ function checkProjectSettings() {
 	requireText(text, "shaders/enabled=true", `${file}: XR shaders should be enabled.`, localEvidence);
 
 	for (const resPath of [
+		"res://demo/boot.tscn",
 		"res://demo/00_device_smoke_test.tscn",
 		"res://assets/app_icon.svg",
 		"res://addons/godot_xr_foundation/scripts/xr_foundation.gd",
@@ -134,6 +146,37 @@ function checkAddon() {
 		text.includes('script="res://addons/godot_xr_foundation/godot_xr_foundation.gd"');
 	addCheck(localEvidence, "plugin script", hasPluginScript, `${file}: plugin script reference is missing.`);
 	checkResPathExists("res://addons/godot_xr_foundation/godot_xr_foundation.gd", localEvidence);
+	evidence.push(localEvidence);
+}
+
+
+function checkBootRouterSurface() {
+	const file = "demo/boot.gd";
+	const text = readProjectFile(file);
+	const localEvidence = { file, exists: Boolean(text), checks: [] };
+	if (!text) {
+		failures.push(`Missing ${file}.`);
+		evidence.push(localEvidence);
+		return;
+	}
+	requireText(text, `const DEFAULT_SCENE := "${DEFAULT_BOOT_SCENE}"`, `${file}: boot router must default to ${DEFAULT_BOOT_SCENE}.`, localEvidence);
+	requireText(text, '"rokid_place": "res://demo/04_rokid_ray_place.tscn"', `${file}: missing rokid_place scene route.`, localEvidence);
+	requireText(text, '"ios_arkit_place": "res://demo/06_ios_arkit_place.tscn"', `${file}: missing ios_arkit_place scene route.`, localEvidence);
+	requireText(text, '"openxr_lab": "res://demo/03_openxr_ar_capability_lab.tscn"', `${file}: missing OpenXR capability lab route.`, localEvidence);
+	requireText(text, "--xr-scene=", `${file}: boot router must read --xr-scene= for device demo selection.`, localEvidence);
+	requireText(text, "--xr-demo=", `${file}: boot router must keep --xr-demo= compatibility.`, localEvidence);
+	requireText(text, "OS.get_cmdline_args()", `${file}: boot router should read Godot command line args.`, localEvidence);
+	requireText(text, "get_cmdline_user_args", `${file}: boot router should read exported app user args.`, localEvidence);
+	requireText(text, "GXF_BOOT", `${file}: boot router must print GXF_BOOT evidence.`, localEvidence);
+	for (const resPath of [
+		"res://demo/boot.tscn",
+		"res://demo/00_device_smoke_test.tscn",
+		"res://demo/03_openxr_ar_capability_lab.tscn",
+		"res://demo/04_rokid_ray_place.tscn",
+		"res://demo/06_ios_arkit_place.tscn",
+	]) {
+		checkResPathExists(resPath, localEvidence);
+	}
 	evidence.push(localEvidence);
 }
 

@@ -4,13 +4,26 @@
 
 ## 运行入口
 
-Godot 主场景已经设置为：
+Godot 主场景已经设置为 boot router：
+
+```text
+res://demo/boot.tscn
+```
+
+默认不传参数时会进入：
 
 ```text
 res://demo/00_device_smoke_test.tscn
 ```
 
-也可以在编辑器中手动运行该场景。
+导出包同时包含每期可运行 demo。需要切到专项场景时，在启动参数追加：
+
+```text
+--xr-scene=rokid_place
+--xr-scene=ios_arkit_place
+```
+
+也可以在编辑器中手动运行对应场景。
 
 ## 工具链预检
 

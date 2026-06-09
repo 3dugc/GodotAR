@@ -12,7 +12,13 @@ const expected = {
 	"android-arcore": { name: "C00 Android ARCore", platform: "Android", path: "builds/android_arcore/c00.apk" },
 	ipad: { name: "C00 iPad ARKit", platform: "iOS", path: "builds/ipad/c00.zip" },
 };
-const mainScene = "res://demo/00_device_smoke_test.tscn";
+const requiredExportScenes = [
+	"res://demo/boot.tscn",
+	"res://demo/00_device_smoke_test.tscn",
+	"res://demo/03_openxr_ar_capability_lab.tscn",
+	"res://demo/04_rokid_ray_place.tscn",
+	"res://demo/06_ios_arkit_place.tscn",
+];
 const openXrVendorOptions = [
 	"xr_features/openxr_vendor_khronos",
 	"xr_features/openxr_vendor_meta",
@@ -71,8 +77,11 @@ for (const item of gates) {
 	if (preset.values.export_filter !== "scenes") {
 		failures.push(`Preset "${requirement.name}" export_filter must be "scenes" so generated folders and tooling are not packed into the app.`);
 	}
-	if (!String(preset.values.export_files || "").includes(mainScene)) {
-		failures.push(`Preset "${requirement.name}" export_files must include ${mainScene}.`);
+	const exportFiles = String(preset.values.export_files || "");
+	for (const requiredScene of requiredExportScenes) {
+		if (!exportFiles.includes(requiredScene)) {
+			failures.push(`Preset "${requirement.name}" export_files must include ${requiredScene}.`);
+		}
 	}
 
 	const exportPath = preset.values.export_path || preset.values.custom_template_debug || "";
@@ -158,6 +167,7 @@ for (const item of gates) {
 		platform: preset.values.platform,
 		export_path: exportPath,
 		exclude_filter: excludeFilter,
+		export_files: exportFiles,
 		extra_args: getPresetOption(preset, "command_line/extra_args"),
 		openxr_vendors: item === "rokid" ? Object.fromEntries(openXrVendorOptions.map((option) => [option, isTruthyOption(preset, option)])) : undefined,
 		app_store_team_id: item === "ipad" ? getPresetOption(preset, "application/app_store_team_id") : undefined,

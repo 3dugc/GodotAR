@@ -16,6 +16,7 @@ The project is addon/plugin-first. Platform support should live in Godot addons,
 
 Implemented:
 
+- Boot scene router: `demo/boot.tscn` defaults to C00 smoke and can route exported builds to cycle demos with `--xr-scene=...`.
 - C00 device smoke test scene: `demo/00_device_smoke_test.tscn`.
 - `GXF_SMOKE|{...}` structured runtime logs for backend, provider, tracking, capabilities, FPS, and errors.
 - Unity AR Foundation-style `ARSession` compatibility wrapper with `CheckAvailability`, `Install`, `Reset`, and `state` aliases.
@@ -47,13 +48,15 @@ Open this folder in Godot 4:
 outputs/godot_xr_foundation
 ```
 
-Run `demo/00_device_smoke_test.tscn` first. This is the first-cycle device gate for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.
+The project main scene is `demo/boot.tscn`. It defaults to `demo/00_device_smoke_test.tscn`, which is the first-cycle device gate for Rokid/OpenXR, iPad/ARKit, and Android/ARCore.
 
 Then run `demo/main.tscn` for the placement sample.
 
 For OpenXR/Rokid bring-up, run `demo/03_openxr_ar_capability_lab.tscn` to inspect AR tier, passthrough, vendor singletons, input profile, and plane source. Then run `demo/04_rokid_ray_place.tscn` to test center ray/gaze placement against a real plane or the explicit `virtual_floor_fallback`.
 
 For iPad/ARKit bring-up, run `demo/06_ios_arkit_place.tscn` from the exported Xcode project. It logs `GXF_ARKIT_PLACE` with ARKit tracking state/reason, camera frame/intrinsics metadata, plane count, screen raycast, and anchor placement evidence. EditorSim fallback is useful for local API checks, but the iPad gate still requires real device media/log evidence.
+
+Exported builds include the boot scene plus smoke, OpenXR lab, Rokid placement, and iOS ARKit placement scenes. Use `--xr-scene=rokid_place` for `demo/04_rokid_ray_place.tscn`, `--xr-scene=ios_arkit_place` for `demo/06_ios_arkit_place.tscn`, or omit it for the default smoke gate.
 
 In the editor, the project falls back to `Editor Simulation`. Click in the viewport to place cubes on the simulated floor.
 

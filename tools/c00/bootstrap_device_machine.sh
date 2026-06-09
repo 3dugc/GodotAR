@@ -471,10 +471,10 @@ else
 	add_row MISS "project.godot" "Project file is missing."
 fi
 
-if grep -q 'run/main_scene="res://demo/00_device_smoke_test.tscn"' "$PROJECT_ROOT/project.godot"; then
-	add_row PASS "C00 main scene" "res://demo/00_device_smoke_test.tscn"
+if grep -q 'run/main_scene="res://demo/boot.tscn"' "$PROJECT_ROOT/project.godot"; then
+	add_row PASS "C00 main scene" "res://demo/boot.tscn"
 else
-	add_row MISS "C00 main scene" "project.godot does not point to C00 smoke scene."
+	add_row MISS "C00 main scene" "project.godot does not point to C00 boot scene."
 fi
 
 if grep -q 'openxr/enabled=true' "$PROJECT_ROOT/project.godot"; then

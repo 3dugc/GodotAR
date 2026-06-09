@@ -476,10 +476,10 @@ else
 	status=1
 fi
 
-if grep -q 'run/main_scene="res://demo/00_device_smoke_test.tscn"' "$PROJECT_ROOT/project.godot"; then
-	printf "OK   C00 smoke scene is main_scene\n"
+if grep -q 'run/main_scene="res://demo/boot.tscn"' "$PROJECT_ROOT/project.godot"; then
+	printf "OK   C00 boot scene is main_scene\n"
 else
-	printf "MISS C00 smoke scene is not main_scene\n"
+	printf "MISS C00 boot scene is not main_scene\n"
 	status=1
 fi
 

@@ -4,7 +4,9 @@ Cycle: C00 Device Smoke Test
 
 Version: v0.0.1-c00-device-smoke
 
-Scene: `res://demo/00_device_smoke_test.tscn`
+Main scene: `res://demo/boot.tscn`
+
+Default route: `res://demo/00_device_smoke_test.tscn`
 
 ## Summary
 
@@ -20,6 +22,7 @@ Scene: `res://demo/00_device_smoke_test.tscn`
 Codex implementation status:
 
 - C00 smoke scene created.
+- Boot scene router added. Exported builds default to C00 smoke and can run cycle demos with `--xr-scene=rokid_place` or `--xr-scene=ios_arkit_place`.
 - Runtime status panel created.
 - Runtime status panel now shows ARKit tracking state/reason when the native ARKit provider reports them.
 - Runtime status panel now shows OpenXR AR tier/fallback when the OpenXR provider reports them.
