@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
+const PROJECT_ROOT = path.resolve(__dirname, "../..");
 const args = parseArgs(process.argv.slice(2));
 
 if (args.help || args.h) {
@@ -16,7 +17,7 @@ const packageName = String(args.package || process.env.PACKAGE || "org.godotengi
 const reportPath = args.report ? path.resolve(String(args.report)) : "";
 const jsonPath = args.json ? path.resolve(String(args.json)) : "";
 const appendReportPath = args["append-report"] ? path.resolve(String(args["append-report"])) : "";
-const adbBin = String(args.adb || process.env.ADB_BIN || "adb");
+const adbBin = resolveAdb(String(args.adb || process.env.ADB_BIN || ""));
 const adbSerial = String(args.serial || process.env.ADB_SERIAL || "");
 
 if (!["rokid", "android-arcore"].includes(gate)) {
@@ -71,7 +72,7 @@ function usage() {
 		"  node tools/c00/collect_android_device_profile.js --gate <rokid|android-arcore> --package <id> [--report <file>] [--json <file>] [--append-report <file>]",
 		"",
 		"Options:",
-		"  --adb <path>       adb executable. Default: adb or ADB_BIN.",
+		"  --adb <path>       adb executable. Default: ADB_BIN, project-local C00 adb, or PATH adb.",
 		"  --serial <id>      adb device serial. Default: ADB_SERIAL.",
 	].join("\n"));
 }
@@ -81,6 +82,7 @@ function collectProfile() {
 	const generatedAt = new Date().toISOString();
 	const devices = runAdb(["devices", "-l"]);
 	const connectedDevices = parseAdbDevices(devices.stdout);
+	const host = collectHostDiagnostics(devices);
 	const properties = collectProperties();
 	const display = {
 		size: runAdbShell(["wm", "size"]).stdout.trim(),
@@ -108,11 +110,13 @@ function collectProfile() {
 			binary: adbBin,
 			serial: adbSerial || null,
 			available: devices.ok,
+			version: host.adb_version,
 			has_connected_device: connectedDevices.some((item) => item.state === "device"),
 			connected_devices: connectedDevices,
 			devices: devices.stdout.trim(),
 			error: devices.ok ? "" : devices.stderr.trim(),
 		},
+		host,
 		properties,
 		display,
 		notable_features: notableFeatures,
@@ -120,6 +124,95 @@ function collectProfile() {
 		target_package: targetPackage,
 		warnings,
 	};
+}
+
+
+function collectHostDiagnostics(devicesResult) {
+	const adbVersion = runAdb(["version"]);
+	return {
+		adb_binary: adbBin,
+		adb_version: parseAdbVersion(adbVersion.stdout || adbVersion.stderr),
+		adb_version_output: truncate(adbVersion.stdout || adbVersion.stderr || "", 800),
+		adb_devices_stderr: truncate((devicesResult && devicesResult.stderr) || "", 800),
+		android_home: process.env.ANDROID_HOME || "",
+		android_sdk_root: process.env.ANDROID_SDK_ROOT || "",
+		java_home: process.env.JAVA_HOME || "",
+		path_has_adb: commandExists("adb"),
+		usb: collectUsbSummary(),
+	};
+}
+
+
+function collectUsbSummary() {
+	if (process.platform !== "darwin") {
+		return {
+			available: false,
+			reason: "non-darwin-host",
+			android_like_devices: [],
+		};
+	}
+	const result = spawnSync("system_profiler", ["SPUSBDataType", "-json"], { encoding: "utf8", timeout: 8000 });
+	if (result.status !== 0 || !result.stdout) {
+		return {
+			available: false,
+			status: result.status,
+			error: truncate(result.stderr || result.stdout || result.error || "", 800),
+			android_like_devices: [],
+		};
+	}
+	let json = null;
+	try {
+		json = JSON.parse(result.stdout);
+	} catch (error) {
+		return {
+			available: false,
+			error: `system_profiler JSON parse failed: ${String(error.message || error)}`,
+			android_like_devices: [],
+		};
+	}
+	return {
+		available: true,
+		android_like_devices: findUsbAndroidLikeDevices(json),
+	};
+}
+
+
+function findUsbAndroidLikeDevices(value, output = []) {
+	if (!value || typeof value !== "object") {
+		return output;
+	}
+	if (Array.isArray(value)) {
+		for (const item of value) {
+			findUsbAndroidLikeDevices(item, output);
+		}
+		return output;
+	}
+	const text = JSON.stringify(value);
+	if (/android|adb|rokid|pico|quest|oculus|meta|lynx|vive|google/i.test(text)) {
+		output.push({
+			name: value._name || value.name || "",
+			manufacturer: value.manufacturer || value.vendor_name || "",
+			product_id: value.product_id || "",
+			vendor_id: value.vendor_id || "",
+			serial: value.serial_num || value.serial || "",
+		});
+	}
+	for (const item of Object.values(value)) {
+		findUsbAndroidLikeDevices(item, output);
+	}
+	return output.slice(0, 12);
+}
+
+
+function parseAdbVersion(text) {
+	const match = String(text || "").match(/Android Debug Bridge version\s+([^\s]+)/i);
+	return match ? match[1] : "";
+}
+
+
+function commandExists(command) {
+	const found = spawnSync("sh", ["-lc", `command -v ${shellQuote(command)}`], { encoding: "utf8" });
+	return found.status === 0 && Boolean(found.stdout.trim());
 }
 
 
@@ -187,7 +280,7 @@ function parseTargetPackage(text) {
 function collectWarnings(profile) {
 	const warnings = [];
 	if (!profile.devices.ok) {
-		warnings.push(`adb devices failed: ${profile.devices.stderr.trim() || "unknown error"}`);
+		warnings.push(`adb devices failed: ${profile.devices.stderr.trim() || profile.devices.error || "unknown error"}`);
 	}
 	if (!profile.connectedDevices.some((item) => item.state === "device")) {
 		warnings.push("No connected Android device is in adb state 'device'. Connect and authorize the Rokid/Android device before running the gate.");
@@ -242,12 +335,22 @@ function matchLine(text, pattern) {
 
 
 function runAdb(argsList) {
+	if (!adbBin) {
+		return {
+			ok: false,
+			stdout: "",
+			stderr: "adb not found",
+			status: null,
+			error: "adb not found",
+		};
+	}
 	const result = spawnSync(adbBin, withSerial(argsList), { encoding: "utf8" });
 	return {
 		ok: result.status === 0,
 		stdout: result.stdout || "",
 		stderr: result.stderr || "",
 		status: result.status,
+		error: result.error ? String(result.error) : "",
 	};
 }
 
@@ -265,6 +368,27 @@ function withSerial(argsList) {
 }
 
 
+function resolveAdb(requested) {
+	const candidates = [
+		requested,
+		path.join(PROJECT_ROOT, ".godot/cache/c00/android-sdk/platform-tools/adb"),
+		"adb",
+	].filter(Boolean).map(String);
+	for (const candidate of candidates) {
+		if (candidate.includes("/") && fs.existsSync(candidate)) {
+			return candidate;
+		}
+		if (!candidate.includes("/")) {
+			const found = spawnSync("sh", ["-lc", `command -v ${shellQuote(candidate)}`], { encoding: "utf8" });
+			if (found.status === 0 && found.stdout.trim()) {
+				return found.stdout.trim();
+			}
+		}
+	}
+	return "";
+}
+
+
 function renderMarkdown(profile) {
 	const lines = [];
 	lines.push(`# C00 Android Device Profile: ${profile.gate}`);
@@ -279,6 +403,13 @@ function renderMarkdown(profile) {
 	lines.push(`- Serial: ${profile.adb.serial ? `\`${profile.adb.serial}\`` : "default"}`);
 	lines.push(`- Available: ${profile.adb.available ? "yes" : "no"}`);
 	lines.push(`- Connected device: ${profile.adb.has_connected_device ? "yes" : "no"}`);
+	lines.push(`- Version: ${profile.adb.version || "unknown"}`);
+	lines.push("");
+	lines.push("## Host Diagnostics");
+	lines.push("");
+	lines.push("```json");
+	lines.push(JSON.stringify(profile.host || {}, null, 2));
+	lines.push("```");
 	lines.push("");
 	lines.push("```text");
 	lines.push(profile.adb.devices || profile.adb.error || "");
@@ -339,4 +470,18 @@ function pushList(lines, items) {
 
 function escapeTable(value) {
 	return String(value || "").replace(/\r?\n/g, " ").replace(/\|/g, "\\|");
+}
+
+
+function truncate(value, maxLength) {
+	const text = String(value || "").trim();
+	if (text.length <= maxLength) {
+		return text;
+	}
+	return `${text.slice(0, maxLength)}\n... truncated ...`;
+}
+
+
+function shellQuote(value) {
+	return `'${String(value).replace(/'/g, "'\\''")}'`;
 }

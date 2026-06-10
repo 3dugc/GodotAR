@@ -66,6 +66,7 @@ function checkAndroidReady(gateName) {
 	const availableDevices = parsedDevices.filter((item) => item.state === "device");
 	const targetDevice = serial ? parsedDevices.find((item) => item.serial === serial) : availableDevices[0] || null;
 	const hostPermissionBlocked = isAndroidHostPermissionBlocked(devices);
+	const host = collectAndroidHost(adb, devices);
 
 	if (!adb) {
 		failures.push("adb was not found. Set ADB_BIN or install Android platform-tools.");
@@ -94,11 +95,12 @@ function checkAndroidReady(gateName) {
 		pass: failures.length === 0,
 		failures,
 		warnings,
-		next_actions: androidReadinessNextActions(gateName, { adb, devices, parsedDevices, availableDevices, serial, targetDevice, hostPermissionBlocked }),
+		next_actions: androidReadinessNextActions(gateName, { adb, devices, parsedDevices, availableDevices, serial, targetDevice, hostPermissionBlocked, host }),
 		evidence: {
 			adb,
 			serial: serial || "",
 			host_permission_blocked: hostPermissionBlocked,
+			host,
 			devices: parsedDevices,
 			selected_device: targetDevice,
 			raw_devices_output: devices.stdout.trim(),
@@ -182,6 +184,7 @@ function androidReadinessNextActions(gateName, context) {
 	const parsedDevices = context.parsedDevices || [];
 	const states = new Set(parsedDevices.map((item) => item.state));
 	const label = gateName === "rokid" ? "Rokid/OpenXR" : "Android/ARCore";
+	const usbDevices = ((context.host && context.host.usb && context.host.usb.android_like_devices) || []);
 
 	if (!context.adb) {
 		actions.push("Install Android platform-tools or set ADB_BIN to the adb executable from the C00 Android SDK.");
@@ -198,7 +201,11 @@ function androidReadinessNextActions(gateName, context) {
 		return actions;
 	}
 	if (parsedDevices.length === 0) {
-		actions.push(`Connect the ${label} device over USB-C, enable Developer Options and USB debugging, then accept the RSA trust prompt on the device.`);
+		if (usbDevices.length > 0) {
+			actions.push(`macOS USB sees possible Android/XR hardware (${usbDevices.map((item) => item.name || item.manufacturer || item.serial || "unknown").join(", ")}), but adb lists no transport. Unlock the device, enable USB debugging, switch the USB mode away from charge-only if needed, and accept the RSA trust prompt.`);
+		} else {
+			actions.push(`Connect the ${label} device over USB-C, enable Developer Options and USB debugging, then accept the RSA trust prompt on the device.`);
+		}
 		actions.push("Re-run `adb devices -l` and wait until the device state is exactly `device`.");
 		return actions;
 	}
@@ -215,6 +222,95 @@ function androidReadinessNextActions(gateName, context) {
 		actions.push("Wait for adb transport to settle, then retry readiness before running the device gate.");
 	}
 	return actions;
+}
+
+
+function collectAndroidHost(adb, devicesResult) {
+	const adbVersion = adb ? run(adb, ["version"]) : { ok: false, stdout: "", stderr: "adb not found" };
+	return {
+		adb_binary: adb || "",
+		adb_version: parseAdbVersion(adbVersion.stdout || adbVersion.stderr),
+		adb_version_output: truncate(adbVersion.stdout || adbVersion.stderr || "", 800),
+		adb_devices_stderr: truncate((devicesResult && devicesResult.stderr) || "", 800),
+		android_home: process.env.ANDROID_HOME || "",
+		android_sdk_root: process.env.ANDROID_SDK_ROOT || "",
+		java_home: process.env.JAVA_HOME || "",
+		path_has_adb: commandExists("adb"),
+		usb: collectUsbSummary(),
+	};
+}
+
+
+function collectUsbSummary() {
+	if (process.platform !== "darwin") {
+		return {
+			available: false,
+			reason: "non-darwin-host",
+			android_like_devices: [],
+		};
+	}
+	const result = spawnSync("system_profiler", ["SPUSBDataType", "-json"], { encoding: "utf8", timeout: 8000 });
+	if (result.status !== 0 || !result.stdout) {
+		return {
+			available: false,
+			status: result.status,
+			error: truncate(result.stderr || result.stdout || result.error || "", 800),
+			android_like_devices: [],
+		};
+	}
+	let json = null;
+	try {
+		json = JSON.parse(result.stdout);
+	} catch (error) {
+		return {
+			available: false,
+			error: `system_profiler JSON parse failed: ${String(error.message || error)}`,
+			android_like_devices: [],
+		};
+	}
+	return {
+		available: true,
+		android_like_devices: findUsbAndroidLikeDevices(json),
+	};
+}
+
+
+function findUsbAndroidLikeDevices(value, output = []) {
+	if (!value || typeof value !== "object") {
+		return output;
+	}
+	if (Array.isArray(value)) {
+		for (const item of value) {
+			findUsbAndroidLikeDevices(item, output);
+		}
+		return output;
+	}
+	const text = JSON.stringify(value);
+	if (/android|adb|rokid|pico|quest|oculus|meta|lynx|vive|google/i.test(text)) {
+		output.push({
+			name: value._name || value.name || "",
+			manufacturer: value.manufacturer || value.vendor_name || "",
+			product_id: value.product_id || "",
+			vendor_id: value.vendor_id || "",
+			serial: value.serial_num || value.serial || "",
+		});
+	}
+	for (const item of Object.values(value)) {
+		findUsbAndroidLikeDevices(item, output);
+	}
+	return output.slice(0, 12);
+}
+
+
+function parseAdbVersion(text) {
+	const match = String(text || "").match(/Android Debug Bridge version\s+([^\s]+)/i);
+	return match ? match[1] : "";
+}
+
+
+function commandExists(command) {
+	const found = spawnSync("sh", ["-lc", `command -v ${shellQuote(command)}`], { encoding: "utf8" });
+	return found.status === 0 && Boolean(found.stdout.trim());
 }
 
 

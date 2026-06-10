@@ -165,6 +165,7 @@ function analyzeProfile(profile, gateName) {
 		evidence: {
 			device: deviceText || "unknown",
 			host_permission_blocked: hostPermissionBlocked,
+			host: summarizeHost(profile.host || {}),
 			connected_devices: (profile.adb && Array.isArray(profile.adb.connected_devices)) ? profile.adb.connected_devices : [],
 			target_package_installed: Boolean(targetPackage.installed),
 			target_package_version: targetPackage.version_name || targetPackage.version_code || "",
@@ -198,6 +199,7 @@ function androidNextActions(context) {
 	const adb = profile.adb || {};
 	const gateName = context.gateName;
 	const label = gateName === "rokid" ? "Rokid/OpenXR" : "Android/ARCore";
+	const usbDevices = ((profile.host && profile.host.usb && profile.host.usb.android_like_devices) || []);
 
 	if (adb.available !== true) {
 		if (context.hostPermissionBlocked) {
@@ -213,7 +215,11 @@ function androidNextActions(context) {
 		return actions;
 	}
 	if (adb.has_connected_device !== true) {
-		actions.push(`Connect the ${label} device over USB-C, enable Developer Options and USB debugging, then accept the RSA trust prompt.`);
+		if (usbDevices.length > 0) {
+			actions.push(`macOS USB sees possible Android/XR hardware (${usbDevices.map((item) => item.name || item.manufacturer || item.serial || "unknown").join(", ")}), but adb has no authorized device transport. Unlock the device, enable USB debugging, switch USB mode away from charge-only if needed, and accept the RSA trust prompt.`);
+		} else {
+			actions.push(`Connect the ${label} device over USB-C, enable Developer Options and USB debugging, then accept the RSA trust prompt.`);
+		}
 		actions.push("Re-run `adb devices -l` and wait until the device state is exactly `device` before launching the gate.");
 		return actions;
 	}
@@ -233,6 +239,19 @@ function androidNextActions(context) {
 		actions.push("If the gate still fails, inspect the smoke log and device profile evidence for runtime package or permission errors.");
 	}
 	return actions;
+}
+
+
+function summarizeHost(host) {
+	return {
+		adb_binary: host.adb_binary || "",
+		adb_version: host.adb_version || "",
+		android_home: host.android_home || "",
+		android_sdk_root: host.android_sdk_root || "",
+		java_home: host.java_home || "",
+		path_has_adb: host.path_has_adb === true,
+		usb: host.usb || {},
+	};
 }
 
 

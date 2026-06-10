@@ -17,6 +17,9 @@ const checks = [
 			["parsed adb devices", /function parseAdbDevices/],
 			["connected device evidence", /has_connected_device/],
 			["no connected device warning", /No connected Android device is in adb state 'device'/],
+			["host diagnostics evidence", /collectHostDiagnostics/],
+			["USB Android-like evidence", /android_like_devices/],
+			["project-local adb fallback", /\.godot\/cache\/c00\/android-sdk\/platform-tools\/adb/],
 		],
 	},
 	{
@@ -24,6 +27,8 @@ const checks = [
 		requirements: [
 			["no connected device failure", /No connected Android device was available in adb state 'device'/],
 			["connected devices evidence", /connected_devices/],
+			["host diagnostics evidence", /host:\s*summarizeHost/],
+			["USB Android-like guidance", /macOS USB sees possible Android\/XR hardware/],
 		],
 	},
 	{

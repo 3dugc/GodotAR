@@ -24,6 +24,8 @@ const checks = [
 			["iPad recovery guidance", /ipadReadinessNextActions/],
 			["host permission blocked evidence", /host_permission_blocked/],
 			["Android host permission helper", /isAndroidHostPermissionBlocked/],
+			["Android host diagnostics", /collectAndroidHost/],
+			["Android USB diagnostics", /android_like_devices/],
 			["iPad host permission helper", /isIpadHostPermissionBlocked/],
 			["definite iPad host permission helper", /isDefiniteIpadHostPermissionBlocked/],
 			["iPad permission denied pattern", /permission denied/],
@@ -37,6 +39,8 @@ const checks = [
 			["USB debugging guidance", /USB debugging/],
 			["Android analyzer host permission evidence", /host_permission_blocked/],
 			["Android analyzer host permission helper", /isHostPermissionBlocked/],
+			["Android analyzer host evidence", /host:\s*summarizeHost/],
+			["Android analyzer USB guidance", /macOS USB sees possible Android\/XR hardware/],
 		],
 	},
 	{
@@ -67,6 +71,7 @@ const checks = [
 			["device readiness docs", /wait_for_device_ready\.sh/],
 			["run-gate docs", /--run-gate/],
 			["next actions docs", /Next Actions/],
+			["Android host diagnostics docs", /ADB 版本、Android SDK 环境、JAVA_HOME/],
 		],
 	},
 	{
