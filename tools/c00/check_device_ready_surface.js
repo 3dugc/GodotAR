@@ -66,9 +66,21 @@ const checks = [
 		],
 	},
 	{
+		file: "tools/c00/recover_ios_ddi_services.js",
+		requirements: [
+			["before readiness", /runReadiness\("before"\)/],
+			["after readiness", /runReadiness\("after"\)/],
+			["DDI auto-mount command", /device",\s*"info",\s*"ddiServices".*--auto-mount-ddis/s],
+			["DDI evidence artifacts", /ipad-ddi-automount-\$\{stamp\}\.json/],
+			["optional iPad gate", /run_device_cycle\.sh/],
+			["unavailable recovery action", /could not locate the iPad/],
+		],
+	},
+	{
 		file: "tools/c00/README_CN.md",
 		requirements: [
 			["device readiness docs", /wait_for_device_ready\.sh/],
+			["iPad DDI recovery docs", /recover_ios_ddi_services\.js/],
 			["run-gate docs", /--run-gate/],
 			["next actions docs", /Next Actions/],
 			["Android host diagnostics docs", /ADB 版本、Android SDK 环境、JAVA_HOME/],
@@ -78,6 +90,7 @@ const checks = [
 		file: "releases/phase_0_smoke/RUNBOOK_CN.md",
 		requirements: [
 			["device readiness runbook", /wait_for_device_ready\.sh/],
+			["iPad DDI recovery runbook", /recover_ios_ddi_services\.js/],
 			["next actions runbook", /Next Actions/],
 		],
 	},

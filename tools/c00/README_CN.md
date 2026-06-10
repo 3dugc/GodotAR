@@ -111,6 +111,7 @@ releases/phase_0_smoke/evidence/device-ready-<gate>-<timestamp>.json
 ```
 
 readiness 和 device profile 报告包含 `Next Actions` / `next_actions`，会针对 ADB 无设备、Rokid 未授权、iPad `offline` / `unavailable`、`ddiServicesAvailable=false`、目标 app 尚未安装等状态给出现场恢复步骤。iPad 报告还会记录 host Xcode 版本、build、`iphoneos` / `iphonesimulator` SDK 版本，以及只读 `DDI services` probe；当 `ddiServicesAvailable=false` 时，先按报告里的 iPadOS 与 Xcode/SDK 组合处理设备支持包或系统版本不匹配问题，必要时在设备已解锁/信任后运行 `xcrun devicectl device info ddiServices --device <device> --auto-mount-ddis` 触发 CoreDevice 挂载/更新 DDI。
+若 iPad 已解锁/信任但仍卡在 DDI，可运行 `node tools/c00/recover_ios_ddi_services.js --device "iPad M4"`。它会归档 DDI auto-mount 前后的 readiness、`devicectl` JSON/log 和下一步恢复动作；加 `--run-gate` 时，只有恢复后 readiness 通过才会继续跑 iPad gate。
 Rokid/Android 报告会记录 ADB 版本、Android SDK 环境、JAVA_HOME、PATH 中是否有 `adb`，并在 macOS 上尝试列出 USB 中疑似 Android/XR 的设备；如果 USB 能看到设备但 ADB 没有 transport，优先检查 USB debugging、RSA 授权和 USB 模式。
 如果在 Codex 沙盒、CI 沙盒或其它受限终端里运行，ADB 可能因为不能绑定本地 server socket 报 `Operation not permitted`，`devicectl` / `xctrace` 也可能因为 CoreDevice XPC 或 Instruments cache 权限失败。报告会用 `host_permission_blocked:true` 标出这类主机权限阻塞；此时先在普通 macOS 终端或已批准的 unsandboxed 命令里重跑 readiness，再判断是否真的缺设备。
 如果 `devicectl` 能列出目标 iPad 但状态是 `unavailable`，且后续命令报 `CoreDeviceService was unable to locate a device matching the requested device identifier`，这应按 iPad 离线/不可用处理，而不是按主机权限阻塞处理；优先解锁、信任、重连并打开 Xcode Devices and Simulators。
