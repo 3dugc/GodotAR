@@ -240,7 +240,7 @@ function ipadReadinessNextActions(context) {
 		actions.push("Open Xcode Devices and Simulators once so CoreDevice can finish pairing and developer services setup.");
 	}
 	if (selectedDevice.ddiServicesAvailable === false) {
-		actions.push("Xcode reports ddiServicesAvailable=false; install/update the matching iPadOS device support in Xcode, then reconnect the iPad.");
+		actions.push(buildDdiServicesAction(profile, selectedDevice));
 	}
 	if (selectedDevice.developerModeStatus && String(selectedDevice.developerModeStatus).toLowerCase() !== "enabled") {
 		actions.push("Enable Developer Mode on the iPad and reboot when iPadOS asks for it.");
@@ -332,10 +332,98 @@ function summarizeIpadProfile(profile) {
 	const commands = profile.commands || {};
 	return {
 		selected_device: profile.selected_device || null,
+		host: profile.host || summarizeIpadHost(commands),
 		display_count: Array.isArray(profile.display_summary) ? profile.display_summary.length : 0,
 		target_app_found: Boolean(profile.target_app),
 		devicectl_list: commandSummary(commands.list_devices),
 		xctrace_devices: commandSummary(commands.xctrace_devices),
+	};
+}
+
+
+function buildDdiServicesAction(profile, selectedDevice) {
+	const host = profile.host || summarizeIpadHost(profile.commands || {});
+	const deviceVersion = selectedDevice.osVersionNumber || selectedDevice.osVersion || selectedDevice.productVersion || "";
+	const xcodeVersion = host.xcode || "unknown";
+	const iphoneosSdk = host.iphoneos_sdk_version || "unknown";
+	let action = `Xcode reports ddiServicesAvailable=false for iPadOS ${deviceVersion || "unknown"}; host Xcode=${xcodeVersion}, iphoneos SDK=${iphoneosSdk}. Open Xcode Devices and Simulators, install/update matching iPadOS device support, then reconnect the iPad.`;
+	const sdkHint = compareMajorMinor(deviceVersion, iphoneosSdk);
+	if (sdkHint === "device-newer") {
+		action += " The iPadOS version appears newer than the host iphoneos SDK, so install a newer Xcode/Xcode beta or update the host SDK line.";
+	} else if (sdkHint === "sdk-newer") {
+		action += " The host SDK line appears newer than the iPadOS version; if pairing still fails, update the iPad or reinstall device support for the exact iPadOS line.";
+	}
+	return action;
+}
+
+
+function summarizeIpadHost(commands) {
+	return {
+		xcode: parseXcodeVersion(commandText(commands.xcodebuild_version)),
+		build: parseXcodeBuildVersion(commandText(commands.xcodebuild_version)),
+		iphoneos_sdk_version: commandText(commands.iphoneos_sdk_version),
+		iphonesimulator_sdk_version: commandText(commands.iphonesimulator_sdk_version),
+		sdks: summarizeSdkList(commandText(commands.xcodebuild_sdks)),
+	};
+}
+
+
+function commandText(result) {
+	if (!result) {
+		return "";
+	}
+	return [result.stdout, result.stderr, result.log].filter(Boolean).join("\n").trim();
+}
+
+
+function parseXcodeVersion(text) {
+	const match = String(text || "").match(/Xcode\s+([^\s]+)/i);
+	return match ? match[1] : "";
+}
+
+
+function parseXcodeBuildVersion(text) {
+	const match = String(text || "").match(/Build version\s+([^\s]+)/i);
+	return match ? match[1] : "";
+}
+
+
+function summarizeSdkList(text) {
+	const output = [];
+	for (const line of String(text || "").split(/\r?\n/)) {
+		const match = line.match(/-sdk\s+([^\s]+)/);
+		if (match) {
+			output.push(match[1]);
+		}
+	}
+	return output.slice(0, 20);
+}
+
+
+function compareMajorMinor(left, right) {
+	const leftParts = majorMinor(left);
+	const rightParts = majorMinor(right);
+	if (!leftParts || !rightParts) {
+		return "";
+	}
+	if (leftParts.major > rightParts.major || (leftParts.major === rightParts.major && leftParts.minor > rightParts.minor)) {
+		return "device-newer";
+	}
+	if (leftParts.major < rightParts.major || (leftParts.major === rightParts.major && leftParts.minor < rightParts.minor)) {
+		return "sdk-newer";
+	}
+	return "same-line";
+}
+
+
+function majorMinor(value) {
+	const match = String(value || "").match(/(\d+)(?:\.(\d+))?/);
+	if (!match) {
+		return null;
+	}
+	return {
+		major: Number(match[1]),
+		minor: Number(match[2] || "0"),
 	};
 }
 

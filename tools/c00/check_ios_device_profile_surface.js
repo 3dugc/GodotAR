@@ -19,12 +19,17 @@ const checks = [
 			["target bundle install failure", /Target bundle was not installed/],
 			["lock state failure", /iPad appears to be locked/],
 			["allow missing target option", /allow-missing-target/],
+			["DDI services host toolchain action", /ddiServicesAvailable=false for iPadOS.*host Xcode=.*iphoneos SDK=/],
+			["host toolchain evidence", /host:\s*summarizeHost/],
 		],
 	},
 	{
 		file: "tools/c00/collect_ios_device_profile.js",
 		requirements: [
 			["xctrace fallback device list", /xctrace_devices:\s*runXcrun\(\["xctrace",\s*"list",\s*"devices"\]\)/],
+			["xcodebuild version command", /xcodebuild_version:\s*runHostTool\("xcodebuild",\s*\["-version"\]\)/],
+			["iphoneos sdk command", /iphoneos_sdk_version:\s*runXcrun\(\["--sdk",\s*"iphoneos",\s*"--show-sdk-version"\]\)/],
+			["host toolchain markdown", /## Host Toolchain/],
 		],
 	},
 	{
@@ -49,6 +54,31 @@ const checks = [
 			["aggregate offline iPad failure", /iPad appears \$\{availability\}/],
 			["aggregate target bundle failure", /target bundle was not installed/],
 			["aggregate lock state failure", /iPad appears to be locked/],
+		],
+	},
+	{
+		file: "tools/c00/check_device_ready.js",
+		requirements: [
+			["readiness host summary", /host:\s*profile\.host\s*\|\|\s*summarizeIpadHost/],
+			["readiness DDI action", /ddiServicesAvailable=false for iPadOS.*host Xcode=.*iphoneos SDK=/],
+		],
+	},
+	{
+		file: "tools/c00/README_CN.md",
+		requirements: [
+			["iPad host Xcode SDK readiness docs", /host Xcode 版本、build、`iphoneos` \/ `iphonesimulator` SDK 版本/],
+		],
+	},
+	{
+		file: "releases/phase_0_smoke/RUNBOOK_CN.md",
+		requirements: [
+			["runbook iPad Xcode SDK readiness docs", /host Xcode 版本、build、`iphoneos` \/ `iphonesimulator` SDK 版本/],
+		],
+	},
+	{
+		file: "specs/cycles/CYCLE_00_DEVICE_SMOKE_SPEC_CN.md",
+		requirements: [
+			["spec iPad Xcode SDK readiness requirement", /iPad readiness \/ device profile 必须包含 host Xcode 版本、build、`iphoneos` \/ `iphonesimulator` SDK 版本/],
 		],
 	},
 ];

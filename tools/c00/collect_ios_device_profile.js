@@ -88,6 +88,10 @@ function collectProfile() {
 		apps: runDevicectl(["device", "info", "apps", "--device", device, "--bundle-id", bundleId]),
 		lock_state: runDevicectl(["device", "info", "lockState", "--device", device]),
 		xctrace_devices: runXcrun(["xctrace", "list", "devices"]),
+		xcodebuild_version: runHostTool("xcodebuild", ["-version"]),
+		xcodebuild_sdks: runHostTool("xcodebuild", ["-showsdks"]),
+		iphoneos_sdk_version: runXcrun(["--sdk", "iphoneos", "--show-sdk-version"]),
+		iphonesimulator_sdk_version: runXcrun(["--sdk", "iphonesimulator", "--show-sdk-version"]),
 	};
 
 	const selectedDevice = selectDevice(commands.list_devices.json, device) ||
@@ -95,6 +99,7 @@ function collectProfile() {
 		null;
 	const targetApp = selectApp(commands.apps.json, bundleId);
 	const displaySummary = summarizeDisplays(commands.displays.json);
+	const host = summarizeHostToolchain(commands);
 	const warnings = collectWarnings(commands, selectedDevice, targetApp);
 
 	return {
@@ -106,6 +111,7 @@ function collectProfile() {
 			binary: devicectlBin,
 			timeout_seconds: Number(timeout),
 		},
+		host,
 		selected_device: selectedDevice,
 		display_summary: displaySummary,
 		target_app: targetApp,
@@ -156,6 +162,66 @@ function runXcrun(commandArgs) {
 		json_path: "",
 		log_path: "",
 	};
+}
+
+
+function runHostTool(command, commandArgs) {
+	const result = spawnSync(command, commandArgs, { encoding: "utf8" });
+	return {
+		command: [command, ...commandArgs].join(" "),
+		ok: result.status === 0,
+		status: result.status,
+		stdout: result.stdout || "",
+		stderr: result.stderr || "",
+		log: "",
+		json: null,
+		json_path: "",
+		log_path: "",
+	};
+}
+
+
+function summarizeHostToolchain(commands) {
+	const xcodeVersionOutput = commandText(commands.xcodebuild_version);
+	return {
+		xcode: parseXcodeVersion(xcodeVersionOutput),
+		build: parseXcodeBuildVersion(xcodeVersionOutput),
+		iphoneos_sdk_version: commandText(commands.iphoneos_sdk_version),
+		iphonesimulator_sdk_version: commandText(commands.iphonesimulator_sdk_version),
+		sdks: summarizeSdkList(commandText(commands.xcodebuild_sdks)),
+	};
+}
+
+
+function commandText(result) {
+	if (!result) {
+		return "";
+	}
+	return [result.stdout, result.stderr, result.log].filter(Boolean).join("\n").trim();
+}
+
+
+function parseXcodeVersion(text) {
+	const match = String(text || "").match(/Xcode\s+([^\s]+)/i);
+	return match ? match[1] : "";
+}
+
+
+function parseXcodeBuildVersion(text) {
+	const match = String(text || "").match(/Build version\s+([^\s]+)/i);
+	return match ? match[1] : "";
+}
+
+
+function summarizeSdkList(text) {
+	const output = [];
+	for (const line of String(text || "").split(/\r?\n/)) {
+		const match = line.match(/-sdk\s+([^\s]+)/);
+		if (match) {
+			output.push(match[1]);
+		}
+	}
+	return output.slice(0, 20);
 }
 
 
@@ -314,6 +380,12 @@ function renderMarkdown(profile) {
 	lines.push("");
 	lines.push(`- Binary: \`${profile.devicectl.binary}\``);
 	lines.push(`- Timeout: ${profile.devicectl.timeout_seconds}s`);
+	lines.push("");
+	lines.push("## Host Toolchain");
+	lines.push("");
+	lines.push("```json");
+	lines.push(JSON.stringify(profile.host || {}, null, 2));
+	lines.push("```");
 	lines.push("");
 	lines.push("## Selected Device");
 	lines.push("");
