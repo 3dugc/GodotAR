@@ -77,10 +77,25 @@ const checks = [
 		],
 	},
 	{
+		file: "tools/c00/recover_android_adb_transport.js",
+		requirements: [
+			["before readiness", /runReadiness\("before"\)/],
+			["after readiness", /runReadiness\("after"\)/],
+			["rokid-place readiness mapping", /rokid-place"\s*\?\s*"rokid"/],
+			["ADB kill server command", /kill-server/],
+			["ADB start server command", /start-server/],
+			["ADB devices evidence", /devices",\s*"-l"/],
+			["optional device gate", /run_device_cycle\.sh/],
+			["USB hardware guidance", /macOS USB sees possible Android\/XR hardware/],
+			["RSA debugging guidance", /RSA prompt/],
+		],
+	},
+	{
 		file: "tools/c00/README_CN.md",
 		requirements: [
 			["device readiness docs", /wait_for_device_ready\.sh/],
 			["iPad DDI recovery docs", /recover_ios_ddi_services\.js/],
+			["Android ADB recovery docs", /recover_android_adb_transport\.js/],
 			["run-gate docs", /--run-gate/],
 			["next actions docs", /Next Actions/],
 			["Android host diagnostics docs", /ADB 版本、Android SDK 环境、JAVA_HOME/],
@@ -91,6 +106,7 @@ const checks = [
 		requirements: [
 			["device readiness runbook", /wait_for_device_ready\.sh/],
 			["iPad DDI recovery runbook", /recover_ios_ddi_services\.js/],
+			["Android ADB recovery runbook", /recover_android_adb_transport\.js/],
 			["next actions runbook", /Next Actions/],
 		],
 	},
