@@ -304,6 +304,7 @@ tools/c00/collect_editor_smoke.sh 15
 C00 demo 同时包含 XRI-style `XRInteractionManager`、camera `XRRayInteractor` 和 `XRGrabInteractable`；`GXF_SMOKE` 的 `xri` 字段用于记录交互层是否被加载、ray 是否命中、hover/select 计数。它证明 Unity XRI 迁移入口可运行，但不替代 ARKit/OpenXR 真机 tracking gate。
 
 iOS Simulator 和 Android Emulator 也可以作为周期内的辅助成果：它们用于验证导出链路、app 启动、日志格式，以及 iOS `.xcframework` 是否包含 simulator slice。它们不能证明真实 ARKit/OpenXR AR tracking，因此不能让 C00 发布门禁通过。
+`IOS_SIMULATOR_ARCHS=auto` 会让构建脚本检测 Godot simulator template 的 slice，并优先选择当前主机能安装到 simulator 的架构；Apple Silicon 默认选择 `arm64`。特殊诊断时可显式设置 `IOS_SIMULATOR_ARCHS=x86_64` 或其它架构列表。
 
 iOS Simulator 辅助 gate：
 

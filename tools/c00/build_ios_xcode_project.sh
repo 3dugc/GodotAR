@@ -276,6 +276,37 @@ detect_simulator_godot_archs() {
 	esac
 }
 
+simulator_host_arch() {
+	printf "%s" "${SIMULATOR_HOST_ARCH:-$(uname -m)}"
+}
+
+simulator_archs_contain_host() {
+	local archs="$1"
+	local host_arch
+	host_arch="$(simulator_host_arch)"
+	local arch=""
+	for arch in $archs; do
+		if [[ "$arch" == "$host_arch" ]]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+select_simulator_archs_for_host() {
+	local archs="$1"
+	local host_arch
+	host_arch="$(simulator_host_arch)"
+	local arch=""
+	for arch in $archs; do
+		if [[ "$arch" == "$host_arch" ]]; then
+			printf "%s" "$host_arch"
+			return 0
+		fi
+	done
+	printf "%s" "$archs"
+}
+
 BUILD_SETTINGS=()
 if [[ -n "$TEAM_ID" ]]; then
 	BUILD_SETTINGS+=("DEVELOPMENT_TEAM=$TEAM_ID")
@@ -293,8 +324,18 @@ if [[ "$IOS_BUILD_PLATFORM" == "simulator" ]]; then
 	BUILD_SETTINGS+=("SDKROOT=iphonesimulator")
 	if [[ "$IOS_SIMULATOR_ARCHS" == "auto" ]]; then
 		if simulator_archs="$(detect_simulator_godot_archs)"; then
-			echo "Detected Godot iOS Simulator template architectures: $simulator_archs"
-			BUILD_SETTINGS+=("ARCHS=$simulator_archs" "VALID_ARCHS=$simulator_archs")
+			selected_simulator_archs="$(select_simulator_archs_for_host "$simulator_archs")"
+			if simulator_archs_contain_host "$simulator_archs"; then
+				echo "Detected Godot iOS Simulator template architectures: $simulator_archs"
+				if [[ "$selected_simulator_archs" != "$simulator_archs" ]]; then
+					echo "Selecting host-compatible iOS Simulator architecture: $selected_simulator_archs"
+				fi
+			else
+				echo "Detected Godot iOS Simulator template architectures: $simulator_archs"
+				echo "WARNING: Godot iOS Simulator template does not include host architecture: $(simulator_host_arch)"
+				echo "WARNING: collect_ios_simulator_smoke.sh will reject this app with missing_simulator_arch on this host unless a matching simulator template is installed."
+			fi
+			BUILD_SETTINGS+=("ARCHS=$selected_simulator_archs" "VALID_ARCHS=$selected_simulator_archs")
 		fi
 	elif [[ -n "$IOS_SIMULATOR_ARCHS" ]]; then
 		BUILD_SETTINGS+=("ARCHS=$IOS_SIMULATOR_ARCHS" "VALID_ARCHS=$IOS_SIMULATOR_ARCHS")

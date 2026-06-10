@@ -588,6 +588,7 @@ tools/c00/collect_editor_smoke.sh 15
 C00 demo 还包含一个 XRI-style `XRInteractionManager`、camera `XRRayInteractor` 和 `XRGrabInteractable`，日志中的 `xri` 字段会记录 manager/ray/interactable 是否存在以及 hover/select 计数。
 
 iOS Simulator 和 Android Emulator 可以作为补充：用于验证导出链路、app 启动、日志格式、以及 iOS `.xcframework` simulator slice 是否存在。它们不具备真实 ARKit/OpenXR AR tracking 证据，不能作为 C00 发表通过标准。
+`tools/c00/build_ios_xcode_project.sh` 在 `IOS_SIMULATOR_ARCHS=auto` 时会从 Godot simulator template 中检测可用 slice，并优先选择当前主机可安装的 simulator 架构；Apple Silicon 上默认选择 `arm64`。需要强制验证其它 slice 时仍可设置 `IOS_SIMULATOR_ARCHS=x86_64` 或 `IOS_SIMULATOR_ARCHS="arm64 x86_64"`。
 
 iOS Simulator 辅助 gate：
 

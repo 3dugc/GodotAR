@@ -226,6 +226,7 @@ APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/collect_ios_smoke.sh <devic
 ### iOS Simulator 辅助验证
 
 iOS Simulator 复用 `C00 iPad ARKit` preset，不新增发布 preset。它只验证导出、simulator slice、app 启动和日志链路：
+`IOS_SIMULATOR_ARCHS=auto` 会根据 Godot simulator template 和当前主机选择可安装的 simulator 架构；Apple Silicon 默认选择 `arm64`，避免产出只能在 Intel simulator 上安装的 `x86_64` app。需要覆盖时可手动设置 `IOS_SIMULATOR_ARCHS`。
 
 ```bash
 tools/c00/export_with_godot.sh "C00 iPad ARKit" builds/ios_simulator/c00.zip

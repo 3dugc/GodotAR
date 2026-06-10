@@ -121,6 +121,9 @@ if (failures.length === 0) {
 		"iOS Simulator SDK does not include MetalFX.framework",
 		"MetalFX.framework",
 		"detect_simulator_godot_archs",
+		"select_simulator_archs_for_host",
+		"Godot iOS Simulator template does not include host architecture",
+		"Selecting host-compatible iOS Simulator architecture",
 		"IOS_SIMULATOR_ARCHS",
 		"Detected Godot iOS Simulator template architectures",
 	]);
