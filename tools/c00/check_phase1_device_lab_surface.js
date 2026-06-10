@@ -40,16 +40,23 @@ if (failures.length === 0) {
 		"templates,jdk,android-sdk,android-export",
 		"WAIT_FOR_DEVICES",
 		"AUTO_RECOVER_DEVICES",
+		"SPLIT_ALL_DEVICE_CYCLE",
 		"WAIT_TIMEOUT_SECONDS",
 		"WAIT_INTERVAL_SECONDS",
 		"--wait-devices",
 		"--recover-devices",
 		"--no-recover-devices",
+		"--split-all-devices",
+		"--no-split-all-devices",
 		"wait_for_device_ready.sh",
 		"recover_android_adb_transport.js",
 		"recover_ios_ddi_services.js",
 		"run_device_recovery",
+		"run_split_all_device_cycles",
+		"run_cycle_group_after_readiness",
+		"run_phase_verify_after_split",
 		"readiness_gate_for_selected_gate",
+		"readiness_gate_for_gate",
 		"rokid-place)",
 		"ipad-place)",
 		"retry wait for device readiness after recovery",
@@ -139,6 +146,7 @@ if (failures.length === 0) {
 		"--dry-run",
 		"--wait-devices",
 		"--no-recover-devices",
+		"--no-split-all-devices",
 		"wait_for_device_ready.sh",
 	]);
 
@@ -147,6 +155,7 @@ if (failures.length === 0) {
 		"completion audit",
 		"--wait-devices",
 		"--no-recover-devices",
+		"--no-split-all-devices",
 	]);
 
 	requireContains(files.spec, [
@@ -154,6 +163,7 @@ if (failures.length === 0) {
 		"设备机",
 		"--wait-devices",
 		"AUTO_RECOVER_DEVICES",
+		"SPLIT_ALL_DEVICE_CYCLE",
 	]);
 }
 

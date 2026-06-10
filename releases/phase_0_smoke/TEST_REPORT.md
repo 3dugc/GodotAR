@@ -193,7 +193,7 @@ Hardware status:
 
 | Check | Result | Notes |
 | --- | --- | --- |
-| Unity latest baseline review | Pass | Official Unity alpha/beta release notes and package docs available in this run show Unity 6000.6 alpha plus package-doc baselines: AR Foundation/ARCore/ARKit `6.5.0`, XR Core Utilities `2.6.0`, XRI `3.5.1`, OpenXR `1.17.0`, and Android XR OpenXR `1.3.1`; Unity 6.5 package manuals are primary, with Unity 6.4 API pages retained only as detailed fallback where 6.5 API pages are not visible |
+| Unity latest baseline review | Pass | Official Unity package registry review on 2026-06-10 uses the newest visible forward baseline, including pre-release packages: AR Foundation/ARCore/ARKit `6.6.0-pre.2`, XRI `3.5.1`, OpenXR `1.17.1`; Unity 6.5 stable package docs and Unity 6.4 API pages remain fallback references only where newer API pages are not visible |
 | `node tools/c00/check_unity_reference_baseline.js` | Pass | Guards `UNITY_REFERENCE_RULES_CN.md`, `MIGRATION_UNITY.md`, C00, and C01 against drifting below the newest observed Unity XR baseline or dropping the unreleased/pre-release policy |
 | `node tools/c00/check_arfoundation_api_surface.js` | Pass | Guards Unity 6.x-style `XROrigin`, deprecated `ARSessionOrigin` shim, origin smoke metadata, ARSession/camera/raycast/anchor/trackables migration APIs, and Unity 6.4 migration notes |
 | `node tools/c00/run_static_gates.js --gate all` | Pass | Includes `git diff --check`, Unity latest reference baseline, ARFoundation/XRI surface checks, export preset checks, ARKit artifact checks, and Android export surface checks |

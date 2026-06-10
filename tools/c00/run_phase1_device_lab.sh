@@ -21,14 +21,17 @@ RUN_COMPLETION_AUDIT="${RUN_COMPLETION_AUDIT:-1}"
 INCLUDE_PLACE_DEMOS="${INCLUDE_PLACE_DEMOS:-1}"
 WAIT_FOR_DEVICES="${WAIT_FOR_DEVICES:-0}"
 AUTO_RECOVER_DEVICES="${AUTO_RECOVER_DEVICES:-1}"
+SPLIT_ALL_DEVICE_CYCLE="${SPLIT_ALL_DEVICE_CYCLE:-1}"
 WAIT_TIMEOUT_SECONDS="${WAIT_TIMEOUT_SECONDS:-300}"
 WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-5}"
 DRY_RUN="${DRY_RUN:-0}"
 CONTINUE_AFTER_CYCLE="${CONTINUE_AFTER_CYCLE:-1}"
+RUN_PHASE_VERIFY="${RUN_PHASE_VERIFY:-1}"
 
 GATE="${GATE:-all}"
 DEVICE="${DEVICE:-}"
 PACKAGE="${PACKAGE:-org.godotengine.godotxrfoundation}"
+PHASE_REPORT="${PHASE_REPORT:-$PROJECT_ROOT/releases/phase_0_smoke/C00_PHASE_REPORT.md}"
 
 usage() {
 	cat <<EOF
@@ -49,6 +52,8 @@ Options:
   --wait-devices          Wait for selected devices to become ready before running the device cycle.
   --recover-devices       After readiness timeout, run iPad DDI and/or Android ADB recovery, then wait once more. Default.
   --no-recover-devices    Disable automatic recovery after readiness timeout.
+  --split-all-devices     In --gate all + --wait-devices mode, wait/recover/run each device group independently. Default.
+  --no-split-all-devices  In --gate all + --wait-devices mode, require all devices ready before running any gate.
   --wait-timeout <sec>    Device readiness wait timeout. Default: $WAIT_TIMEOUT_SECONDS
   --wait-interval <sec>   Device readiness polling interval. Default: $WAIT_INTERVAL_SECONDS
   --dry-run               Print the device-lab sequence without invoking Godot/Xcode/ADB/devicectl.
@@ -74,9 +79,11 @@ Environment:
   INCLUDE_PLACE_DEMOS=1|0
   WAIT_FOR_DEVICES=1|0
   AUTO_RECOVER_DEVICES=1|0
+  SPLIT_ALL_DEVICE_CYCLE=1|0
   WAIT_TIMEOUT_SECONDS=300
   WAIT_INTERVAL_SECONDS=5
   CONTINUE_AFTER_CYCLE=1|0
+  RUN_PHASE_VERIFY=1|0
 
 This is the phase-1 device-machine wrapper. It intentionally exits non-zero
 until the real Rokid/OpenXR, iPad/ARKit, and Android/ARCore evidence exists.
@@ -136,6 +143,14 @@ while [[ "$#" -gt 0 ]]; do
 			;;
 		--no-recover-devices)
 			AUTO_RECOVER_DEVICES=0
+			shift
+			;;
+		--split-all-devices)
+			SPLIT_ALL_DEVICE_CYCLE=1
+			shift
+			;;
+		--no-split-all-devices)
+			SPLIT_ALL_DEVICE_CYCLE=0
 			shift
 			;;
 		--wait-timeout)
@@ -387,8 +402,9 @@ run_online_dependency_setup() {
 	return "$online_status"
 }
 
-readiness_gate_for_selected_gate() {
-	case "$GATE" in
+readiness_gate_for_gate() {
+	local gate="$1"
+	case "$gate" in
 		rokid-place)
 			printf "rokid"
 			;;
@@ -396,15 +412,30 @@ readiness_gate_for_selected_gate() {
 			printf "ipad"
 			;;
 		*)
-			printf "%s" "$GATE"
+			printf "%s" "$gate"
 			;;
 	esac
 }
 
-wait_for_selected_devices() {
+readiness_gate_for_selected_gate() {
+	readiness_gate_for_gate "$GATE"
+}
+
+gate_needs_ipad_device_arg() {
+	local gate="$1"
+	[[ "$gate" == "ipad" || "$gate" == "ipad-place" || "$gate" == "all" ]]
+}
+
+wait_for_gate_readiness() {
+	local gate="$1"
 	local title="${1:-wait for device readiness}"
 	local readiness_gate
-	readiness_gate="$(readiness_gate_for_selected_gate)"
+	if [[ "$#" -gt 1 ]]; then
+		title="$2"
+	else
+		title="wait for device readiness: $gate"
+	fi
+	readiness_gate="$(readiness_gate_for_gate "$gate")"
 	local wait_args=(
 		"$PROJECT_ROOT/tools/c00/wait_for_device_ready.sh"
 		--gate "$readiness_gate"
@@ -412,12 +443,16 @@ wait_for_selected_devices() {
 		--timeout "$WAIT_TIMEOUT_SECONDS"
 		--interval "$WAIT_INTERVAL_SECONDS"
 	)
-	if [[ "$GATE" == "ipad" || "$GATE" == "ipad-place" || "$GATE" == "all" ]]; then
+	if gate_needs_ipad_device_arg "$gate"; then
 		if [[ -n "$DEVICE" ]]; then
 			wait_args+=(--device "$DEVICE")
 		fi
 	fi
 	run_step "$title" "${wait_args[@]}"
+}
+
+wait_for_selected_devices() {
+	wait_for_gate_readiness "$GATE" "${1:-wait for device readiness}"
 }
 
 run_android_adb_recovery() {
@@ -439,9 +474,10 @@ run_ipad_ddi_recovery() {
 		--package "$PACKAGE"
 }
 
-run_device_recovery() {
+run_device_recovery_for_gate() {
+	local gate="$1"
 	local recovery_status=0
-	case "$GATE" in
+	case "$gate" in
 		rokid)
 			run_android_adb_recovery rokid || recovery_status=$?
 			;;
@@ -460,11 +496,144 @@ run_device_recovery() {
 			run_ipad_ddi_recovery || recovery_status=$?
 			;;
 		*)
-			echo "No automatic device recovery is defined for gate '$GATE'."
+			echo "No automatic device recovery is defined for gate '$gate'."
 			recovery_status=1
 			;;
 	esac
 	return "$recovery_status"
+}
+
+run_device_recovery() {
+	run_device_recovery_for_gate "$GATE"
+}
+
+wait_recover_for_gate() {
+	local gate="$1"
+	local wait_status=0
+	wait_for_gate_readiness "$gate" "wait for device readiness: $gate" || wait_status=$?
+	if [[ "$wait_status" != "0" && "$AUTO_RECOVER_DEVICES" == "1" ]]; then
+		echo "Device readiness did not pass for '$gate'. Running automatic recovery once, then retrying readiness."
+		run_device_recovery_for_gate "$gate" || true
+		wait_status=0
+		wait_for_gate_readiness "$gate" "retry wait for device readiness after recovery: $gate" || wait_status=$?
+	fi
+	return "$wait_status"
+}
+
+run_single_device_cycle() {
+	local gate="$1"
+	local cycle_args=("$PROJECT_ROOT/tools/c00/run_device_cycle.sh" "$gate")
+	if gate_needs_ipad_device_arg "$gate"; then
+		if [[ -n "$DEVICE" ]]; then
+			cycle_args+=("$DEVICE")
+		fi
+	fi
+	if [[ "$DRY_RUN" == "1" ]]; then
+		echo
+		echo "== Phase 1 device lab: device cycle ($gate) =="
+		INCLUDE_PLACE_DEMOS=0 RUN_PHASE_VERIFY=0 DRY_RUN=1 "${cycle_args[@]}"
+	else
+		INCLUDE_PLACE_DEMOS=0 RUN_PHASE_VERIFY=0 DRY_RUN=0 "${cycle_args[@]}"
+	fi
+}
+
+run_cycle_group_after_readiness() {
+	local readiness_gate="$1"
+	shift
+	local group_status=0
+	local wait_status=0
+	wait_recover_for_gate "$readiness_gate" || wait_status=$?
+	if [[ "$wait_status" != "0" ]]; then
+		echo "Skipping device cycle group '$readiness_gate' because readiness did not pass."
+		return "$wait_status"
+	fi
+	local gate
+	for gate in "$@"; do
+		run_single_device_cycle "$gate" || group_status=$?
+		if [[ "$group_status" != "0" && "$CONTINUE_AFTER_CYCLE" != "1" ]]; then
+			return "$group_status"
+		fi
+	done
+	return "$group_status"
+}
+
+run_phase_verify_after_split() {
+	if [[ "$RUN_PHASE_VERIFY" == "0" ]]; then
+		return 0
+	fi
+	local gate_args=(--gate rokid --gate ipad)
+	if [[ "$INCLUDE_PLACE_DEMOS" == "1" ]]; then
+		gate_args+=(--gate rokid-place --gate ipad-place)
+	fi
+	if [[ "${INCLUDE_ANDROID_ARCORE:-1}" == "1" ]]; then
+		gate_args+=(--gate android-arcore)
+	fi
+	if [[ "$DRY_RUN" == "1" ]]; then
+		echo
+		printf "DRY RUN: tools/c00/verify_phase_evidence.js --report %q" "$(project_path "$PHASE_REPORT")"
+		printf " %q" "${gate_args[@]}"
+		printf "\n"
+		return 0
+	fi
+	echo
+	echo "== Phase 1 device lab: phase evidence verify =="
+	node "$PROJECT_ROOT/tools/c00/verify_phase_evidence.js" \
+		--report "$(project_path "$PHASE_REPORT")" \
+		"${gate_args[@]}"
+}
+
+run_split_all_device_cycles() {
+	local split_status=0
+	local gate_status=0
+	if [[ "${INCLUDE_EDITOR_SIM:-0}" == "1" ]]; then
+		run_single_device_cycle editor || split_status=$?
+	fi
+	if [[ "${INCLUDE_IOS_SIMULATOR:-0}" == "1" ]]; then
+		run_single_device_cycle ios-simulator || split_status=$?
+		if [[ "$INCLUDE_PLACE_DEMOS" == "1" ]]; then
+			run_single_device_cycle ios-simulator-place || split_status=$?
+		fi
+	fi
+
+	local ipad_gates=(ipad)
+	if [[ "$INCLUDE_PLACE_DEMOS" == "1" ]]; then
+		ipad_gates+=(ipad-place)
+	fi
+	gate_status=0
+	run_cycle_group_after_readiness ipad "${ipad_gates[@]}" || gate_status=$?
+	if [[ "$gate_status" != "0" ]]; then
+		split_status="$gate_status"
+		if [[ "$CONTINUE_AFTER_CYCLE" != "1" ]]; then
+			return "$split_status"
+		fi
+	fi
+
+	local rokid_gates=(rokid)
+	if [[ "$INCLUDE_PLACE_DEMOS" == "1" ]]; then
+		rokid_gates+=(rokid-place)
+	fi
+	gate_status=0
+	run_cycle_group_after_readiness rokid "${rokid_gates[@]}" || gate_status=$?
+	if [[ "$gate_status" != "0" ]]; then
+		split_status="$gate_status"
+		if [[ "$CONTINUE_AFTER_CYCLE" != "1" ]]; then
+			return "$split_status"
+		fi
+	fi
+
+	if [[ "${INCLUDE_ANDROID_ARCORE:-1}" == "1" ]]; then
+		gate_status=0
+		run_cycle_group_after_readiness android-arcore android-arcore || gate_status=$?
+		if [[ "$gate_status" != "0" ]]; then
+			split_status="$gate_status"
+			if [[ "$CONTINUE_AFTER_CYCLE" != "1" ]]; then
+				return "$split_status"
+			fi
+		fi
+	fi
+
+	run_phase_verify_after_split || split_status=$?
+	return "$split_status"
 }
 
 main() {
@@ -506,35 +675,39 @@ main() {
 
 	if [[ "$RUN_DEVICE_CYCLE" == "1" ]]; then
 		local cycle_ready=1
-		if [[ "$WAIT_FOR_DEVICES" == "1" ]]; then
-			local wait_status=0
-			wait_for_selected_devices "wait for device readiness" || wait_status=$?
-			if [[ "$wait_status" != "0" && "$AUTO_RECOVER_DEVICES" == "1" ]]; then
-				echo "Device readiness did not pass. Running automatic recovery once, then retrying readiness."
-				run_device_recovery || true
-				wait_status=0
-				wait_for_selected_devices "retry wait for device readiness after recovery" || wait_status=$?
-			fi
-			if [[ "$wait_status" != "0" ]]; then
-				status="$wait_status"
-				cycle_ready=0
-			fi
-		fi
-
-		local cycle_args=("$PROJECT_ROOT/tools/c00/run_device_cycle.sh" "$GATE")
-		if [[ "$GATE" == "ipad" || "$GATE" == "ipad-place" || "$GATE" == "all" ]]; then
-			if [[ -n "$DEVICE" ]]; then
-				cycle_args+=("$DEVICE")
-			fi
-		fi
-		if [[ "$cycle_ready" != "1" ]]; then
-			echo "Skipping device cycle because device readiness did not pass."
-		elif [[ "$DRY_RUN" == "1" ]]; then
-			echo
-			echo "== Phase 1 device lab: device cycle =="
-			INCLUDE_PLACE_DEMOS="$INCLUDE_PLACE_DEMOS" DRY_RUN=1 "${cycle_args[@]}" || status=$?
+		if [[ "$GATE" == "all" && "$WAIT_FOR_DEVICES" == "1" && "$SPLIT_ALL_DEVICE_CYCLE" == "1" ]]; then
+			run_split_all_device_cycles || status=$?
 		else
-			INCLUDE_PLACE_DEMOS="$INCLUDE_PLACE_DEMOS" DRY_RUN=0 "${cycle_args[@]}" || status=$?
+			if [[ "$WAIT_FOR_DEVICES" == "1" ]]; then
+				local wait_status=0
+				wait_for_selected_devices "wait for device readiness" || wait_status=$?
+				if [[ "$wait_status" != "0" && "$AUTO_RECOVER_DEVICES" == "1" ]]; then
+					echo "Device readiness did not pass. Running automatic recovery once, then retrying readiness."
+					run_device_recovery || true
+					wait_status=0
+					wait_for_selected_devices "retry wait for device readiness after recovery" || wait_status=$?
+				fi
+				if [[ "$wait_status" != "0" ]]; then
+					status="$wait_status"
+					cycle_ready=0
+				fi
+			fi
+
+			local cycle_args=("$PROJECT_ROOT/tools/c00/run_device_cycle.sh" "$GATE")
+			if [[ "$GATE" == "ipad" || "$GATE" == "ipad-place" || "$GATE" == "all" ]]; then
+				if [[ -n "$DEVICE" ]]; then
+					cycle_args+=("$DEVICE")
+				fi
+			fi
+			if [[ "$cycle_ready" != "1" ]]; then
+				echo "Skipping device cycle because device readiness did not pass."
+			elif [[ "$DRY_RUN" == "1" ]]; then
+				echo
+				echo "== Phase 1 device lab: device cycle =="
+				INCLUDE_PLACE_DEMOS="$INCLUDE_PLACE_DEMOS" DRY_RUN=1 "${cycle_args[@]}" || status=$?
+			else
+				INCLUDE_PLACE_DEMOS="$INCLUDE_PLACE_DEMOS" DRY_RUN=0 "${cycle_args[@]}" || status=$?
+			fi
 		fi
 		if [[ "$status" != "0" && "$CONTINUE_AFTER_CYCLE" != "1" ]]; then
 			exit "$status"
@@ -572,7 +745,13 @@ main() {
 			echo "  $(project_path "$STATIC_REPORT")"
 		fi
 		if [[ "$WAIT_FOR_DEVICES" == "1" ]]; then
-			echo "  releases/phase_0_smoke/evidence/device-ready-$(readiness_gate_for_selected_gate)-*.md"
+			if [[ "$GATE" == "all" && "$SPLIT_ALL_DEVICE_CYCLE" == "1" ]]; then
+				echo "  releases/phase_0_smoke/evidence/device-ready-ipad-*.md"
+				echo "  releases/phase_0_smoke/evidence/device-ready-rokid-*.md"
+				echo "  releases/phase_0_smoke/evidence/device-ready-android-arcore-*.md"
+			else
+				echo "  releases/phase_0_smoke/evidence/device-ready-$(readiness_gate_for_selected_gate)-*.md"
+			fi
 			if [[ "$AUTO_RECOVER_DEVICES" == "1" ]]; then
 				echo "  releases/phase_0_smoke/evidence/*-recovery-*.md"
 			fi
