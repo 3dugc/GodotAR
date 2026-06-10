@@ -128,6 +128,7 @@ function analyzeProfile(profile) {
 			target_bundle: profile.bundle_id || "",
 			lock_state: lockState || "unknown",
 			displays,
+			ddi_services: summarizeDdiServices(profile.ddi_services || {}, commands.ddi_services),
 			host: summarizeHost(profile.host || {}, profile.commands || {}),
 		},
 	};
@@ -186,13 +187,25 @@ function buildDdiServicesAction(profile, selectedDevice) {
 	const xcodeVersion = host.xcode || "unknown";
 	const iphoneosSdk = host.iphoneos_sdk_version || "unknown";
 	const sdkHint = compareMajorMinor(deviceVersion, iphoneosSdk);
-	let action = `Xcode reports ddiServicesAvailable=false for iPadOS ${deviceVersion || "unknown"}; host Xcode=${xcodeVersion}, iphoneos SDK=${iphoneosSdk}. Open Xcode Devices and Simulators, install/update matching iPadOS device support, then reconnect the iPad.`;
+	const deviceArg = shellQuote(profile.device || selectedDevice.identifier || selectedDevice.name || "iPad");
+	let action = `Xcode reports ddiServicesAvailable=false for iPadOS ${deviceVersion || "unknown"}; host Xcode=${xcodeVersion}, iphoneos SDK=${iphoneosSdk}. Open Xcode Devices and Simulators, install/update matching iPadOS device support, then reconnect the iPad. To force CoreDevice to mount/update DDI from terminal, run \`xcrun devicectl device info ddiServices --device ${deviceArg} --auto-mount-ddis\` after the iPad is unlocked and trusted.`;
 	if (sdkHint === "device-newer") {
 		action += " The iPadOS version appears newer than the host iphoneos SDK, so install a newer Xcode/Xcode beta or update the host SDK line.";
 	} else if (sdkHint === "sdk-newer") {
 		action += " The host SDK line appears newer than the iPadOS version; if pairing still fails, update the iPad or reinstall device support for the exact iPadOS line.";
 	}
 	return action;
+}
+
+
+function summarizeDdiServices(summary, commandResult) {
+	return {
+		ok: summary.ok === true || (commandResult && commandResult.ok === true),
+		status: summary.status !== undefined ? summary.status : (commandResult ? commandResult.status : null),
+		service_count: Number(summary.service_count || 0),
+		services: Array.isArray(summary.services) ? summary.services : [],
+		message: summary.message || (commandResult ? commandText(commandResult) : ""),
+	};
 }
 
 
@@ -369,6 +382,11 @@ function summarizeDevice(device) {
 		device.serial_number,
 		device.model,
 	].filter(Boolean).join(" / ") || "unknown";
+}
+
+
+function shellQuote(value) {
+	return `'${String(value).replace(/'/g, "'\\''")}'`;
 }
 
 

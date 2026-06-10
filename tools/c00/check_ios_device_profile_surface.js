@@ -20,6 +20,8 @@ const checks = [
 			["lock state failure", /iPad appears to be locked/],
 			["allow missing target option", /allow-missing-target/],
 			["DDI services host toolchain action", /ddiServicesAvailable=false for iPadOS.*host Xcode=.*iphoneos SDK=/],
+			["DDI services auto-mount action", /device info ddiServices --device .*--auto-mount-ddis/],
+			["DDI services evidence", /ddi_services:\s*summarizeDdiServices/],
 			["host toolchain evidence", /host:\s*summarizeHost/],
 		],
 	},
@@ -29,6 +31,8 @@ const checks = [
 			["xctrace fallback device list", /xctrace_devices:\s*runXcrun\(\["xctrace",\s*"list",\s*"devices"\]\)/],
 			["xcodebuild version command", /xcodebuild_version:\s*runHostTool\("xcodebuild",\s*\["-version"\]\)/],
 			["iphoneos sdk command", /iphoneos_sdk_version:\s*runXcrun\(\["--sdk",\s*"iphoneos",\s*"--show-sdk-version"\]\)/],
+			["DDI services no-auto-mount probe", /ddi_services:\s*runDevicectl\(\["device",\s*"info",\s*"ddiServices",\s*"--device",\s*device,\s*"--no-auto-mount-ddis"\]\)/],
+			["DDI services markdown", /## DDI Services/],
 			["host toolchain markdown", /## Host Toolchain/],
 		],
 	},
@@ -61,24 +65,29 @@ const checks = [
 		requirements: [
 			["readiness host summary", /host:\s*profile\.host\s*\|\|\s*summarizeIpadHost/],
 			["readiness DDI action", /ddiServicesAvailable=false for iPadOS.*host Xcode=.*iphoneos SDK=/],
+			["readiness DDI services summary", /ddi_services:\s*profile\.ddi_services\s*\|\|\s*commandSummary/],
+			["readiness DDI auto-mount action", /device info ddiServices --device .*--auto-mount-ddis/],
 		],
 	},
 	{
 		file: "tools/c00/README_CN.md",
 		requirements: [
 			["iPad host Xcode SDK readiness docs", /host Xcode 版本、build、`iphoneos` \/ `iphonesimulator` SDK 版本/],
+			["iPad DDI services readiness docs", /DDI services/],
 		],
 	},
 	{
 		file: "releases/phase_0_smoke/RUNBOOK_CN.md",
 		requirements: [
 			["runbook iPad Xcode SDK readiness docs", /host Xcode 版本、build、`iphoneos` \/ `iphonesimulator` SDK 版本/],
+			["runbook iPad DDI services readiness docs", /DDI services/],
 		],
 	},
 	{
 		file: "specs/cycles/CYCLE_00_DEVICE_SMOKE_SPEC_CN.md",
 		requirements: [
 			["spec iPad Xcode SDK readiness requirement", /iPad readiness \/ device profile 必须包含 host Xcode 版本、build、`iphoneos` \/ `iphonesimulator` SDK 版本/],
+			["spec iPad DDI services readiness requirement", /DDI services/],
 		],
 	},
 ];

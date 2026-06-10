@@ -87,6 +87,7 @@ function collectProfile() {
 		displays: runDevicectl(["device", "info", "displays", "--device", device]),
 		apps: runDevicectl(["device", "info", "apps", "--device", device, "--bundle-id", bundleId]),
 		lock_state: runDevicectl(["device", "info", "lockState", "--device", device]),
+		ddi_services: runDevicectl(["device", "info", "ddiServices", "--device", device, "--no-auto-mount-ddis"]),
 		xctrace_devices: runXcrun(["xctrace", "list", "devices"]),
 		xcodebuild_version: runHostTool("xcodebuild", ["-version"]),
 		xcodebuild_sdks: runHostTool("xcodebuild", ["-showsdks"]),
@@ -99,6 +100,7 @@ function collectProfile() {
 		null;
 	const targetApp = selectApp(commands.apps.json, bundleId);
 	const displaySummary = summarizeDisplays(commands.displays.json);
+	const ddiServices = summarizeDdiServices(commands.ddi_services);
 	const host = summarizeHostToolchain(commands);
 	const warnings = collectWarnings(commands, selectedDevice, targetApp);
 
@@ -114,6 +116,7 @@ function collectProfile() {
 		host,
 		selected_device: selectedDevice,
 		display_summary: displaySummary,
+		ddi_services: ddiServices,
 		target_app: targetApp,
 		warnings,
 		commands,
@@ -272,6 +275,20 @@ function selectDevice(json, wanted) {
 }
 
 
+function summarizeDdiServices(result) {
+	const services = collectObjects(result && result.json).filter((item) => {
+		return hasAnyKey(item, ["serviceName", "service_name", "name", "identifier", "port", "status", "state"]);
+	}).slice(0, 16);
+	return {
+		ok: Boolean(result && result.ok),
+		status: result ? result.status : null,
+		service_count: services.length,
+		services,
+		message: result ? devicectlMessage(result) : "",
+	};
+}
+
+
 function selectApp(json, bundleId) {
 	const normalizedBundle = normalize(bundleId);
 	const candidates = collectObjects(json).filter((item) => {
@@ -391,6 +408,12 @@ function renderMarkdown(profile) {
 	lines.push("");
 	lines.push("```json");
 	lines.push(JSON.stringify(profile.selected_device || {}, null, 2));
+	lines.push("```");
+	lines.push("");
+	lines.push("## DDI Services");
+	lines.push("");
+	lines.push("```json");
+	lines.push(JSON.stringify(profile.ddi_services || {}, null, 2));
 	lines.push("```");
 	lines.push("");
 	lines.push("## Target App");

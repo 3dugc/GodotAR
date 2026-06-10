@@ -430,6 +430,7 @@ function summarizeIpadProfile(profile) {
 		selected_device: profile.selected_device || null,
 		host: profile.host || summarizeIpadHost(commands),
 		display_count: Array.isArray(profile.display_summary) ? profile.display_summary.length : 0,
+		ddi_services: profile.ddi_services || commandSummary(commands.ddi_services),
 		target_app_found: Boolean(profile.target_app),
 		devicectl_list: commandSummary(commands.list_devices),
 		xctrace_devices: commandSummary(commands.xctrace_devices),
@@ -442,7 +443,8 @@ function buildDdiServicesAction(profile, selectedDevice) {
 	const deviceVersion = selectedDevice.osVersionNumber || selectedDevice.osVersion || selectedDevice.productVersion || "";
 	const xcodeVersion = host.xcode || "unknown";
 	const iphoneosSdk = host.iphoneos_sdk_version || "unknown";
-	let action = `Xcode reports ddiServicesAvailable=false for iPadOS ${deviceVersion || "unknown"}; host Xcode=${xcodeVersion}, iphoneos SDK=${iphoneosSdk}. Open Xcode Devices and Simulators, install/update matching iPadOS device support, then reconnect the iPad.`;
+	const deviceArg = shellQuote(profile.device || selectedDevice.identifier || selectedDevice.name || "iPad");
+	let action = `Xcode reports ddiServicesAvailable=false for iPadOS ${deviceVersion || "unknown"}; host Xcode=${xcodeVersion}, iphoneos SDK=${iphoneosSdk}. Open Xcode Devices and Simulators, install/update matching iPadOS device support, then reconnect the iPad. To force CoreDevice to mount/update DDI from terminal, run \`xcrun devicectl device info ddiServices --device ${deviceArg} --auto-mount-ddis\` after the iPad is unlocked and trusted.`;
 	const sdkHint = compareMajorMinor(deviceVersion, iphoneosSdk);
 	if (sdkHint === "device-newer") {
 		action += " The iPadOS version appears newer than the host iphoneos SDK, so install a newer Xcode/Xcode beta or update the host SDK line.";
