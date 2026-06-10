@@ -8,7 +8,8 @@ const checks = [
 	{
 		file: "UNITY_REFERENCE_RULES_CN.md",
 		requirements: [
-			["current review date", /当前巡检日期：2026-06-09/],
+			["current review date", /当前巡检日期：2026-06-10/],
+			["Unity dist-tags.latest policy", /dist-tags\.latest/],
 			["AR Foundation 6.5 baseline", /com\.unity\.xr\.arfoundation@6\.5\.0/],
 			["AR Foundation 6.6 pre-release tracking", /com\.unity\.xr\.arfoundation@6\.6\.0-pre\.2/],
 			["XR Core Utilities 2.6 baseline", /com\.unity\.xr\.core-utils@2\.6\.0/],
@@ -20,7 +21,7 @@ const checks = [
 			["ARKit 6.6 pre-release tracking", /com\.unity\.xr\.arkit@6\.6\.0-pre\.2/],
 			["Android XR OpenXR baseline", /com\.unity\.xr\.androidxr-openxr@1\.3\.1/],
 			["Unity 6000.6 alpha source", /unity\.com\/releases\/editor\/alpha/],
-			["latest-forward policy", /若未来 Unity 官方文档出现更高版本/],
+			["latest-forward policy", /若未来 Unity 官方 registry 或文档出现更高版本/],
 			["deprecated API compatibility policy", /旧 Unity API 只能作为迁移兼容层/],
 			["Unity 6.5 AR Foundation package URL", /docs\.unity3d\.com\/Packages\/com\.unity\.xr\.arfoundation%406\.5\/manual\/index\.html/],
 			["Unity AR Foundation registry URL", /packages\.unity\.com\/com\.unity\.xr\.arfoundation/],
@@ -37,6 +38,7 @@ const checks = [
 		file: "MIGRATION_UNITY.md",
 		requirements: [
 			["Unity 6000.6 alpha baseline", /Unity 6000\.6 alpha release notes/],
+			["Unity registry latest migration policy", /dist-tags\.latest.*forward design baseline/s],
 			["AR Foundation 6.5 migration baseline", /com\.unity\.xr\.arfoundation@6\.5\.0/],
 			["AR Foundation 6.6 migration tracking", /com\.unity\.xr\.arfoundation@6\.6\.0-pre\.2/],
 			["XRI 3.5.1 migration baseline", /com\.unity\.xr\.interaction\.toolkit@3\.5\.1/],
@@ -52,6 +54,7 @@ const checks = [
 		requirements: [
 			["C00 latest baseline policy", /pre-release \/ preview \/ unreleased 官方文档/],
 			["C00 alpha release notes baseline", /6000\.6 alpha release notes/],
+			["C00 registry latest policy", /dist-tags\.latest`? 前向基线/],
 			["C00 AR Foundation 6.5 baseline", /com\.unity\.xr\.arfoundation@6\.5\.0/],
 			["C00 AR Foundation 6.6 tracking", /com\.unity\.xr\.arfoundation@6\.6\.0-pre\.2/],
 			["C00 XRI 3.5.1 baseline", /com\.unity\.xr\.interaction\.toolkit@3\.5\.1/],
@@ -62,6 +65,7 @@ const checks = [
 		file: "specs/cycles/CYCLE_01_FOUNDATION_MVP_SPEC_CN.md",
 		requirements: [
 			["C01 latest baseline policy", /pre-release、preview 或 unreleased 文档/],
+			["C01 registry latest policy", /dist-tags\.latest.*前向设计基线/],
 			["C01 AR Foundation 6.5 baseline", /com\.unity\.xr\.arfoundation@6\.5\.0/],
 			["C01 AR Foundation 6.6 tracking", /com\.unity\.xr\.arfoundation@6\.6\.0-pre\.2/],
 			["C01 XRI 3.5.1 baseline", /com\.unity\.xr\.interaction\.toolkit@3\.5\.1/],

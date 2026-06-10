@@ -8,7 +8,7 @@
 
 建议周期：3-5 天
 
-Unity 对齐基线：以 Unity 官方可见的最新 AR Foundation / XR Core Utilities / XR Interaction Toolkit / OpenXR 文档和 alpha/beta release notes 为目标；截至 2026-06-09，Unity 6000.6 alpha release notes 仍作为未来 API shape 信号，当前稳定公开 package docs 的观察基线为 `com.unity.xr.arfoundation@6.5.0`、`com.unity.xr.core-utils@2.6.0`、`com.unity.xr.interaction.toolkit@3.5.1`、`com.unity.xr.openxr@1.17.1`、`com.unity.xr.arcore@6.5.0`、`com.unity.xr.arkit@6.5.0`。当前预发布追踪基线为 `com.unity.xr.arfoundation@6.6.0-pre.2`、`com.unity.xr.arcore@6.6.0-pre.2`、`com.unity.xr.arkit@6.6.0-pre.2`；如果预发布文档暴露更新设计，优先作为后续实现参考，但 C00 完成仍以 Rokid/iPad/Android 真机 evidence 为准。Unity 6.5/6.6 package manuals 是当前公开 package 参考；Unity 6.4 package API pages 只在新版对应 API 页面尚不可见时作为细节 fallback。如果后续出现更高的 released / pre-release / preview / unreleased 官方文档，后续周期必须前移基线，并把旧 API 作为兼容层而不是主设计。
+Unity 对齐基线：以 Unity 官方可见的最新 AR Foundation / XR Core Utilities / XR Interaction Toolkit / OpenXR 文档和 alpha/beta release notes 为目标；截至 2026-06-10，Unity package registry `dist-tags.latest` 前向基线为 `com.unity.xr.arfoundation@6.6.0-pre.2`、`com.unity.xr.arcore@6.6.0-pre.2`、`com.unity.xr.arkit@6.6.0-pre.2`、`com.unity.xr.interaction.toolkit@3.5.1`、`com.unity.xr.openxr@1.17.1`。稳定 fallback 观察线为 `com.unity.xr.arfoundation@6.5.0`、`com.unity.xr.core-utils@2.6.0`、`com.unity.xr.arcore@6.5.0`、`com.unity.xr.arkit@6.5.0`；Unity 6000.6 alpha release notes 仍作为未来 API shape 信号。如果预发布、preview 或 unreleased 官方文档暴露更新设计，优先作为接口规划参考，但 C00 完成仍以 Rokid/iPad/Android 真机 evidence 为准。Unity 6.5/6.6 package manuals 是当前公开 package 参考；Unity 6.4 package API pages 只在新版对应 API 页面尚不可见时作为细节 fallback。如果后续出现更高的 released / pre-release / preview / unreleased 官方文档，后续周期必须前移基线，并把旧 API 作为兼容层而不是主设计。
 
 ## 一句话成果
 

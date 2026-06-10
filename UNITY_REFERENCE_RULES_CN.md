@@ -1,6 +1,6 @@
 # Unity 文档反推规则
 
-版本：2026-06-09
+版本：2026-06-10
 
 目标：当 Godot XR Foundation 在接口、生命周期、provider 划分、能力命名、fallback 行为、交互系统上出现不确定时，优先参考 Unity 的公开文档，逆向其架构思想，而不是照搬某个平台 SDK 的临时做法。
 
@@ -8,21 +8,21 @@
 
 ## 最新基线巡检
 
-规则：每个周期开始或遇到架构选择时，先查 Unity 官方可见文档中的最高版本。已发行版本优先用于稳定实现；pre-release、preview、experimental 或 unreleased 官方文档也必须进入规划，但需要在 spec/report 里标注稳定性。旧 Unity API 只能作为迁移兼容层，不能压过最新设计。
+规则：每个周期开始或遇到架构选择时，先查 Unity 官方可见文档中的最高版本。Unity package registry 的 `dist-tags.latest` 是前向设计目标，即使它指向 pre-release、preview、experimental 或 unreleased 文档；已发行稳定版作为真机可运行门禁的保守实现线。旧 Unity API 只能作为迁移兼容层，不能压过最新设计。
 
-当前巡检日期：2026-06-09。
+当前巡检日期：2026-06-10。
 
 | Unity 包 / 文档 | 当前可见最高基线 | 状态 | 本项目对齐要求 |
 | --- | --- | --- | --- |
-| AR Foundation | stable `com.unity.xr.arfoundation@6.5.0`; pre-release tracking `com.unity.xr.arfoundation@6.6.0-pre.2` | Unity package docs / registry visible; Unity 6000.6 alpha release notes visible | 以 Unity 6.x manager/subsystem 形状为主；`XROrigin` 是主入口；`ARSessionOrigin` 只做 deprecated compatibility shim |
+| AR Foundation | registry `dist-tags.latest` `com.unity.xr.arfoundation@6.6.0-pre.2`；stable fallback `com.unity.xr.arfoundation@6.5.0` | Unity package registry visible, latest timestamp `2026-06-05`; Unity 6000.6 alpha release notes visible | 以 Unity 6.x manager/subsystem 形状为主；`XROrigin` 是主入口；`ARSessionOrigin` 只做 deprecated compatibility shim |
 | XR Core Utilities | `com.unity.xr.core-utils@2.6.0` | Unity 6000.6 alpha release notes visible | `XROrigin` / Origin Base / Camera Floor Offset / Camera / Trackables Parent 是坐标系和 trackable world transform 的核心参考 |
-| XR Interaction Toolkit | `com.unity.xr.interaction.toolkit@3.5.1` | Unity package manual/changelog visible; newer than the 6000.6 alpha release-note package line | XRI 3.x 的 Interaction Manager、Interactors、Interactables、Input Readers、Near-Far/Ray/Gaze/Screen-space AR 交互是交互层方向 |
-| Unity OpenXR Plugin | `com.unity.xr.openxr@1.17.1` | Unity package registry visible; 1.17 package manual remains the current docs line | 采用 feature/extension/provider 能力模型；OpenXR 设备必须证明 AR 路径，不能把 opaque VR runtime 当成 AR 成果 |
-| Google ARCore XR Plugin | stable `com.unity.xr.arcore@6.5.0`; pre-release tracking `com.unity.xr.arcore@6.6.0-pre.2` | Unity package docs / registry visible | Android ARCore 是与 ARKit/OpenXR 同级 provider；availability、install、session、camera、planes、raycast、anchors 逐步补齐 |
-| Apple ARKit XR Plugin | stable `com.unity.xr.arkit@6.5.0`; pre-release tracking `com.unity.xr.arkit@6.6.0-pre.2` | Unity package docs / registry visible | iOS/iPad ARKit 是与 ARCore/OpenXR 同级 provider；camera/background、planes、raycast、anchors、occlusion/meshing 能力按 provider bridge 接入 |
+| XR Interaction Toolkit | registry `dist-tags.latest` `com.unity.xr.interaction.toolkit@3.5.1` | Unity package manual/changelog visible, latest timestamp `2026-06-06`; newer than the 6000.6 alpha release-note package line | XRI 3.x 的 Interaction Manager、Interactors、Interactables、Input Readers、Near-Far/Ray/Gaze/Screen-space AR 交互是交互层方向 |
+| Unity OpenXR Plugin | registry `dist-tags.latest` `com.unity.xr.openxr@1.17.1` | Unity package registry visible, latest timestamp `2026-06-03`; 1.17 package manual remains the current docs line | 采用 feature/extension/provider 能力模型；OpenXR 设备必须证明 AR 路径，不能把 opaque VR runtime 当成 AR 成果 |
+| Google ARCore XR Plugin | registry `dist-tags.latest` `com.unity.xr.arcore@6.6.0-pre.2`；stable fallback `com.unity.xr.arcore@6.5.0` | Unity package registry visible, latest timestamp `2026-06-05` | Android ARCore 是与 ARKit/OpenXR 同级 provider；availability、install、session、camera、planes、raycast、anchors 逐步补齐 |
+| Apple ARKit XR Plugin | registry `dist-tags.latest` `com.unity.xr.arkit@6.6.0-pre.2`；stable fallback `com.unity.xr.arkit@6.5.0` | Unity package registry visible, latest timestamp `2026-06-05` | iOS/iPad ARKit 是与 ARCore/OpenXR 同级 provider；camera/background、planes、raycast、anchors、occlusion/meshing 能力按 provider bridge 接入 |
 | Android XR OpenXR Plugin | `com.unity.xr.androidxr-openxr@1.3.1` | Unity 6000.6 alpha release notes visible | 作为 OpenXR AR 设备扩展方向记录；不改变 C00 第一优先级 OpenXR/ARKit/ARCore |
 
-Unity 6.5/6.6 package manuals are the current public package reference for AR Foundation / ARCore / XRI / Android XR / XR Core Utilities, and OpenXR 1.17 is the current OpenXR docs line while the registry has advanced to `com.unity.xr.openxr@1.17.1`. Unity 6.4 package API pages remain the detailed fallback only when a specific newer API page is not visible yet. 若未来 Unity 官方文档出现更高版本，例如 AR Foundation 6.7/7.x、XRI 3.6+、OpenXR 1.18+、ARCore/ARKit 6.7+，先更新本表、cycle spec 和 migration 文档，再实现接口。
+Unity 6.5/6.6 package manuals are the current public package reference for AR Foundation / ARCore / ARKit / XRI / Android XR / XR Core Utilities, and OpenXR 1.17 is the current OpenXR docs line while the registry has advanced to `com.unity.xr.openxr@1.17.1`. Unity 6.4 package API pages remain the detailed fallback only when a specific newer API page is not visible yet. 若未来 Unity 官方 registry 或文档出现更高版本，例如 AR Foundation 6.7/7.x、XRI 3.6+、OpenXR 1.18+、ARCore/ARKit 6.7+，即使尚未正式发行，也先更新本表、cycle spec 和 migration 文档，再实现接口。
 
 ### 1. AR Foundation
 
