@@ -9,6 +9,7 @@ const failures = [];
 const files = {
 	importer: "tools/c00/import_device_dependency_bundle.sh",
 	templateInstaller: "tools/c00/install_godot_export_templates.sh",
+	versionDefaults: "tools/c00/godot_version_defaults.sh",
 	jdkInstaller: "tools/c00/install_openjdk17.sh",
 	sdkInstaller: "tools/c00/install_android_sdk_packages.sh",
 	readme: "tools/c00/README_CN.md",
@@ -24,7 +25,9 @@ for (const [label, file] of Object.entries(files)) {
 
 if (failures.length === 0) {
 	requireContains(files.importer, [
-		"Godot_v4.4.1-stable_export_templates.tpz",
+		"Godot_v4.7-rc1_export_templates.tpz",
+		"Godot_v4.6.3-stable_export_templates.tpz",
+		"legacy Godot_v4.4.1-stable_export_templates.tpz",
 		"ios.zip",
 		"android_source.zip",
 		"device-env.sh",
@@ -38,10 +41,13 @@ if (failures.length === 0) {
 	]);
 
 	requireContains(files.templateInstaller, [
+		"godot_version_defaults.sh",
+		"--latest",
+		"--latest-stable",
+		"4.7.rc1",
 		"--download",
 		"GODOT_EXPORT_TEMPLATES_URL",
 		"GODOT_EXPORT_TEMPLATES_URLS",
-		"downloads.godotengine.org",
 		"Godot_v%s_export_templates.tpz",
 		"Resuming incomplete Godot export templates download",
 		"C00_CURL_RETRY",
@@ -83,9 +89,20 @@ if (failures.length === 0) {
 		"install_openjdk17.sh --download",
 		"device-env.sh",
 		"## Download Cache",
-		"Godot_v4.4.1-stable_export_templates.tpz",
+		"Godot_v${C00_GODOT_LATEST_TAG}_export_templates.tpz",
 		"commandlinetools-mac-13114758_latest.zip",
 		"temurin17-mac-aarch64.tar.gz",
+	]);
+
+	requireContains(files.versionDefaults, [
+		"C00_GODOT_LATEST_TAG",
+		"4.7-rc1",
+		"C00_GODOT_STABLE_TAG",
+		"4.6.3-stable",
+		"downloads.godotengine.org",
+		"godot_normalize_template_version",
+		"godot_tag_from_template_version",
+		"godot_official_download_url_from_template_version",
 	]);
 
 	requireContains(files.spec, [

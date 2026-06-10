@@ -2,25 +2,35 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+. "$PROJECT_ROOT/tools/c00/godot_version_defaults.sh"
 TPZ="${TPZ:-}"
-VERSION="${GODOT_EXPORT_TEMPLATES_VERSION:-4.4.1.stable}"
+VERSION="$(godot_normalize_template_version "${GODOT_EXPORT_TEMPLATES_VERSION:-$C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION}")"
 DEST="${GODOT_EXPORT_TEMPLATES_DIR:-$HOME/Library/Application Support/Godot/export_templates/$VERSION}"
 DOWNLOAD=0
 URL="${GODOT_EXPORT_TEMPLATES_URL:-}"
 URLS="${GODOT_EXPORT_TEMPLATES_URLS:-}"
 DOWNLOAD_URLS=()
 
+set_version() {
+	VERSION="$(godot_normalize_template_version "$1")"
+	DEST="${GODOT_EXPORT_TEMPLATES_DIR:-$HOME/Library/Application Support/Godot/export_templates/$VERSION}"
+}
+
 usage() {
 	cat <<EOF
 Usage:
-  tools/c00/install_godot_export_templates.sh --tpz <Godot_v4.4.1-stable_export_templates.tpz> [--version 4.4.1.stable]
-  tools/c00/install_godot_export_templates.sh --download [--version 4.4.1.stable]
+  tools/c00/install_godot_export_templates.sh --tpz <Godot_v4.7-rc1_export_templates.tpz> [--version 4.7.rc1]
+  tools/c00/install_godot_export_templates.sh --download [--latest|--latest-stable|--version 4.7.rc1]
 
 Installs official Godot export templates into the directory used by Godot:
   $DEST
 
-The standard 4.4.1 package is available from the Godot 4.4.1 archive page:
-  https://godotengine.org/download/archive/4.4.1-stable/
+C00 follows the newest official Godot line by default.
+  latest:        $C00_GODOT_LATEST_TAG / $C00_GODOT_LATEST_EXPORT_TEMPLATES_VERSION
+  latest stable: $C00_GODOT_STABLE_TAG / $C00_GODOT_STABLE_EXPORT_TEMPLATES_VERSION
+
+Template, Godot editor, and Godot source headers must use the same version.
+Legacy 4.4.1 exports remain available by passing --version 4.4.1.stable.
 
 Download sources:
   --url <url>       Use one URL.
@@ -34,15 +44,15 @@ EOF
 }
 
 version_tag() {
-	printf "%s" "${VERSION/.stable/-stable}"
+	godot_tag_from_template_version "$VERSION"
 }
 
 version_number() {
-	printf "%s" "${VERSION%.stable}"
+	godot_download_version_number_from_template_version "$VERSION"
 }
 
 official_downloads_url() {
-	printf "https://downloads.godotengine.org/?flavor=stable&platform=templates&slug=export_templates.tpz&version=%s" "$(version_number)"
+	godot_official_download_url_from_template_version "$VERSION"
 }
 
 github_release_url() {
@@ -127,9 +137,16 @@ while [[ "$#" -gt 0 ]]; do
 			shift 2
 			;;
 		--version)
-			VERSION="$2"
-			DEST="${GODOT_EXPORT_TEMPLATES_DIR:-$HOME/Library/Application Support/Godot/export_templates/$VERSION}"
+			set_version "$2"
 			shift 2
+			;;
+		--latest)
+			set_version "$C00_GODOT_LATEST_EXPORT_TEMPLATES_VERSION"
+			shift
+			;;
+		--latest-stable)
+			set_version "$C00_GODOT_STABLE_EXPORT_TEMPLATES_VERSION"
+			shift
 			;;
 		--dir)
 			DEST="$2"
@@ -147,12 +164,12 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 if [[ -z "$TPZ" ]]; then
-	default_tpz="$PROJECT_ROOT/.godot/cache/c00/downloads/Godot_v4.4.1-stable_export_templates.tpz"
 	versioned_tpz="$PROJECT_ROOT/.godot/cache/c00/downloads/Godot_v$(version_tag)_export_templates.tpz"
-	if [[ -f "$default_tpz" ]]; then
-		TPZ="$default_tpz"
-	elif [[ -f "$versioned_tpz" ]]; then
+	legacy_tpz="$PROJECT_ROOT/.godot/cache/c00/downloads/Godot_v4.4.1-stable_export_templates.tpz"
+	if [[ -f "$versioned_tpz" ]]; then
 		TPZ="$versioned_tpz"
+	elif [[ "$(version_tag)" == "4.4.1-stable" && -f "$legacy_tpz" ]]; then
+		TPZ="$legacy_tpz"
 	elif [[ "$DOWNLOAD" == "1" ]]; then
 		TPZ="$versioned_tpz"
 	else

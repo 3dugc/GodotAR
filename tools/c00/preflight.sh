@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+. "$PROJECT_ROOT/tools/c00/godot_version_defaults.sh"
 GATE="${1:-all}"
 DEFAULT_GODOT_SOURCE_DIR="$PROJECT_ROOT/.godot/cache/c00/godot-source"
 DEFAULT_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env.sh"
@@ -87,14 +88,14 @@ needs_ios_plugin_artifacts() {
 
 resolve_template_version() {
 	if [ -n "${GODOT_EXPORT_TEMPLATES_VERSION:-}" ]; then
-		printf "%s" "$GODOT_EXPORT_TEMPLATES_VERSION"
+		godot_normalize_template_version "$GODOT_EXPORT_TEMPLATES_VERSION"
 		return
 	fi
 	if [ -n "${GODOT_TAG:-}" ]; then
-		printf "%s" "${GODOT_TAG/-stable/.stable}"
+		godot_template_version_from_tag "$GODOT_TAG"
 		return
 	fi
-	printf "4.4.1.stable"
+	printf "%s" "$C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION"
 }
 
 resolve_export_templates_dir() {
@@ -382,10 +383,10 @@ if needs_export_preset; then
 	printf "\nGodot export templates\n"
 	template_dir="$(resolve_export_templates_dir)"
 	if needs_ios_tools; then
-		check_file "$template_dir/ios.zip" "required for iPad/iOS Simulator export; run tools/c00/install_godot_export_templates.sh --download or pass --tpz <Godot_v4.4.1-stable_export_templates.tpz>"
+		check_file "$template_dir/ios.zip" "required for iPad/iOS Simulator export; run tools/c00/install_godot_export_templates.sh --download --latest or pass a matching Godot export templates .tpz"
 	fi
 	if needs_android_tools; then
-		check_file "$template_dir/android_source.zip" "required for Android Gradle exports used by Rokid/OpenXR and ARCore; run tools/c00/install_godot_export_templates.sh --download"
+		check_file "$template_dir/android_source.zip" "required for Android Gradle exports used by Rokid/OpenXR and ARCore; run tools/c00/install_godot_export_templates.sh --download --latest"
 	fi
 fi
 

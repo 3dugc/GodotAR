@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+. "$PROJECT_ROOT/tools/c00/godot_version_defaults.sh"
 DEFAULT_DIR="$PROJECT_ROOT/.godot/cache/c00/godot-source"
 DEST="${GODOT_SOURCE_DIR:-${GODOT_SRC_DIR:-$DEFAULT_DIR}}"
 REPO="${GODOT_REPO:-https://github.com/godotengine/godot.git}"
@@ -18,15 +19,18 @@ Usage:
 
 Options:
   --dir <path>       Target Godot source directory. Default: .godot/cache/c00/godot-source
-  --tag <tag>        Godot source tag, for example 4.4.1-stable.
+  --tag <tag>        Godot source tag, for example 4.7-rc1.
+  --latest           Use newest C00 Godot line: $C00_GODOT_LATEST_TAG.
+  --latest-stable    Use newest stable C00 Godot line: $C00_GODOT_STABLE_TAG.
   --branch <branch>  Godot source branch.
   --commit <sha>     Godot source commit. Requires a full clone.
   --repo <url>       Godot repository URL. Default: https://github.com/godotengine/godot.git
   --force            Replace an existing invalid target directory.
   --no-env           Do not print export commands.
 
-If --tag/--branch/--commit are omitted, the script tries to infer a stable tag
-from GODOT_BIN or the godot command, e.g. 4.4.1.stable.official -> 4.4.1-stable.
+If --tag/--branch/--commit are omitted, the script tries to infer a tag
+from GODOT_BIN or the godot command, e.g. 4.7.rc1.official -> 4.7-rc1.
+If no Godot binary can be queried, it falls back to $C00_GODOT_DEFAULT_TAG.
 
 The resulting source tree must match the Godot iOS export template used on the
 device machine. C00 uses it only to compile ios/plugins/godot_arkit.
@@ -42,6 +46,14 @@ while [[ "$#" -gt 0 ]]; do
 		--tag)
 			TAG="$2"
 			shift 2
+			;;
+		--latest)
+			TAG="$C00_GODOT_LATEST_TAG"
+			shift
+			;;
+		--latest-stable)
+			TAG="$C00_GODOT_STABLE_TAG"
+			shift
 			;;
 		--branch)
 			BRANCH="$2"
@@ -110,6 +122,30 @@ read_version_value() {
 			exit
 		}
 	' "$file"
+}
+
+source_tree_tag() {
+	local dir="$1"
+	local version_py="$dir/version.py"
+	if [[ ! -f "$version_py" ]]; then
+		return 1
+	fi
+
+	local major minor patch status number template_version
+	major="$(read_version_value "$version_py" major)"
+	minor="$(read_version_value "$version_py" minor)"
+	patch="$(read_version_value "$version_py" patch)"
+	status="$(read_version_value "$version_py" status)"
+	if [[ -z "$major" || -z "$minor" || -z "$status" ]]; then
+		return 1
+	fi
+
+	number="$major.$minor"
+	if [[ -n "$patch" && "$patch" != "0" ]]; then
+		number="$number.$patch"
+	fi
+	template_version="$number.$status"
+	godot_tag_from_template_version "$template_version"
 }
 
 ensure_generated_version_header() {
@@ -227,17 +263,17 @@ find_godot_binary() {
 }
 
 infer_tag_from_godot() {
-	local godot_bin version stable
+	local godot_bin version tag
 	if ! godot_bin="$(find_godot_binary)"; then
 		return 1
 	fi
 	version="$("$godot_bin" --version 2>/dev/null | awk '{print $1}')"
 	version="${version%%.official*}"
-	stable="${version/.stable/-stable}"
-	if [[ "$stable" == "$version" || -z "$stable" ]]; then
+	tag="$(godot_tag_from_template_version "$version")"
+	if [[ -z "$tag" ]]; then
 		return 1
 	fi
-	printf "%s" "$stable"
+	printf "%s" "$tag"
 }
 
 print_next_steps() {
@@ -257,6 +293,22 @@ DEST="$(mkdir -p "$(dirname "$DEST")" && cd "$(dirname "$DEST")" && printf "%s/%
 
 if [[ -d "$DEST" ]]; then
 	if validate_source_tree "$DEST"; then
+		if [[ -n "$TAG" ]]; then
+			existing_tag="$(source_tree_tag "$DEST" || true)"
+			if [[ -n "$existing_tag" && "$existing_tag" != "$TAG" ]]; then
+				if [[ "$FORCE" == "1" ]]; then
+					echo "Replacing Godot source $existing_tag with requested tag $TAG: $DEST"
+					rm -rf "$DEST"
+				else
+					echo "Target Godot source tag is $existing_tag, but requested $TAG: $DEST" >&2
+					echo "Pass --force to replace it, or set GODOT_SOURCE_DIR to a matching tree." >&2
+					exit 1
+				fi
+			fi
+		fi
+	fi
+
+	if [[ -d "$DEST" ]] && validate_source_tree "$DEST"; then
 		ensure_generated_headers "$DEST"
 		echo "Godot source is ready: $DEST"
 		print_next_steps
@@ -274,12 +326,14 @@ if [[ -z "$TAG" && -z "$BRANCH" && -z "$COMMIT" ]]; then
 	if TAG="$(infer_tag_from_godot)"; then
 		echo "Inferred Godot source tag from Godot binary: $TAG"
 	else
-		cat >&2 <<EOF
-Could not infer a Godot source tag.
-Pass --tag <tag>, for example:
-  tools/c00/prepare_godot_source.sh --tag 4.4.1-stable
+		TAG="$C00_GODOT_DEFAULT_TAG"
+		cat <<EOF
+Could not infer a Godot source tag from GODOT_BIN/godot.
+Using C00 default Godot source tag: $TAG
+
+To pin a different version, pass --tag <tag>, for example:
+  tools/c00/prepare_godot_source.sh --tag 4.6.3-stable
 EOF
-		exit 2
 	fi
 fi
 

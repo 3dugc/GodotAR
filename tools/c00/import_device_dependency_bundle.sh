@@ -2,10 +2,11 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+. "$PROJECT_ROOT/tools/c00/godot_version_defaults.sh"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 
 BUNDLE_DIR=""
-VERSION="${GODOT_EXPORT_TEMPLATES_VERSION:-4.4.1.stable}"
+VERSION="$(godot_normalize_template_version "${GODOT_EXPORT_TEMPLATES_VERSION:-$C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION}")"
 EXPORT_TEMPLATES_DIR="${GODOT_EXPORT_TEMPLATES_DIR:-$HOME/Library/Application Support/Godot/export_templates/$VERSION}"
 REPORT="${REPORT:-$PROJECT_ROOT/releases/phase_0_smoke/evidence/dependency-bundle-${TIMESTAMP}.md}"
 ENV_FILE="${ENV_FILE:-$PROJECT_ROOT/.godot/cache/c00/device-env.sh}"
@@ -29,6 +30,8 @@ Usage:
 
 Options:
   --version <version>                 Godot export template version. Default: $VERSION
+  --latest                            Use newest C00 Godot line: $C00_GODOT_LATEST_EXPORT_TEMPLATES_VERSION.
+  --latest-stable                     Use newest stable C00 Godot line: $C00_GODOT_STABLE_EXPORT_TEMPLATES_VERSION.
   --export-templates-dir <dir>        Export template install dir. Default: $EXPORT_TEMPLATES_DIR
   --android-sdk <dir>                 Android SDK root inside or outside the bundle.
   --jdk-home <dir>                    JDK home with bin/java and bin/keytool.
@@ -40,7 +43,8 @@ Options:
   --configure-android-export          Also write Godot Android EditorSettings when Godot/JDK/SDK exist.
 
 Bundle layout can be flexible. The script searches for:
-  - Godot_v4.4.1-stable_export_templates.tpz, or ios.zip + android_source.zip
+  - Godot_v4.7-rc1_export_templates.tpz, Godot_v4.6.3-stable_export_templates.tpz,
+    legacy Godot_v4.4.1-stable_export_templates.tpz, or ios.zip + android_source.zip
   - android-sdk/platform-tools/adb and build-tools/*/apksigner
   - jdk*/bin/java and jdk*/bin/keytool
   - Godot.app/Contents/MacOS/Godot or a Godot executable
@@ -53,6 +57,11 @@ After importing, use:
 EOF
 }
 
+set_version() {
+	VERSION="$(godot_normalize_template_version "$1")"
+	EXPORT_TEMPLATES_DIR="${GODOT_EXPORT_TEMPLATES_DIR:-$HOME/Library/Application Support/Godot/export_templates/$VERSION}"
+}
+
 while [[ "$#" -gt 0 ]]; do
 	case "$1" in
 		--bundle)
@@ -60,9 +69,16 @@ while [[ "$#" -gt 0 ]]; do
 			shift 2
 			;;
 		--version)
-			VERSION="$2"
-			EXPORT_TEMPLATES_DIR="${GODOT_EXPORT_TEMPLATES_DIR:-$HOME/Library/Application Support/Godot/export_templates/$VERSION}"
+			set_version "$2"
 			shift 2
+			;;
+		--latest)
+			set_version "$C00_GODOT_LATEST_EXPORT_TEMPLATES_VERSION"
+			shift
+			;;
+		--latest-stable)
+			set_version "$C00_GODOT_STABLE_EXPORT_TEMPLATES_VERSION"
+			shift
 			;;
 		--export-templates-dir)
 			EXPORT_TEMPLATES_DIR="$2"

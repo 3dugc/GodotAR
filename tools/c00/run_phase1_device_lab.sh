@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+. "$PROJECT_ROOT/tools/c00/godot_version_defaults.sh"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 
 BUNDLE_DIR="${BUNDLE_DIR:-}"
@@ -271,11 +272,11 @@ online_dep_enabled() {
 
 resolve_template_version() {
 	if [[ -n "${GODOT_EXPORT_TEMPLATES_VERSION:-}" ]]; then
-		printf "%s" "$GODOT_EXPORT_TEMPLATES_VERSION"
+		godot_normalize_template_version "$GODOT_EXPORT_TEMPLATES_VERSION"
 	elif [[ -n "${GODOT_TAG:-}" ]]; then
-		printf "%s" "${GODOT_TAG/-stable/.stable}"
+		godot_template_version_from_tag "$GODOT_TAG"
 	else
-		printf "4.4.1.stable"
+		printf "%s" "$C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION"
 	fi
 }
 

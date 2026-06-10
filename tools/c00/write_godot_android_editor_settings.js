@@ -18,7 +18,7 @@ const debugUser = requiredEnv("GODOT_ANDROID_KEYSTORE_DEBUG_USER");
 const debugPassword = requiredEnv("GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD");
 const settingsFile = args["settings-file"]
 	? path.resolve(String(args["settings-file"]))
-	: resolveSettingsFile(String(args["godot-version"] || process.env.GODOT_VERSION || process.env.GODOT_EXPORT_TEMPLATES_VERSION || "4.4.1.stable"));
+	: resolveSettingsFile(String(args["godot-version"] || process.env.GODOT_VERSION || process.env.GODOT_EXPORT_TEMPLATES_VERSION || process.env.C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION || "4.7.rc1"));
 
 const settings = {
 	"export/android/android_sdk_path": androidSdk,
@@ -81,7 +81,7 @@ function usage() {
 		"  GODOT_ANDROID_KEYSTORE_DEBUG_PATH=/path/to/debug.keystore \\",
 		"  GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey \\",
 		"  GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android \\",
-		"    node tools/c00/write_godot_android_editor_settings.js [--settings-file <file>] [--godot-version 4.4.1.stable]",
+		"    node tools/c00/write_godot_android_editor_settings.js [--settings-file <file>] [--godot-version 4.7.rc1]",
 	].join("\n"));
 }
 

@@ -2,7 +2,8 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-VERSION="${GODOT_EXPORT_TEMPLATES_VERSION:-4.4.1.stable}"
+. "$PROJECT_ROOT/tools/c00/godot_version_defaults.sh"
+VERSION="$(godot_normalize_template_version "${GODOT_EXPORT_TEMPLATES_VERSION:-$C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION}")"
 SOURCE_ZIP="${ANDROID_SOURCE_ZIP:-}"
 BUILD_DIR="${ANDROID_BUILD_DIR:-$PROJECT_ROOT/android/build}"
 FORCE=0
@@ -10,16 +11,20 @@ FORCE=0
 usage() {
 	cat <<EOF
 Usage:
-  tools/c00/install_android_build_template.sh [--source <android_source.zip>] [--version 4.4.1.stable] [--force]
+  tools/c00/install_android_build_template.sh [--source <android_source.zip>] [--latest|--latest-stable|--version 4.7.rc1] [--force]
 
 Installs Godot's Android Gradle build template into:
   android/build
 
-This mirrors Godot 4.4's Project > Install Android Build Template flow:
+This mirrors Godot's Project > Install Android Build Template flow:
   - unzip android_source.zip into res://android/build
   - write res://android/.build_version
   - write res://android/build/.gdignore
 EOF
+}
+
+set_version() {
+	VERSION="$(godot_normalize_template_version "$1")"
 }
 
 while [[ "$#" -gt 0 ]]; do
@@ -29,8 +34,16 @@ while [[ "$#" -gt 0 ]]; do
 			shift 2
 			;;
 		--version)
-			VERSION="$2"
+			set_version "$2"
 			shift 2
+			;;
+		--latest)
+			set_version "$C00_GODOT_LATEST_EXPORT_TEMPLATES_VERSION"
+			shift
+			;;
+		--latest-stable)
+			set_version "$C00_GODOT_STABLE_EXPORT_TEMPLATES_VERSION"
+			shift
 			;;
 		--build-dir)
 			BUILD_DIR="$2"

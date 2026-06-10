@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+. "$PROJECT_ROOT/tools/c00/godot_version_defaults.sh"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 DEFAULT_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env.sh"
 
@@ -224,9 +225,9 @@ run_capture() {
 
 resolve_template_version() {
 	if [[ -n "${GODOT_EXPORT_TEMPLATES_VERSION:-}" ]]; then
-		printf "%s" "$GODOT_EXPORT_TEMPLATES_VERSION"
+		godot_normalize_template_version "$GODOT_EXPORT_TEMPLATES_VERSION"
 	else
-		printf "4.4.1.stable"
+		printf "%s" "$C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION"
 	fi
 }
 
@@ -489,7 +490,7 @@ fi
 	printf "| Item | Current cache state | Resume command |\n"
 	printf "| --- | --- | --- |\n"
 } >> "$REPORT"
-append_download_cache_row "Godot export templates" "Godot_v4.4.1-stable_export_templates.tpz" "tools/c00/install_godot_export_templates.sh --download --version 4.4.1.stable"
+append_download_cache_row "Godot export templates" "Godot_v${C00_GODOT_LATEST_TAG}_export_templates.tpz" "tools/c00/install_godot_export_templates.sh --download --latest"
 append_download_cache_row "Android command line tools" "commandlinetools-mac-13114758_latest.zip" "tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes"
 append_download_cache_row "OpenJDK 17" "temurin17-mac-aarch64.tar.gz" "tools/c00/install_openjdk17.sh --download"
 
@@ -512,9 +513,9 @@ append_download_cache_row "OpenJDK 17" "temurin17-mac-aarch64.tar.gz" "tools/c00
 	printf "   tools/c00/import_device_dependency_bundle.sh --bundle <device-bundle-dir>\n"
 	printf "   source .godot/cache/c00/device-env.sh\n"
 	printf "   \`\`\`\n\n"
-	printf "4. Install Godot 4.4.1 export templates and project Android build template if they were not imported from a bundle:\n\n"
+	printf "4. Install Godot export templates and project Android build template if they were not imported from a bundle:\n\n"
 	printf "   \`\`\`bash\n"
-	printf "   tools/c00/install_godot_export_templates.sh --download --version 4.4.1.stable\n"
+	printf "   tools/c00/install_godot_export_templates.sh --download --latest\n"
 	printf "   tools/c00/install_android_build_template.sh\n"
 	printf "   \`\`\`\n\n"
 	printf "5. Install OpenJDK 17 and Android SDK build tools when they were not imported from a bundle:\n\n"

@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+. "$PROJECT_ROOT/tools/c00/godot_version_defaults.sh"
 GATE="${1:-}"
 DEVICE="${2:-${DEVICE:-}}"
 DEFAULT_GODOT_SOURCE_DIR="$PROJECT_ROOT/.godot/cache/c00/godot-source"
@@ -86,7 +87,7 @@ Evidence:
 
 iPad / ARKit:
   GODOT_SOURCE_DIR=/path/to/godot     Build GodotARKit.xcframework before export.
-  GODOT_TAG=4.4.1-stable             Optional source tag for automatic source preparation.
+  GODOT_TAG=$C00_GODOT_LATEST_TAG             Optional source tag for automatic source preparation.
   AUTO_PREPARE_GODOT_SOURCE=auto|1|0 Default auto: prepare only when GODOT_TAG/BRANCH/COMMIT is set.
   BUILD_ARKIT_PLUGIN=auto|1|0        Default auto: build only when GODOT_SOURCE_DIR is set.
   CONFIGURE_IPAD_SIGNING=auto|1|0    Default auto: update iPad export presets when a Team ID env var is set.
