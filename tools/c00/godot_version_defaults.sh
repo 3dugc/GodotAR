@@ -108,6 +108,14 @@ godot_official_macos_editor_url_from_template_version() {
 		"$(godot_download_version_number_from_template_version "$version")"
 }
 
+godot_github_macos_editor_url_from_template_version() {
+	local tag
+	tag="$(godot_tag_from_template_version "$1")"
+	printf "https://github.com/godotengine/godot/releases/download/%s/%s" \
+		"$tag" \
+		"$(godot_macos_editor_archive_name_from_template_version "$tag")"
+}
+
 godot_binary_version() {
 	local godot_bin="$1"
 	local raw

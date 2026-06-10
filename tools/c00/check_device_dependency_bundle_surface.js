@@ -51,9 +51,13 @@ if (failures.length === 0) {
 		"macos.universal.zip",
 		"GODOT_EDITOR_URL",
 		"GODOT_EDITOR_URLS",
+		"godot_github_macos_editor_url_from_template_version",
 		"Resuming incomplete Godot editor download",
 		"Godot editor installed for",
 		"godot_binary_version",
+		"C00_CURL_MAX_TIME",
+		"C00_CURL_RETRY_ALL_ERRORS",
+		"C00_CURL_HTTP1",
 	]);
 
 	requireContains(files.templateInstaller, [
@@ -67,6 +71,9 @@ if (failures.length === 0) {
 		"Godot_v%s_export_templates.tpz",
 		"Resuming incomplete Godot export templates download",
 		"C00_CURL_RETRY",
+		"C00_CURL_MAX_TIME",
+		"C00_CURL_RETRY_ALL_ERRORS",
+		"C00_CURL_HTTP1",
 		"--speed-limit",
 	]);
 
@@ -77,6 +84,9 @@ if (failures.length === 0) {
 		"Resuming incomplete OpenJDK 17 download",
 		".godot/cache/c00/jdk/Contents/Home",
 		"C00_CURL_RETRY",
+		"C00_CURL_MAX_TIME",
+		"C00_CURL_RETRY_ALL_ERRORS",
+		"C00_CURL_HTTP1",
 		"--speed-limit",
 	]);
 
@@ -89,6 +99,9 @@ if (failures.length === 0) {
 		"run_sdkmanager_with_yes",
 		"PIPESTATUS",
 		"C00_CURL_RETRY",
+		"C00_CURL_MAX_TIME",
+		"C00_CURL_RETRY_ALL_ERRORS",
+		"C00_CURL_HTTP1",
 		"--speed-limit",
 	]);
 
@@ -122,6 +135,7 @@ if (failures.length === 0) {
 		"godot_normalize_template_version",
 		"godot_tag_from_template_version",
 		"godot_official_macos_editor_url_from_template_version",
+		"godot_github_macos_editor_url_from_template_version",
 		"godot_official_download_url_from_template_version",
 	]);
 

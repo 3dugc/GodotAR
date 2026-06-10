@@ -76,7 +76,9 @@ tools/c00/configure_android_export_environment.sh --install-build-template
 ```
 
 截至 2026-06-10，`--latest` 指向 Godot `4.7-rc1` / export templates `4.7.rc1`；稳定 fallback 用 `tools/c00/install_godot_editor.sh --download --latest-stable` 和 `tools/c00/install_godot_export_templates.sh --download --latest-stable`。如果网络不稳定，把 `Godot_v4.7-rc1_macos.universal.zip`、`Godot_v4.7-rc1_export_templates.tpz`、Android command line tools zip、OpenJDK 17 tar.gz、Android SDK 或 JDK 放进离线依赖包，再用 `tools/c00/import_device_dependency_bundle.sh --bundle <dir>` 导入。
-导入后生成的 `.godot/cache/c00/device-env.sh` 会被 `preflight.sh`、`bootstrap_device_machine.sh` 和 `run_device_cycle.sh` 自动读取；需要换路径时设置 `C00_DEVICE_ENV_FILE=/path/to/device-env.sh`，需要临时忽略时设置 `C00_AUTO_SOURCE_DEVICE_ENV=0`。
+
+慢网络下可给所有在线依赖安装器加同一组 curl 调优变量，例如 `C00_CURL_RETRY=8 C00_CURL_RETRY_DELAY=15 C00_CURL_SPEED_LIMIT=1024 C00_CURL_SPEED_TIME=30 C00_CURL_MAX_TIME=900 C00_CURL_HTTP1=1`。`C00_CURL_MAX_TIME` 只限制单次下载尝试；`C00_CURL_RETRY_ALL_ERRORS` 默认启用，覆盖 HTTP/2 stream cancel 等错误；保留 `.godot/cache/c00/downloads` 里的 partial 文件后重跑同一命令会继续下载。
+导入后生成的 `.godot/cache/c00/device-env.sh` 会被 `preflight.sh`、`bootstrap_device_machine.sh`、`run_device_cycle.sh` 和 `run_phase1_device_lab.sh` 自动读取；显式传入的 `GODOT_BIN`、`GODOT_EXPORT_TEMPLATES_VERSION`、SDK/JDK/source 路径等变量优先于 device-env 里的旧值。需要换路径时设置 `C00_DEVICE_ENV_FILE=/path/to/device-env.sh`，需要临时忽略时设置 `C00_AUTO_SOURCE_DEVICE_ENV=0`。
 
 iPad/ARKit 真机构建需要与 iOS export template 版本匹配的 Godot source headers。设备机没有现成 source tree 时，先用 helper 准备：
 

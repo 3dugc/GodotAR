@@ -73,6 +73,9 @@ if (failures.length === 0) {
 		"--licenses",
 		"run_sdkmanager_with_yes",
 		"PIPESTATUS",
+		"C00_CURL_MAX_TIME",
+		"C00_CURL_RETRY_ALL_ERRORS",
+		"C00_CURL_HTTP1",
 	]);
 
 	requireContains(files.jdkInstaller, [
@@ -82,6 +85,9 @@ if (failures.length === 0) {
 		".godot/cache/c00/jdk/Contents/Home",
 		"GODOT_JAVA_SDK_PATH",
 		"keytool",
+		"C00_CURL_MAX_TIME",
+		"C00_CURL_RETRY_ALL_ERRORS",
+		"C00_CURL_HTTP1",
 	]);
 
 	requireContains(files.preflight, [

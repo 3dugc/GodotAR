@@ -70,6 +70,7 @@ if (failures.length === 0) {
 		"DRY_RUN",
 		"CONTINUE_AFTER_CYCLE",
 		"source_env_if_present",
+		"GODOT_EXPORT_TEMPLATES_VERSION GODOT_EXPORT_TEMPLATES_DIR GODOT_BIN",
 		"NOT_READY",
 		"C00_COMPLETION_AUDIT.md",
 	]);
@@ -78,6 +79,7 @@ if (failures.length === 0) {
 		"C00_DEVICE_ENV_FILE",
 		"C00_AUTO_SOURCE_DEVICE_ENV",
 		"source_device_env_if_present",
+		"GODOT_EXPORT_TEMPLATES_VERSION GODOT_EXPORT_TEMPLATES_DIR GODOT_BIN",
 	]);
 
 	requireContains("tools/c00/bootstrap_device_machine.sh", [
@@ -90,6 +92,7 @@ if (failures.length === 0) {
 		"C00_DEVICE_ENV_FILE",
 		"C00_AUTO_SOURCE_DEVICE_ENV",
 		"source_device_env_if_present",
+		"GODOT_EXPORT_TEMPLATES_VERSION GODOT_EXPORT_TEMPLATES_DIR GODOT_BIN",
 		"INCLUDE_PLACE_DEMOS",
 		"ios-simulator-place",
 		"rokid-place",

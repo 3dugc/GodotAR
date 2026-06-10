@@ -238,8 +238,26 @@ source_env_if_present() {
 	env_path="$(project_path "$ENV_FILE")"
 	if [[ -f "$env_path" ]]; then
 		echo "Sourcing device environment: $env_path"
+		local preserved=()
+		local had_templates_version="${GODOT_EXPORT_TEMPLATES_VERSION+x}"
+		local had_templates_dir="${GODOT_EXPORT_TEMPLATES_DIR+x}"
+		local name
+		for name in GODOT_EXPORT_TEMPLATES_VERSION GODOT_EXPORT_TEMPLATES_DIR GODOT_BIN GODOT_SOURCE_DIR GODOT_SRC_DIR GODOT_TAG GODOT_BRANCH GODOT_COMMIT GODOT_ANDROID_SDK_PATH ANDROID_SDK_ROOT ANDROID_HOME GODOT_JAVA_SDK_PATH JAVA_HOME GODOT_ANDROID_KEYSTORE_DEBUG_PATH ADB_BIN SDKMANAGER PACKAGE BUNDLE_ID TEAM_ID DEVICE APP_PATH APK_PATH; do
+			if [[ -n "${!name+x}" ]]; then
+				preserved+=("$name=${!name}")
+			fi
+		done
 		# shellcheck disable=SC1090
 		source "$env_path"
+		local assignment
+		if [[ "${#preserved[@]}" -gt 0 ]]; then
+			for assignment in "${preserved[@]}"; do
+				export "$assignment"
+			done
+		fi
+		if [[ -n "$had_templates_version" && -z "$had_templates_dir" ]]; then
+			unset GODOT_EXPORT_TEMPLATES_DIR
+		fi
 	elif [[ "$RUN_IMPORT" == "0" ]]; then
 		echo "No device environment file found: $env_path"
 	fi

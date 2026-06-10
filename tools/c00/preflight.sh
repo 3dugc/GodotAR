@@ -12,8 +12,26 @@ status=0
 source_device_env_if_present() {
 	local env_file="${C00_DEVICE_ENV_FILE:-$DEFAULT_DEVICE_ENV_FILE}"
 	if [ "${C00_AUTO_SOURCE_DEVICE_ENV:-1}" = "1" ] && [ -f "$env_file" ]; then
+		local preserved=()
+		local had_templates_version="${GODOT_EXPORT_TEMPLATES_VERSION+x}"
+		local had_templates_dir="${GODOT_EXPORT_TEMPLATES_DIR+x}"
+		local name
+		for name in GODOT_EXPORT_TEMPLATES_VERSION GODOT_EXPORT_TEMPLATES_DIR GODOT_BIN GODOT_SOURCE_DIR GODOT_SRC_DIR GODOT_TAG GODOT_BRANCH GODOT_COMMIT GODOT_ANDROID_SDK_PATH ANDROID_SDK_ROOT ANDROID_HOME GODOT_JAVA_SDK_PATH JAVA_HOME GODOT_ANDROID_KEYSTORE_DEBUG_PATH ADB_BIN SDKMANAGER; do
+			if [ -n "${!name+x}" ]; then
+				preserved+=("$name=${!name}")
+			fi
+		done
 		# shellcheck disable=SC1090
 		source "$env_file"
+		local assignment
+		if [ "${#preserved[@]}" -gt 0 ]; then
+			for assignment in "${preserved[@]}"; do
+				export "$assignment"
+			done
+		fi
+		if [ -n "$had_templates_version" ] && [ -z "$had_templates_dir" ]; then
+			unset GODOT_EXPORT_TEMPLATES_DIR
+		fi
 	fi
 }
 

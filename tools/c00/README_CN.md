@@ -171,7 +171,7 @@ tools/c00/import_device_dependency_bundle.sh \
   --configure-android-export
 ```
 
-`tools/c00/preflight.sh`、`tools/c00/bootstrap_device_machine.sh` 和 `tools/c00/run_device_cycle.sh` 独立运行时会自动读取 `.godot/cache/c00/device-env.sh`。需要换路径时设置 `C00_DEVICE_ENV_FILE=/path/to/device-env.sh`；需要临时忽略该文件时设置 `C00_AUTO_SOURCE_DEVICE_ENV=0`。
+`tools/c00/preflight.sh`、`tools/c00/bootstrap_device_machine.sh`、`tools/c00/run_device_cycle.sh` 和 `tools/c00/run_phase1_device_lab.sh` 独立运行时会自动读取 `.godot/cache/c00/device-env.sh`。显式传入的 `GODOT_BIN`、`GODOT_EXPORT_TEMPLATES_VERSION`、SDK/JDK/source 路径等变量优先于 device-env 里的旧值；需要换路径时设置 `C00_DEVICE_ENV_FILE=/path/to/device-env.sh`；需要临时忽略该文件时设置 `C00_AUTO_SOURCE_DEVICE_ENV=0`。
 
 导入后立即跑三条预检：
 
@@ -310,7 +310,7 @@ tools/c00/install_godot_export_templates.sh \
 
 如果官方下载入口或 GitHub fallback 下载失败，可以从 Godot 官方 archive 页面下载同名 standard export templates `.tpz` 后，把本地文件路径传给 `--tpz`。iPad 导出至少需要 `ios.zip`；Rokid/OpenXR 和 Android ARCore 的 Gradle 导出至少需要 `android_source.zip`。
 `--download` 使用 `curl -L --fail -C -`，如果网络中断，重复运行同一命令会尝试继续下载未完成文件。
-默认下载源会先尝试 Godot 官方 downloads 入口，再尝试 GitHub release。也可以用 `--url` 指定单一来源，或用 `--urls "<url1> <url2>"` / `GODOT_EXPORT_TEMPLATES_URLS` 指定多个候选来源。
+默认下载源会先尝试 Godot 官方 downloads 入口，再尝试 GitHub release。export templates 用 `GODOT_EXPORT_TEMPLATES_URLS` 配置候选来源，macOS editor 用 `GODOT_EDITOR_URLS` 配置候选来源；也可以用 `--url` 指定单一来源，或用 `--urls "<url1> <url2>"` 指定多个候选来源。
 在线下载还支持统一的 `C00_CURL_*` 调优变量；例如慢网络上可以增加重试次数并更快识别低速连接：
 
 ```bash
@@ -318,10 +318,12 @@ C00_CURL_RETRY=8 \
 C00_CURL_RETRY_DELAY=15 \
 C00_CURL_SPEED_LIMIT=1024 \
 C00_CURL_SPEED_TIME=30 \
+C00_CURL_MAX_TIME=900 \
+C00_CURL_HTTP1=1 \
 tools/c00/install_godot_export_templates.sh --download --latest
 ```
 
-`install_openjdk17.sh --download` 和 `install_android_sdk_packages.sh --download-cmdline-tools` 也使用同一组变量；需要代理、镜像或自定义 curl 参数时可用 `--url` / `--urls` / `--cmdline-tools-url` / `--cmdline-tools-urls` 或 `C00_CURL_EXTRA_ARGS`。
+`install_godot_editor.sh --download`、`install_openjdk17.sh --download` 和 `install_android_sdk_packages.sh --download-cmdline-tools` 也使用同一组变量。`C00_CURL_MAX_TIME` 用来限制单次 curl 尝试的最长秒数，`C00_CURL_RETRY_ALL_ERRORS` 默认启用以覆盖 HTTP/2 stream cancel 等错误，`C00_CURL_HTTP1=1` 可强制使用 HTTP/1.1；慢网络上保留 partial 文件后重复运行即可继续。需要代理、镜像或自定义 curl 参数时可用 `--url` / `--urls` / `--cmdline-tools-url` / `--cmdline-tools-urls` 或 `C00_CURL_EXTRA_ARGS`。
 
 安装项目内 Android Gradle build template：
 

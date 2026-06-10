@@ -36,7 +36,7 @@ Default packages match Godot 4.4 Android export expectations:
   platform-tools platforms;android-34 build-tools;34.0.0
 
 Download tuning:
-  C00_CURL_RETRY=8 C00_CURL_RETRY_DELAY=15 C00_CURL_SPEED_LIMIT=1024 C00_CURL_SPEED_TIME=30 \\
+  C00_CURL_RETRY=8 C00_CURL_RETRY_DELAY=15 C00_CURL_SPEED_LIMIT=1024 C00_CURL_SPEED_TIME=30 C00_CURL_MAX_TIME=900 C00_CURL_HTTP1=1 \\
     tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes
 EOF
 }
@@ -74,7 +74,18 @@ download_with_resume() {
 	local curl_connect_timeout="${C00_CURL_CONNECT_TIMEOUT:-30}"
 	local curl_speed_limit="${C00_CURL_SPEED_LIMIT:-512}"
 	local curl_speed_time="${C00_CURL_SPEED_TIME:-60}"
+	local curl_retry_all_errors="${C00_CURL_RETRY_ALL_ERRORS:-1}"
+	local curl_http1="${C00_CURL_HTTP1:-0}"
 	local args=(-L --fail -C - --retry "$curl_retry" --retry-delay "$curl_retry_delay" --connect-timeout "$curl_connect_timeout" --speed-limit "$curl_speed_limit" --speed-time "$curl_speed_time")
+	if [[ "$curl_retry_all_errors" != "0" ]]; then
+		args+=(--retry-all-errors)
+	fi
+	if [[ "$curl_http1" == "1" ]]; then
+		args+=(--http1.1)
+	fi
+	if [[ -n "${C00_CURL_MAX_TIME:-}" ]]; then
+		args+=(--max-time "$C00_CURL_MAX_TIME")
+	fi
 	if [[ -n "${C00_CURL_EXTRA_ARGS:-}" ]]; then
 		# shellcheck disable=SC2206
 		local extra_args=($C00_CURL_EXTRA_ARGS)
