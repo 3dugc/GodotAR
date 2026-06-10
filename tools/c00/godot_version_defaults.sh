@@ -93,3 +93,25 @@ godot_official_download_url_from_template_version() {
 		"$(godot_download_flavor_from_template_version "$version")" \
 		"$(godot_download_version_number_from_template_version "$version")"
 }
+
+godot_macos_editor_archive_name_from_template_version() {
+	local tag
+	tag="$(godot_tag_from_template_version "$1")"
+	printf "Godot_v%s_macos.universal.zip" "$tag"
+}
+
+godot_official_macos_editor_url_from_template_version() {
+	local version
+	version="$(godot_normalize_template_version "$1")"
+	printf "https://downloads.godotengine.org/?flavor=%s&platform=macos&architecture=universal&slug=macos.universal.zip&version=%s" \
+		"$(godot_download_flavor_from_template_version "$version")" \
+		"$(godot_download_version_number_from_template_version "$version")"
+}
+
+godot_binary_version() {
+	local godot_bin="$1"
+	local raw
+	raw="$("$godot_bin" --version 2>/dev/null | awk '{print $1}')"
+	raw="${raw%%.official*}"
+	godot_normalize_template_version "$raw"
+}

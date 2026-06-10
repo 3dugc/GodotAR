@@ -66,6 +66,7 @@ GODOT_BIN=/Applications/Godot.app/Contents/MacOS/Godot tools/c00/preflight.sh
 如果设备机网络可用，可以直接补齐 C00 导出依赖：
 
 ```bash
+tools/c00/install_godot_editor.sh --download --latest
 tools/c00/install_godot_export_templates.sh --download --latest
 tools/c00/install_openjdk17.sh --download
 export GODOT_JAVA_SDK_PATH="$PWD/.godot/cache/c00/jdk/Contents/Home"
@@ -74,7 +75,7 @@ tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes
 tools/c00/configure_android_export_environment.sh --install-build-template
 ```
 
-截至 2026-06-10，`--latest` 指向 Godot `4.7-rc1` / export templates `4.7.rc1`；稳定 fallback 用 `tools/c00/install_godot_export_templates.sh --download --latest-stable`。如果网络不稳定，把 `Godot_v4.7-rc1_export_templates.tpz`、Android command line tools zip、OpenJDK 17 tar.gz、Android SDK 或 JDK 放进离线依赖包，再用 `tools/c00/import_device_dependency_bundle.sh --bundle <dir>` 导入。
+截至 2026-06-10，`--latest` 指向 Godot `4.7-rc1` / export templates `4.7.rc1`；稳定 fallback 用 `tools/c00/install_godot_editor.sh --download --latest-stable` 和 `tools/c00/install_godot_export_templates.sh --download --latest-stable`。如果网络不稳定，把 `Godot_v4.7-rc1_macos.universal.zip`、`Godot_v4.7-rc1_export_templates.tpz`、Android command line tools zip、OpenJDK 17 tar.gz、Android SDK 或 JDK 放进离线依赖包，再用 `tools/c00/import_device_dependency_bundle.sh --bundle <dir>` 导入。
 导入后生成的 `.godot/cache/c00/device-env.sh` 会被 `preflight.sh`、`bootstrap_device_machine.sh` 和 `run_device_cycle.sh` 自动读取；需要换路径时设置 `C00_DEVICE_ENV_FILE=/path/to/device-env.sh`，需要临时忽略时设置 `C00_AUTO_SOURCE_DEVICE_ENV=0`。
 
 iPad/ARKit 真机构建需要与 iOS export template 版本匹配的 Godot source headers。设备机没有现成 source tree 时，先用 helper 准备：

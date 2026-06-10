@@ -305,6 +305,17 @@ check_command node "required for tools/c00/validate_smoke_log.js"
 if needs_godot_binary; then
 	if godot_bin="$(resolve_godot_binary)"; then
 		printf "OK   %-16s %s\n" "GODOT_BIN" "$godot_bin"
+		expected_godot_version="$(resolve_template_version)"
+		actual_godot_version="$(godot_binary_version "$godot_bin" || true)"
+		if [ -z "$actual_godot_version" ]; then
+			printf "MISS %-16s %s\n" "Godot version" "could not run $godot_bin --version"
+			status=1
+		elif [ "$actual_godot_version" = "$expected_godot_version" ]; then
+			printf "OK   %-16s %s\n" "Godot version" "$actual_godot_version"
+		else
+			printf "MISS %-16s expected %s, got %s. Install matching editor/templates/source headers.\n" "Godot version" "$expected_godot_version" "$actual_godot_version"
+			status=1
+		fi
 	else
 		printf "MISS %-16s %s\n" "godot" "required for command-line export/import validation; set GODOT_BIN if using an app bundle"
 		status=1

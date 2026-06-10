@@ -43,11 +43,11 @@ Options:
   --configure-android-export          Also write Godot Android EditorSettings when Godot/JDK/SDK exist.
 
 Bundle layout can be flexible. The script searches for:
+  - Godot_v4.7-rc1_macos.universal.zip, Godot.app, or a Godot executable
   - Godot_v4.7-rc1_export_templates.tpz, Godot_v4.6.3-stable_export_templates.tpz,
     legacy Godot_v4.4.1-stable_export_templates.tpz, or ios.zip + android_source.zip
   - android-sdk/platform-tools/adb and build-tools/*/apksigner
   - jdk*/bin/java and jdk*/bin/keytool
-  - Godot.app/Contents/MacOS/Godot or a Godot executable
   - godot-source/core/version.h and platform/ios
 
 After importing, use:
@@ -298,6 +298,18 @@ install_export_templates() {
 	fi
 }
 
+install_godot_editor() {
+	local editor_zip
+	editor_zip="$(find "$BUNDLE_DIR" -maxdepth 6 -type f \( -name "Godot_v*_macos.universal.zip" -o -name "*macos.universal.zip" \) -print -quit 2>/dev/null || true)"
+	if [[ -n "$editor_zip" ]]; then
+		if "$PROJECT_ROOT/tools/c00/install_godot_editor.sh" --zip "$editor_zip" --version "$VERSION" >/dev/null; then
+			add_row PASS "Godot editor import" "$editor_zip -> .godot/cache/c00/godot-editor/Godot.app"
+		else
+			add_row MISS "Godot editor import" "Failed to install $editor_zip"
+		fi
+	fi
+}
+
 {
 	printf "# C00 Device Dependency Bundle Import\n\n"
 	printf "Generated: %s\n\n" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
@@ -308,6 +320,7 @@ install_export_templates() {
 	printf "| --- | --- | --- |\n"
 } > "$REPORT"
 
+install_godot_editor
 install_export_templates
 
 if ANDROID_SDK_DIR="$(find_android_sdk_dir)"; then

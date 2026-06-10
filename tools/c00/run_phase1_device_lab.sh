@@ -43,7 +43,7 @@ Options:
   --bundle <dir>          Import an offline dependency bundle before running gates.
   --online-deps           Install/resume online C00 dependencies before readiness.
   --online-deps-list <list>
-                          Online dependency subset: auto or comma/space list of templates,jdk,android-sdk,android-export.
+                          Online dependency subset: auto or comma/space list of editor,templates,jdk,android-sdk,android-export.
   --online-deps-only      Run online dependency setup only, then exit.
   --env-file <file>       Environment file written/read by bundle importer. Default: $ENV_FILE
   --gate <gate>           Device cycle gate: all, rokid, rokid-place, ipad, ipad-place, android-arcore, editor, ios-simulator, ios-simulator-place. Default: all
@@ -72,7 +72,7 @@ Environment:
   DRY_RUN=1
   RUN_IMPORT=auto|1|0
   RUN_ONLINE_DEPS=1|0
-  ONLINE_DEPS=auto|templates,jdk,android-sdk,android-export
+  ONLINE_DEPS=auto|editor,templates,jdk,android-sdk,android-export
   RUN_READINESS=1|0
   RUN_STATIC_GATES=1|0
   RUN_DEVICE_CYCLE=1|0
@@ -364,6 +364,12 @@ write_device_env_from_current_machine() {
 run_online_dependency_setup() {
 	local version android_sdk jdk_home online_status=0
 	version="$(resolve_template_version)"
+	if online_dep_enabled editor && { needs_ios_dependencies || needs_android_dependencies; }; then
+		run_step "install Godot editor" \
+			"$PROJECT_ROOT/tools/c00/install_godot_editor.sh" \
+			--download \
+			--version "$version" || online_status=$?
+	fi
 	if online_dep_enabled templates && { needs_ios_dependencies || needs_android_dependencies; }; then
 		run_step "install Godot export templates" \
 			"$PROJECT_ROOT/tools/c00/install_godot_export_templates.sh" \

@@ -8,6 +8,7 @@ const failures = [];
 
 const files = {
 	importer: "tools/c00/import_device_dependency_bundle.sh",
+	editorInstaller: "tools/c00/install_godot_editor.sh",
 	templateInstaller: "tools/c00/install_godot_export_templates.sh",
 	versionDefaults: "tools/c00/godot_version_defaults.sh",
 	jdkInstaller: "tools/c00/install_openjdk17.sh",
@@ -25,6 +26,9 @@ for (const [label, file] of Object.entries(files)) {
 
 if (failures.length === 0) {
 	requireContains(files.importer, [
+		"Godot_v4.7-rc1_macos.universal.zip",
+		"install_godot_editor.sh",
+		"Godot editor import",
 		"Godot_v4.7-rc1_export_templates.tpz",
 		"Godot_v4.6.3-stable_export_templates.tpz",
 		"legacy Godot_v4.4.1-stable_export_templates.tpz",
@@ -38,6 +42,18 @@ if (failures.length === 0) {
 		"configure_android_export_environment.sh",
 		"tools/c00/preflight.sh rokid",
 		"tools/c00/preflight.sh ipad",
+	]);
+
+	requireContains(files.editorInstaller, [
+		"godot_version_defaults.sh",
+		"--latest",
+		"--latest-stable",
+		"macos.universal.zip",
+		"GODOT_EDITOR_URL",
+		"GODOT_EDITOR_URLS",
+		"Resuming incomplete Godot editor download",
+		"Godot editor installed for",
+		"godot_binary_version",
 	]);
 
 	requireContains(files.templateInstaller, [
@@ -79,6 +95,7 @@ if (failures.length === 0) {
 	requireContains(files.readme, [
 		"import_device_dependency_bundle.sh --bundle",
 		"source .godot/cache/c00/device-env.sh",
+		"install_godot_editor.sh --download",
 		"install_openjdk17.sh --download",
 		"install_godot_export_templates.sh --download",
 		"离线依赖包",
@@ -86,9 +103,11 @@ if (failures.length === 0) {
 
 	requireContains(files.bootstrap, [
 		"import_device_dependency_bundle.sh --bundle",
+		"install_godot_editor.sh --download",
 		"install_openjdk17.sh --download",
 		"device-env.sh",
 		"## Download Cache",
+		"Godot_v${C00_GODOT_LATEST_TAG}_macos.universal.zip",
 		"Godot_v${C00_GODOT_LATEST_TAG}_export_templates.tpz",
 		"commandlinetools-mac-13114758_latest.zip",
 		"temurin17-mac-aarch64.tar.gz",
@@ -102,11 +121,13 @@ if (failures.length === 0) {
 		"downloads.godotengine.org",
 		"godot_normalize_template_version",
 		"godot_tag_from_template_version",
+		"godot_official_macos_editor_url_from_template_version",
 		"godot_official_download_url_from_template_version",
 	]);
 
 	requireContains(files.spec, [
 		"import_device_dependency_bundle.sh",
+		"install_godot_editor.sh --download",
 		"install_openjdk17.sh --download",
 		"install_godot_export_templates.sh --download",
 		"离线依赖包",

@@ -293,8 +293,17 @@ check_command_row node "required for C00 validators"
 
 if godot_path="$(find_godot_binary)"; then
 	add_row PASS "Godot binary" "$godot_path"
+	expected_godot_version="$(resolve_template_version)"
+	actual_godot_version="$(godot_binary_version "$godot_path" || true)"
+	if [[ -z "$actual_godot_version" ]]; then
+		add_row MISS "Godot version" "Could not run $godot_path --version."
+	elif [[ "$actual_godot_version" == "$expected_godot_version" ]]; then
+		add_row PASS "Godot version" "$actual_godot_version"
+	else
+		add_row MISS "Godot version" "Expected $expected_godot_version, got $actual_godot_version. Install matching Godot editor/export templates/source headers."
+	fi
 else
-	add_row MISS "Godot binary" "Install Godot or set GODOT_BIN=/path/to/Godot."
+	add_row MISS "Godot binary" "Run tools/c00/install_godot_editor.sh --download --latest, install Godot manually, or set GODOT_BIN=/path/to/Godot."
 fi
 
 if adb_path="$(find_adb_binary)"; then
@@ -490,6 +499,7 @@ fi
 	printf "| Item | Current cache state | Resume command |\n"
 	printf "| --- | --- | --- |\n"
 } >> "$REPORT"
+append_download_cache_row "Godot editor" "Godot_v${C00_GODOT_LATEST_TAG}_macos.universal.zip" "tools/c00/install_godot_editor.sh --download --latest"
 append_download_cache_row "Godot export templates" "Godot_v${C00_GODOT_LATEST_TAG}_export_templates.tpz" "tools/c00/install_godot_export_templates.sh --download --latest"
 append_download_cache_row "Android command line tools" "commandlinetools-mac-13114758_latest.zip" "tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes"
 append_download_cache_row "OpenJDK 17" "temurin17-mac-aarch64.tar.gz" "tools/c00/install_openjdk17.sh --download"
@@ -513,8 +523,9 @@ append_download_cache_row "OpenJDK 17" "temurin17-mac-aarch64.tar.gz" "tools/c00
 	printf "   tools/c00/import_device_dependency_bundle.sh --bundle <device-bundle-dir>\n"
 	printf "   source .godot/cache/c00/device-env.sh\n"
 	printf "   \`\`\`\n\n"
-	printf "4. Install Godot export templates and project Android build template if they were not imported from a bundle:\n\n"
+	printf "4. Install matching Godot editor, export templates, and project Android build template if they were not imported from a bundle:\n\n"
 	printf "   \`\`\`bash\n"
+	printf "   tools/c00/install_godot_editor.sh --download --latest\n"
 	printf "   tools/c00/install_godot_export_templates.sh --download --latest\n"
 	printf "   tools/c00/install_android_build_template.sh\n"
 	printf "   \`\`\`\n\n"
