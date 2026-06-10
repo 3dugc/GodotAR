@@ -360,7 +360,15 @@ if [[ -z "$godot_source" && -d "$DEFAULT_GODOT_SOURCE_DIR" ]]; then
 fi
 if [[ -n "$godot_source" ]]; then
 	if is_valid_godot_source "$godot_source"; then
-		add_row PASS "Godot source headers" "$godot_source"
+		expected_source_version="$(resolve_template_version)"
+		actual_source_version="$(godot_source_template_version "$godot_source" || true)"
+		if [[ -z "$actual_source_version" ]]; then
+			add_row MISS "Godot source headers" "$godot_source version.py could not be parsed; run tools/c00/prepare_godot_source.sh --tag $(godot_tag_from_template_version "$expected_source_version") --force."
+		elif [[ "$actual_source_version" == "$expected_source_version" ]]; then
+			add_row PASS "Godot source headers" "$godot_source ($actual_source_version)"
+		else
+			add_row MISS "Godot source headers" "$godot_source is $actual_source_version, expected $expected_source_version. Run tools/c00/prepare_godot_source.sh --tag $(godot_tag_from_template_version "$expected_source_version") --force."
+		fi
 	else
 		add_row MISS "Godot source headers" "$godot_source is missing core/version.h, core/object/class_db.h, core/config/engine.h, or platform/ios."
 	fi

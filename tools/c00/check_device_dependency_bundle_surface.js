@@ -10,6 +10,7 @@ const files = {
 	importer: "tools/c00/import_device_dependency_bundle.sh",
 	editorInstaller: "tools/c00/install_godot_editor.sh",
 	templateInstaller: "tools/c00/install_godot_export_templates.sh",
+	rangeDownloader: "tools/c00/download_http_ranges.js",
 	versionDefaults: "tools/c00/godot_version_defaults.sh",
 	jdkInstaller: "tools/c00/install_openjdk17.sh",
 	sdkInstaller: "tools/c00/install_android_sdk_packages.sh",
@@ -38,6 +39,8 @@ if (failures.length === 0) {
 		"ANDROID_SDK_ROOT",
 		"JAVA_HOME",
 		"ADB_BIN",
+		"godot_source_template_version",
+		"expected $VERSION",
 		"install_android_build_template.sh",
 		"configure_android_export_environment.sh",
 		"tools/c00/preflight.sh rokid",
@@ -74,7 +77,17 @@ if (failures.length === 0) {
 		"C00_CURL_MAX_TIME",
 		"C00_CURL_RETRY_ALL_ERRORS",
 		"C00_CURL_HTTP1",
+		"C00_PARALLEL_DOWNLOAD",
+		"download_http_ranges.js",
 		"--speed-limit",
+	]);
+
+	requireContains(files.rangeDownloader, [
+		"Range download:",
+		"--range",
+		"C00_PARALLEL_DOWNLOAD_PARTS",
+		"content-length",
+		"accept-ranges",
 	]);
 
 	requireContains(files.jdkInstaller, [
@@ -134,6 +147,8 @@ if (failures.length === 0) {
 		"downloads.godotengine.org",
 		"godot_normalize_template_version",
 		"godot_tag_from_template_version",
+		"godot_source_template_version",
+		"godot_source_matches_template_version",
 		"godot_official_macos_editor_url_from_template_version",
 		"godot_github_macos_editor_url_from_template_version",
 		"godot_official_download_url_from_template_version",

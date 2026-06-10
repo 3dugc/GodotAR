@@ -12,6 +12,15 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 
 const checks = [
 	{
+		file: "tools/c00/godot_version_defaults.sh",
+		requirements: [
+			["Godot source template version parser", /godot_source_template_version/],
+			["Godot source tag parser", /godot_source_tag/],
+			["Godot source/template match helper", /godot_source_matches_template_version/],
+			["shared version.py reader", /godot_read_version_value/],
+		],
+	},
+	{
 		file: "tools/c00/prepare_godot_source.sh",
 		requirements: [
 			["official Godot repository", /https:\/\/github\.com\/godotengine\/godot\.git/],
@@ -23,6 +32,10 @@ const checks = [
 			["existing source tag guard", /source_tree_tag/],
 			["source mismatch replacement guidance", /Pass --force to replace it/],
 			["Godot source clone", /git clone/],
+			["remote tag availability guard", /ensure_requested_tag_available_or_fallback/],
+			["remote tag check", /git ls-remote --exit-code --tags/],
+			["stable source fallback option", /--allow-stable-fallback/],
+			["stable source fallback env", /GODOT_ALLOW_STABLE_SOURCE_FALLBACK/],
 			["required core version header", /core\/version\.h/],
 			["required ClassDB header", /core\/object\/class_db\.h/],
 			["required Engine header", /core\/config\/engine\.h/],
@@ -34,6 +47,10 @@ const checks = [
 		file: "ios/plugins/godot_arkit/build_xcframework.sh",
 		requirements: [
 			["requires Godot source dir", /GODOT_SOURCE_DIR\s+Required/],
+			["loads C00 version helper", /godot_version_defaults\.sh/],
+			["expected source version override", /EXPECTED_GODOT_SOURCE_VERSION/],
+			["checks parsed source version", /godot_source_template_version/],
+			["rejects mismatched source headers", /Godot source headers do not match selected export template version/],
 			["validates version header", /core\/version\.h/],
 			["validates ClassDB header", /core\/object\/class_db\.h/],
 			["validates Engine header", /core\/config\/engine\.h/],
@@ -46,6 +63,8 @@ const checks = [
 			["Godot source readiness row", /Godot source headers/],
 			["default prepared source path", /\.godot\/cache\/c00\/godot-source/],
 			["Godot source helper guidance", /prepare_godot_source\.sh/],
+			["Godot source version parse", /godot_source_template_version/],
+			["Godot source expected version", /expected_source_version/],
 		],
 	},
 	{
@@ -54,6 +73,10 @@ const checks = [
 			["Godot source preflight row", /Godot source headers/],
 			["default prepared source path", /\.godot\/cache\/c00\/godot-source/],
 			["Godot source helper guidance", /prepare_godot_source\.sh/],
+			["Godot source version parse", /godot_source_template_version/],
+			["Godot source version mismatch failure", /Expected %s, got %s/],
+			["prebuilt ARKit escape hatch", /C00_ALLOW_PREBUILT_ARKIT/],
+			["latest source tag missing guidance", /wait for that tag or switch the whole chain to --latest-stable/],
 		],
 	},
 	{
@@ -61,6 +84,9 @@ const checks = [
 		requirements: [
 			["Godot source resolver", /resolve_godot_source_for_arkit/],
 			["default prepared source path", /\.godot\/cache\/c00\/godot-source/],
+			["Godot source version resolver", /resolve_template_version/],
+			["Godot source match helper", /is_matching_godot_source/],
+			["Godot source mismatch fail", /Godot source version mismatch/],
 			["automatic source preparation env", /AUTO_PREPARE_GODOT_SOURCE/],
 			["dry-run source resolution", /DRY_RUN/],
 			["Godot tag env", /GODOT_TAG/],

@@ -362,7 +362,16 @@ else
 fi
 
 if GODOT_SOURCE_DIR_PATH="$(find_godot_source_dir)"; then
-	add_row PASS "Godot source headers" "$GODOT_SOURCE_DIR_PATH"
+	actual_source_version="$(godot_source_template_version "$GODOT_SOURCE_DIR_PATH" || true)"
+	if [[ -z "$actual_source_version" ]]; then
+		add_row MISS "Godot source headers" "$GODOT_SOURCE_DIR_PATH version.py could not be parsed."
+		GODOT_SOURCE_DIR_PATH=""
+	elif [[ "$actual_source_version" == "$VERSION" ]]; then
+		add_row PASS "Godot source headers" "$GODOT_SOURCE_DIR_PATH ($actual_source_version)"
+	else
+		add_row MISS "Godot source headers" "$GODOT_SOURCE_DIR_PATH is $actual_source_version, expected $VERSION."
+		GODOT_SOURCE_DIR_PATH=""
+	fi
 else
 	add_row WARN "Godot source headers" "Run tools/c00/prepare_godot_source.sh --tag <godot-tag> before rebuilding GodotARKit.xcframework."
 fi

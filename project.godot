@@ -11,6 +11,10 @@ config/icon="res://assets/app_icon.svg"
 
 platform_hint=""
 
+[memory]
+
+limits/message_queue/max_size_mb=64
+
 [autoload]
 
 XRFoundation="*res://addons/godot_xr_foundation/scripts/xr_foundation.gd"

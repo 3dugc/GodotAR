@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$ROOT/../../.." && pwd)"
+. "$PROJECT_ROOT/tools/c00/godot_version_defaults.sh"
 PLUGIN_NAME="GodotARKit"
 BUILD_DIR="$ROOT/.build"
 OUT_XCFRAMEWORK="$ROOT/${PLUGIN_NAME}.xcframework"
@@ -55,6 +57,18 @@ fi
 
 GODOT_SOURCE_DIR="$(cd "$GODOT_SOURCE_DIR" && pwd)"
 
+resolve_expected_source_version() {
+	if [[ -n "${EXPECTED_GODOT_SOURCE_VERSION:-}" ]]; then
+		godot_normalize_template_version "$EXPECTED_GODOT_SOURCE_VERSION"
+	elif [[ -n "${GODOT_EXPORT_TEMPLATES_VERSION:-}" ]]; then
+		godot_normalize_template_version "$GODOT_EXPORT_TEMPLATES_VERSION"
+	elif [[ -n "${GODOT_TAG:-}" ]]; then
+		godot_template_version_from_tag "$GODOT_TAG"
+	else
+		printf "%s" "$C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION"
+	fi
+}
+
 for required in \
 	"$GODOT_SOURCE_DIR/core/version.h" \
 	"$GODOT_SOURCE_DIR/core/object/class_db.h" \
@@ -66,6 +80,21 @@ for required in \
 		exit 2
 	fi
 done
+
+expected_source_version="$(resolve_expected_source_version)"
+actual_source_version="$(godot_source_template_version "$GODOT_SOURCE_DIR" || true)"
+if [[ -z "$actual_source_version" ]]; then
+	echo "ERROR: Could not parse Godot source version from $GODOT_SOURCE_DIR/version.py" >&2
+	echo "Use tools/c00/prepare_godot_source.sh --tag $(godot_tag_from_template_version "$expected_source_version") --force." >&2
+	exit 2
+fi
+if [[ "$actual_source_version" != "$expected_source_version" ]]; then
+	echo "ERROR: Godot source headers do not match selected export template version." >&2
+	echo "Expected: $expected_source_version" >&2
+	echo "Actual:   $actual_source_version ($GODOT_SOURCE_DIR)" >&2
+	echo "Run: tools/c00/prepare_godot_source.sh --tag $(godot_tag_from_template_version "$expected_source_version") --force" >&2
+	exit 2
+fi
 
 for tool in xcrun xcodebuild libtool; do
 	if ! command -v "$tool" >/dev/null 2>&1; then
@@ -170,6 +199,7 @@ compile_library() {
 
 echo "Building $PLUGIN_NAME"
 echo "Godot source: $GODOT_SOURCE_DIR"
+echo "Godot source version: $actual_source_version"
 echo "Target: $TARGET"
 echo "iOS min: $IOS_MIN_VERSION"
 

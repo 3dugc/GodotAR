@@ -164,12 +164,39 @@ project_path() {
 	esac
 }
 
+resolve_template_version() {
+	if [[ -n "${GODOT_EXPORT_TEMPLATES_VERSION:-}" ]]; then
+		godot_normalize_template_version "$GODOT_EXPORT_TEMPLATES_VERSION"
+	elif [[ -n "${GODOT_TAG:-}" ]]; then
+		godot_template_version_from_tag "$GODOT_TAG"
+	else
+		printf "%s" "$C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION"
+	fi
+}
+
 is_valid_godot_source() {
 	local dir="$1"
 	[[ -f "$dir/core/version.h" \
 		&& -f "$dir/core/object/class_db.h" \
 		&& -f "$dir/core/config/engine.h" \
 		&& -d "$dir/platform/ios" ]]
+}
+
+is_matching_godot_source() {
+	local dir="$1"
+	local expected actual
+	expected="$(resolve_template_version)"
+	actual="$(godot_source_template_version "$dir" || true)"
+	if [[ -z "$actual" ]]; then
+		echo "Godot source version could not be parsed from $dir/version.py" >&2
+		return 1
+	fi
+	if [[ "$actual" != "$expected" ]]; then
+		echo "Godot source version mismatch: expected $expected, got $actual at $dir" >&2
+		echo "Run: tools/c00/prepare_godot_source.sh --tag $(godot_tag_from_template_version "$expected") --force" >&2
+		return 1
+	fi
+	return 0
 }
 
 resolve_godot_source_for_arkit() {
@@ -179,16 +206,23 @@ resolve_godot_source_for_arkit() {
 			echo "GODOT_SOURCE_DIR is set but is not a valid Godot source tree: $source" >&2
 			return 1
 		fi
+		if ! is_matching_godot_source "$source"; then
+			return 1
+		fi
 		GODOT_SOURCE_DIR="$(cd "$source" && pwd)"
 		export GODOT_SOURCE_DIR
 		return 0
 	fi
 
 	if is_valid_godot_source "$DEFAULT_GODOT_SOURCE_DIR"; then
-		GODOT_SOURCE_DIR="$DEFAULT_GODOT_SOURCE_DIR"
-		export GODOT_SOURCE_DIR
-		echo "Using prepared Godot source tree: $GODOT_SOURCE_DIR"
-		return 0
+		if ! is_matching_godot_source "$DEFAULT_GODOT_SOURCE_DIR"; then
+			echo "Prepared default Godot source is not used because it does not match the selected template version." >&2
+		else
+			GODOT_SOURCE_DIR="$DEFAULT_GODOT_SOURCE_DIR"
+			export GODOT_SOURCE_DIR
+			echo "Using prepared Godot source tree: $GODOT_SOURCE_DIR"
+			return 0
+		fi
 	fi
 
 	local auto_prepare="${AUTO_PREPARE_GODOT_SOURCE:-auto}"

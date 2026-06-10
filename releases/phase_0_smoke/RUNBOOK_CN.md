@@ -86,7 +86,8 @@ iPad/ARKit 真机构建需要与 iOS export template 版本匹配的 Godot sourc
 tools/c00/prepare_godot_source.sh --tag <godot-tag>
 ```
 
-例如 Godot 版本为 `4.7.rc1.official` 时，tag 通常是 `4.7-rc1`；稳定版 `4.6.3.stable.official` 对应 `4.6.3-stable`。脚本会输出 `GODOT_SOURCE_DIR=... ios/plugins/godot_arkit/build_xcframework.sh`，后续 iPad gate 使用同一个 `GODOT_SOURCE_DIR`。
+例如 Godot 版本为 `4.7.rc1.official` 时，tag 通常是 `4.7-rc1`；稳定版 `4.6.3.stable.official` 对应 `4.6.3-stable`。脚本会先确认远端 source tag 可用，再替换默认 source 目录；如果最新 editor/templates 已发布但 source tag 暂未同步，不要混用旧 source headers，等待 tag 或把 editor/templates/source 全部切到 `--latest-stable`。脚本会输出 `GODOT_SOURCE_DIR=... ios/plugins/godot_arkit/build_xcframework.sh`，后续 iPad gate 使用同一个 `GODOT_SOURCE_DIR`。
+默认 iPad preflight 会在缺少匹配 source headers 时失败；`C00_ALLOW_PREBUILT_ARKIT=1` 只能用于显式验证已有 `GodotARKit.xcframework`，不能作为第一阶段完成证据。
 `run_device_cycle.sh` 会自动识别 `.godot/cache/c00/godot-source`；如果该目录还不存在，也可以直接在 iPad gate 上设置 `GODOT_TAG=<godot-tag>` 让 runner 先准备 source headers。
 
 导出 preset 说明：
@@ -377,6 +378,7 @@ command_line/extra_args="--xr-platform=rokid"
 
 这样无论通过 launcher、`monkey` 还是设备桌面启动，Godot 都会优先选择 OpenXR 路径，而不是在 Android 上先尝试 ARCore。
 Godot Android 会从导出 APK 的 `assets/_cl_` 读取这些参数；外部传给 exported Activity 的 `command_line_params` 会被 Godot Activity 清理，不能作为 C00 gate 的可靠启动参数来源。因此采集脚本会在安装前检查 APK `assets/_cl_`，并在启动前 force-stop app，确保本次日志来自带正确启动参数的新进程。
+`tools/c00/export_with_godot.sh` 默认使用临时 artifact 原子导出；如果 Godot headless export 卡住、失败或被终止，旧 APK 不会被覆盖，也不能把旧 APK 的 surface check 计为本次新导出通过。
 
 自动采集和验证：
 

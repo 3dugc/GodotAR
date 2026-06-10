@@ -69,5 +69,51 @@ fi
 
 mkdir -p "$(dirname "$EXPORT_PATH")"
 
+EXPORT_TARGET="$EXPORT_PATH"
+EXPORT_TMP=""
+cleanup_tmp_export() {
+	if [ -n "$EXPORT_TMP" ] && [ -f "$EXPORT_TMP" ]; then
+		rm -f "$EXPORT_TMP"
+	fi
+}
+trap cleanup_tmp_export EXIT
+
+if [ "${C00_ATOMIC_EXPORT:-1}" != "0" ]; then
+	export_dir="$(dirname "$EXPORT_PATH")"
+	export_name="$(basename "$EXPORT_PATH")"
+	case "$export_name" in
+		*.*)
+			export_stem="${export_name%.*}"
+			export_ext="${export_name##*.}"
+			EXPORT_TMP="$export_dir/.${export_stem}.tmp-$$.${export_ext}"
+			;;
+		*)
+			EXPORT_TMP="$export_dir/.${export_name}.tmp-$$"
+			;;
+	esac
+	rm -f "$EXPORT_TMP"
+	EXPORT_TARGET="$EXPORT_TMP"
+fi
+
 echo "Exporting preset '$PRESET' -> $OUT_PATH"
-"$GODOT" "${GODOT_ARGS[@]}" --path "$PROJECT_ROOT" --export-debug "$PRESET" "$EXPORT_PATH"
+if [ "$EXPORT_TARGET" != "$EXPORT_PATH" ]; then
+	echo "Using atomic export target: $EXPORT_TARGET"
+fi
+
+set +e
+"$GODOT" "${GODOT_ARGS[@]}" --path "$PROJECT_ROOT" --export-debug "$PRESET" "$EXPORT_TARGET"
+export_status=$?
+set -e
+if [ "$export_status" -ne 0 ]; then
+	echo "Godot export failed with status $export_status." >&2
+	exit "$export_status"
+fi
+
+if [ ! -s "$EXPORT_TARGET" ]; then
+	echo "Godot export did not create a non-empty artifact: $EXPORT_TARGET" >&2
+	exit 1
+fi
+
+if [ "$EXPORT_TARGET" != "$EXPORT_PATH" ]; then
+	mv -f "$EXPORT_TARGET" "$EXPORT_PATH"
+fi

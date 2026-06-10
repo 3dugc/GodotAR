@@ -114,6 +114,7 @@ function checkProjectSettings() {
 	requireText(text, "res://addons/godot_xr_foundation/plugin.cfg", `${file}: XR Foundation addon plugin should be enabled.`, localEvidence);
 	requireText(text, "res://addons/godot_arcore/plugin.cfg", `${file}: GodotARCore export addon plugin should be enabled.`, localEvidence);
 	requireText(text, "res://addons/godot_openxr_vendors_export/plugin.cfg", `${file}: OpenXR Vendors export adapter plugin should be enabled.`, localEvidence);
+	requireText(text, "limits/message_queue/max_size_mb=64", `${file}: C00 should raise message_queue max_size_mb for Godot 4.7 headless export and XR smoke scenes.`, localEvidence);
 	requireText(text, "textures/vram_compression/import_etc2_astc=true", `${file}: ETC2/ASTC import must be enabled for Android/iOS mobile export.`, localEvidence);
 	requireText(text, "openxr/enabled=true", `${file}: OpenXR should be enabled for Rokid/OpenXR C00.`, localEvidence);
 	requireText(text, "shaders/enabled=true", `${file}: XR shaders should be enabled.`, localEvidence);

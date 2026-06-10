@@ -335,11 +335,28 @@ resolve_godot_bin() {
 }
 
 resolve_godot_source_dir() {
-	if [[ -n "${GODOT_SOURCE_DIR:-}" ]]; then
-		printf "%s" "$GODOT_SOURCE_DIR"
-	elif [[ -d "$PROJECT_ROOT/.godot/cache/c00/godot-source" ]]; then
-		printf "%s" "$PROJECT_ROOT/.godot/cache/c00/godot-source"
-	fi
+	local candidate expected actual
+	expected="$(resolve_template_version)"
+	for candidate in "${GODOT_SOURCE_DIR:-}" "${GODOT_SRC_DIR:-}" "$PROJECT_ROOT/.godot/cache/c00/godot-source"; do
+		if [[ -z "$candidate" || ! -d "$candidate" ]]; then
+			continue
+		fi
+		if [[ ! -f "$candidate/core/version.h" \
+			|| ! -f "$candidate/core/object/class_db.h" \
+			|| ! -f "$candidate/core/config/engine.h" \
+			|| ! -d "$candidate/platform/ios" ]]; then
+			echo "Skipping invalid Godot source headers in device env: $candidate" >&2
+			continue
+		fi
+		actual="$(godot_source_template_version "$candidate" || true)"
+		if [[ "$actual" != "$expected" ]]; then
+			echo "Skipping Godot source headers in device env because version is $actual, expected $expected: $candidate" >&2
+			continue
+		fi
+		printf "%s" "$candidate"
+		return 0
+	done
+	return 0
 }
 
 write_device_env_from_current_machine() {
@@ -350,7 +367,7 @@ write_device_env_from_current_machine() {
 	android_sdk="$(resolve_android_sdk_dir)"
 	jdk_home="$(resolve_jdk_home)"
 	godot_bin="$(resolve_godot_bin)"
-	godot_source="$(resolve_godot_source_dir)"
+	godot_source="$(resolve_godot_source_dir || true)"
 	debug_keystore="${GODOT_ANDROID_KEYSTORE_DEBUG_PATH:-$PROJECT_ROOT/.godot/cache/c00/android/debug.keystore}"
 
 	mkdir -p "$(dirname "$env_path")"

@@ -110,6 +110,9 @@ if (failures.length === 0) {
 		"GODOT_CONFIGURE_ANDROID_EXPORT",
 		"configure_android_export_environment.sh",
 		"--install-build-template",
+		"C00_ATOMIC_EXPORT",
+		"EXPORT_TMP",
+		"Godot export did not create a non-empty artifact",
 	]);
 
 	requireContains(files.androidCollector, [

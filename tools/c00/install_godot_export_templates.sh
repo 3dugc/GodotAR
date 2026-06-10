@@ -40,6 +40,7 @@ Download sources:
 Download tuning:
   C00_CURL_RETRY=8 C00_CURL_RETRY_DELAY=15 C00_CURL_SPEED_LIMIT=1024 C00_CURL_SPEED_TIME=30 C00_CURL_MAX_TIME=900 C00_CURL_HTTP1=1 \\
     tools/c00/install_godot_export_templates.sh --download
+  C00_PARALLEL_DOWNLOAD=1 C00_PARALLEL_DOWNLOAD_PARTS=8 tools/c00/install_godot_export_templates.sh --download
 EOF
 }
 
@@ -118,6 +119,17 @@ download_with_resume() {
 	fi
 	local status=1
 	local url
+	if [[ "${C00_PARALLEL_DOWNLOAD:-0}" == "1" ]] && command -v node >/dev/null 2>&1; then
+		for url in "$@"; do
+			echo "Trying range download URL: $url"
+			node "$PROJECT_ROOT/tools/c00/download_http_ranges.js" \
+				--url "$url" \
+				--output "$output" \
+				--parts "${C00_PARALLEL_DOWNLOAD_PARTS:-8}" && return 0
+			status=$?
+		done
+		echo "Range download failed; falling back to single-stream curl."
+	fi
 	for url in "$@"; do
 		echo "Trying download URL: $url"
 		curl "${args[@]}" -o "$output" "$url" && return 0

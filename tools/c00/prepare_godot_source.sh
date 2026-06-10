@@ -11,6 +11,7 @@ BRANCH="${GODOT_BRANCH:-}"
 COMMIT="${GODOT_COMMIT:-}"
 FORCE=0
 PRINT_ENV=1
+ALLOW_STABLE_FALLBACK="${GODOT_ALLOW_STABLE_SOURCE_FALLBACK:-0}"
 
 usage() {
 	cat <<EOF
@@ -26,6 +27,8 @@ Options:
   --commit <sha>     Godot source commit. Requires a full clone.
   --repo <url>       Godot repository URL. Default: https://github.com/godotengine/godot.git
   --force            Replace an existing invalid target directory.
+  --allow-stable-fallback
+                      If the requested newest tag is not on GitHub yet, use $C00_GODOT_STABLE_TAG.
   --no-env           Do not print export commands.
 
 If --tag/--branch/--commit are omitted, the script tries to infer a tag
@@ -71,6 +74,10 @@ while [[ "$#" -gt 0 ]]; do
 			FORCE=1
 			shift
 			;;
+		--allow-stable-fallback)
+			ALLOW_STABLE_FALLBACK=1
+			shift
+			;;
 		--no-env)
 			PRINT_ENV=0
 			shift
@@ -92,6 +99,31 @@ require_command() {
 		echo "$name not found." >&2
 		exit 2
 	fi
+}
+
+ensure_requested_tag_available_or_fallback() {
+	if [[ -z "$TAG" ]]; then
+		return 0
+	fi
+	require_command git
+	if git ls-remote --exit-code --tags "$REPO" "refs/tags/$TAG" >/dev/null 2>&1; then
+		return 0
+	fi
+	if [[ "$ALLOW_STABLE_FALLBACK" == "1" && "$TAG" != "$C00_GODOT_STABLE_TAG" ]]; then
+		echo "Godot source tag is not available on GitHub yet: $TAG" >&2
+		echo "Falling back to source-compatible stable tag: $C00_GODOT_STABLE_TAG" >&2
+		TAG="$C00_GODOT_STABLE_TAG"
+		return 0
+	fi
+	cat >&2 <<EOF
+Godot source tag is not available on GitHub yet: $TAG
+
+The official editor/export-template binaries may be ahead of the public source
+tag. Re-run with --latest-stable for a fully source-compatible device build, or
+pass --allow-stable-fallback to use $C00_GODOT_STABLE_TAG when the newest tag is
+missing.
+EOF
+	exit 1
 }
 
 validate_source_tree() {
@@ -297,6 +329,13 @@ if [[ -d "$DEST" ]]; then
 			existing_tag="$(source_tree_tag "$DEST" || true)"
 			if [[ -n "$existing_tag" && "$existing_tag" != "$TAG" ]]; then
 				if [[ "$FORCE" == "1" ]]; then
+					ensure_requested_tag_available_or_fallback
+					if [[ "$existing_tag" == "$TAG" ]]; then
+						ensure_generated_headers "$DEST"
+						echo "Godot source is ready: $DEST"
+						print_next_steps
+						exit 0
+					fi
 					echo "Replacing Godot source $existing_tag with requested tag $TAG: $DEST"
 					rm -rf "$DEST"
 				else
@@ -348,6 +387,8 @@ if [[ -n "$COMMIT" && ( -n "$TAG" || -n "$BRANCH" ) ]]; then
 	echo "Specify --commit without --tag/--branch." >&2
 	exit 2
 fi
+
+ensure_requested_tag_available_or_fallback
 
 echo "Cloning Godot source into $DEST"
 if [[ -n "$TAG" ]]; then

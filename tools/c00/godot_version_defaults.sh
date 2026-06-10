@@ -123,3 +123,57 @@ godot_binary_version() {
 	raw="${raw%%.official*}"
 	godot_normalize_template_version "$raw"
 }
+
+godot_read_version_value() {
+	local file="$1"
+	local key="$2"
+	awk -F= -v key="$key" '
+		$1 ~ "^[[:space:]]*" key "[[:space:]]*$" {
+			value = $2
+			sub(/^[[:space:]]*/, "", value)
+			sub(/[[:space:]]*$/, "", value)
+			gsub(/^"/, "", value)
+			gsub(/"$/, "", value)
+			print value
+			exit
+		}
+	' "$file"
+}
+
+godot_source_template_version() {
+	local dir="$1"
+	local version_py="$dir/version.py"
+	if [[ ! -f "$version_py" ]]; then
+		return 1
+	fi
+
+	local major minor patch status number
+	major="$(godot_read_version_value "$version_py" major)"
+	minor="$(godot_read_version_value "$version_py" minor)"
+	patch="$(godot_read_version_value "$version_py" patch)"
+	status="$(godot_read_version_value "$version_py" status)"
+	if [[ -z "$major" || -z "$minor" || -z "$status" ]]; then
+		return 1
+	fi
+
+	number="$major.$minor"
+	if [[ -n "$patch" && "$patch" != "0" ]]; then
+		number="$number.$patch"
+	fi
+	godot_normalize_template_version "$number.$status"
+}
+
+godot_source_tag() {
+	local dir="$1"
+	local template_version
+	template_version="$(godot_source_template_version "$dir")" || return 1
+	godot_tag_from_template_version "$template_version"
+}
+
+godot_source_matches_template_version() {
+	local dir="$1"
+	local expected="$2"
+	local actual
+	actual="$(godot_source_template_version "$dir")" || return 1
+	[[ "$actual" == "$(godot_normalize_template_version "$expected")" ]]
+}

@@ -375,7 +375,7 @@ tools/c00/configure_android_export_environment.sh --install-build-template
 - `ADB_BIN`、PATH 中的 `adb` 或项目本地 `.godot/cache/c00/android-sdk/platform-tools/adb`。
 - `GODOT_JAVA_SDK_PATH` / `JAVA_HOME` / 项目本地 `.godot/cache/c00/jdk/Contents/Home` 下的 `java` 和 `keytool`。
 
-命令行导出时，`tools/c00/export_with_godot.sh` 默认传入 `--xr-mode off`，避免开发机没有 OpenXR runtime 时阻塞导出流程。这个参数只影响构建机上的 Godot editor 进程，不会移除导出包里的 OpenXR/ARKit/ARCore 启动参数。
+命令行导出时，`tools/c00/export_with_godot.sh` 默认传入 `--xr-mode off`，避免开发机没有 OpenXR runtime 时阻塞导出流程。这个参数只影响构建机上的 Godot editor 进程，不会移除导出包里的 OpenXR/ARKit/ARCore 启动参数。脚本默认还会先导出到临时 artifact，只有 Godot 命令成功且产物非空时才替换正式 `.apk` / `.zip`，避免失败后误用旧包。
 
 iPad/ARKit gate 前先构建插件：
 
@@ -383,13 +383,15 @@ iPad/ARKit gate 前先构建插件：
 tools/c00/prepare_godot_source.sh --tag <godot-tag>
 ```
 
-该脚本会把官方 Godot source tree 准备到 `.godot/cache/c00/godot-source`，并输出可直接复制的 `GODOT_SOURCE_DIR=...` 构建命令。`<godot-tag>` 必须和设备机使用的 Godot iOS export template 版本一致，例如 `4.7-rc1` 或 `4.6.3-stable`；如果本机 `godot --version` 能输出 `4.7.rc1.official` / `4.6.3.stable.official` 这类格式，也可以不传 `--tag` 让脚本自动推断。显式传入 `--latest` / `--tag` 时，如果默认 source 目录已有其它版本，脚本会拒绝复用并提示加 `--force` 或改用匹配的 `GODOT_SOURCE_DIR`。它只准备 headers，不 rebuild Godot，也不修改 engine 主干。
+该脚本会把官方 Godot source tree 准备到 `.godot/cache/c00/godot-source`，并输出可直接复制的 `GODOT_SOURCE_DIR=...` 构建命令。`<godot-tag>` 必须和设备机使用的 Godot iOS export template 版本一致，例如 `4.7-rc1` 或 `4.6.3-stable`；如果本机 `godot --version` 能输出 `4.7.rc1.official` / `4.6.3.stable.official` 这类格式，也可以不传 `--tag` 让脚本自动推断。显式传入 `--latest` / `--tag` 时，如果默认 source 目录已有其它版本，脚本会先确认远端 tag 可用，再决定是否按 `--force` 替换；若最新 editor/templates 已发布但 GitHub source tag 尚未同步，脚本会保留现有目录并提示使用 `--latest-stable`，或显式传 `--allow-stable-fallback` 走 `4.6.3-stable` 可构建线。它只准备 headers，不 rebuild Godot，也不修改 engine 主干。
 
 `run_device_cycle.sh` 会自动识别 `.godot/cache/c00/godot-source`。如果该目录还不存在，也可以用 `GODOT_TAG=<godot-tag>` 让 iPad gate 在构建 ARKit 插件前自动准备 source headers：
 
 ```bash
 GODOT_TAG=4.7-rc1 DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh ipad
 ```
+
+如果 `4.7-rc1` source tag 还没有出现在 Godot 官方 GitHub 仓库，不要把 `4.6.3-stable` source headers 混进 `4.7.rc1` export templates。要么等待 tag 同步，要么把 editor、templates、source headers 一起切到 `--latest-stable`。`C00_ALLOW_PREBUILT_ARKIT=1` 只能用于明确测试已有 `GodotARKit.xcframework`，不能作为第一阶段完成证据。
 
 静态检查 source 准备链路：
 
@@ -568,6 +570,7 @@ tools/c00/run_device_cycle.sh all
 - `BUILD_ARKIT_PLUGIN=0`：跳过 ARKit 插件构建。
 - `GODOT_TAG=4.7-rc1`：当 `.godot/cache/c00/godot-source` 不存在时，允许 iPad gate 自动准备匹配 Godot source headers；`GODOT_TAG=4.6.3-stable` 可用于稳定版 fallback。
 - `AUTO_PREPARE_GODOT_SOURCE=0`：禁止 iPad gate 自动调用 `prepare_godot_source.sh`。
+- `C00_ALLOW_PREBUILT_ARKIT=1`：只用已有 `GodotARKit.xcframework` 做显式降级验证；默认 iPad preflight 会在缺少匹配 source headers 时失败。
 - `BUILD_IPAD_APP=0`：跳过 iOS Xcode project 自动构建；如果已手工构建，可直接设置 `APP_PATH`。
 - `IPAD_APP_PATH=builds/ipad/GodotXRFoundation.app`：iPad 自动构建后的稳定 `.app` 输出路径。
 - `SCHEME=<xcode-scheme>` / `TARGET_NAME=<xcode-target>`：导出的 Xcode project 无法自动识别 scheme 时显式指定。

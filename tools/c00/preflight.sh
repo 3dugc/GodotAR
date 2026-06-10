@@ -372,14 +372,35 @@ if needs_ios_plugin_artifacts; then
 	printf "\nNative plugin artifacts\n"
 	if godot_source="$(resolve_godot_source_dir)"; then
 		if is_valid_godot_source "$godot_source"; then
-			printf "OK   Godot source headers %s\n" "$godot_source"
+			expected_source_version="$(resolve_template_version)"
+			actual_source_version="$(godot_source_template_version "$godot_source" || true)"
+			if [ -z "$actual_source_version" ]; then
+				printf "MISS Godot source headers %s\n" "$godot_source"
+				printf "     Could not parse version.py; run tools/c00/prepare_godot_source.sh --tag %s --force.\n" "$(godot_tag_from_template_version "$expected_source_version")"
+				status=1
+			elif [ "$actual_source_version" = "$expected_source_version" ]; then
+				printf "OK   Godot source headers %s (%s)\n" "$godot_source" "$actual_source_version"
+			else
+				printf "MISS Godot source headers %s\n" "$godot_source"
+				printf "     Expected %s, got %s. Run tools/c00/prepare_godot_source.sh --tag %s --force.\n" "$expected_source_version" "$actual_source_version" "$(godot_tag_from_template_version "$expected_source_version")"
+				status=1
+			fi
 		else
 			printf "MISS Godot source headers %s\n" "$godot_source"
 			printf "     Missing core/version.h, core/object/class_db.h, core/config/engine.h, or platform/ios.\n"
 			status=1
 		fi
 	else
-		warn_item "Godot source headers" "Run tools/c00/prepare_godot_source.sh --tag <godot-tag>, or set GODOT_SOURCE_DIR before rebuilding GodotARKit.xcframework."
+		expected_source_version="$(resolve_template_version)"
+		expected_source_tag="$(godot_tag_from_template_version "$expected_source_version")"
+		if [ "${C00_ALLOW_PREBUILT_ARKIT:-0}" = "1" ]; then
+			warn_item "Godot source headers" "Using existing GodotARKit.xcframework without a matching source rebuild because C00_ALLOW_PREBUILT_ARKIT=1."
+		else
+			printf "MISS Godot source headers for %s\n" "$expected_source_version"
+			printf "     Required to rebuild GodotARKit.xcframework against the selected editor/templates. Run tools/c00/prepare_godot_source.sh --tag %s --force.\n" "$expected_source_tag"
+			printf "     If the latest public source tag is not available yet, wait for that tag or switch the whole chain to --latest-stable; do not mix source/template versions.\n"
+			status=1
+		fi
 	fi
 	if node "$PROJECT_ROOT/tools/c00/check_ios_plugin_artifacts.js"; then
 		printf "OK   GodotARKit.gdip template/plugin config check\n"
