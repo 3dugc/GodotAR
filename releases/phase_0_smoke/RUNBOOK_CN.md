@@ -142,7 +142,7 @@ tools/c00/run_phase1_device_lab.sh \
   --wait-timeout 600
 ```
 
-设备在超时时间内仍不可用时，wrapper 会保留 readiness report、跳过安装/启动 cycle，并继续生成 completion audit。这样报告会明确停在“设备离线/不可用”，不会把 transport 问题混成应用启动失败。
+设备在超时时间内仍不可用时，wrapper 默认会先做一次自动恢复：Rokid/Android 执行 `recover_android_adb_transport.js`，iPad 执行 `recover_ios_ddi_services.js`，然后再次等待 readiness。二次等待仍失败时才保留 readiness / recovery report、跳过安装/启动 cycle，并继续生成 completion audit。这样报告会明确停在“设备离线/不可用”或“恢复后仍无 transport”，不会把 transport 问题混成应用启动失败。纯诊断或 CI 场景可加 `--no-recover-devices` 或设置 `AUTO_RECOVER_DEVICES=0`。
 
 如果没有离线包但网络可用，使用在线依赖续传入口：
 

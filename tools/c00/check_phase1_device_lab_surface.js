@@ -39,10 +39,20 @@ if (failures.length === 0) {
 		"online_dep_enabled",
 		"templates,jdk,android-sdk,android-export",
 		"WAIT_FOR_DEVICES",
+		"AUTO_RECOVER_DEVICES",
 		"WAIT_TIMEOUT_SECONDS",
 		"WAIT_INTERVAL_SECONDS",
 		"--wait-devices",
+		"--recover-devices",
+		"--no-recover-devices",
 		"wait_for_device_ready.sh",
+		"recover_android_adb_transport.js",
+		"recover_ios_ddi_services.js",
+		"run_device_recovery",
+		"readiness_gate_for_selected_gate",
+		"rokid-place)",
+		"ipad-place)",
+		"retry wait for device readiness after recovery",
 		"Skipping device cycle because device readiness did not pass.",
 		"INCLUDE_PLACE_DEMOS",
 		"--include-place-demos",
@@ -128,6 +138,7 @@ if (failures.length === 0) {
 		"--bundle",
 		"--dry-run",
 		"--wait-devices",
+		"--no-recover-devices",
 		"wait_for_device_ready.sh",
 	]);
 
@@ -135,12 +146,14 @@ if (failures.length === 0) {
 		"run_phase1_device_lab.sh",
 		"completion audit",
 		"--wait-devices",
+		"--no-recover-devices",
 	]);
 
 	requireContains(files.spec, [
 		"run_phase1_device_lab.sh",
 		"设备机",
 		"--wait-devices",
+		"AUTO_RECOVER_DEVICES",
 	]);
 }
 

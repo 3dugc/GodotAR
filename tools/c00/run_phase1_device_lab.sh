@@ -20,6 +20,7 @@ RUN_DEVICE_CYCLE="${RUN_DEVICE_CYCLE:-1}"
 RUN_COMPLETION_AUDIT="${RUN_COMPLETION_AUDIT:-1}"
 INCLUDE_PLACE_DEMOS="${INCLUDE_PLACE_DEMOS:-1}"
 WAIT_FOR_DEVICES="${WAIT_FOR_DEVICES:-0}"
+AUTO_RECOVER_DEVICES="${AUTO_RECOVER_DEVICES:-1}"
 WAIT_TIMEOUT_SECONDS="${WAIT_TIMEOUT_SECONDS:-300}"
 WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-5}"
 DRY_RUN="${DRY_RUN:-0}"
@@ -27,6 +28,7 @@ CONTINUE_AFTER_CYCLE="${CONTINUE_AFTER_CYCLE:-1}"
 
 GATE="${GATE:-all}"
 DEVICE="${DEVICE:-}"
+PACKAGE="${PACKAGE:-org.godotengine.godotxrfoundation}"
 
 usage() {
 	cat <<EOF
@@ -45,6 +47,8 @@ Options:
   --include-place-demos   In all mode, run and audit C02/C04 rokid-place/ipad-place gates. Default.
   --no-place-demos        In all mode, only run/audit base smoke gates.
   --wait-devices          Wait for selected devices to become ready before running the device cycle.
+  --recover-devices       After readiness timeout, run iPad DDI and/or Android ADB recovery, then wait once more. Default.
+  --no-recover-devices    Disable automatic recovery after readiness timeout.
   --wait-timeout <sec>    Device readiness wait timeout. Default: $WAIT_TIMEOUT_SECONDS
   --wait-interval <sec>   Device readiness polling interval. Default: $WAIT_INTERVAL_SECONDS
   --dry-run               Print the device-lab sequence without invoking Godot/Xcode/ADB/devicectl.
@@ -69,6 +73,7 @@ Environment:
   RUN_COMPLETION_AUDIT=1|0
   INCLUDE_PLACE_DEMOS=1|0
   WAIT_FOR_DEVICES=1|0
+  AUTO_RECOVER_DEVICES=1|0
   WAIT_TIMEOUT_SECONDS=300
   WAIT_INTERVAL_SECONDS=5
   CONTINUE_AFTER_CYCLE=1|0
@@ -123,6 +128,14 @@ while [[ "$#" -gt 0 ]]; do
 			;;
 		--wait-devices)
 			WAIT_FOR_DEVICES=1
+			shift
+			;;
+		--recover-devices)
+			AUTO_RECOVER_DEVICES=1
+			shift
+			;;
+		--no-recover-devices)
+			AUTO_RECOVER_DEVICES=0
 			shift
 			;;
 		--wait-timeout)
@@ -374,6 +387,86 @@ run_online_dependency_setup() {
 	return "$online_status"
 }
 
+readiness_gate_for_selected_gate() {
+	case "$GATE" in
+		rokid-place)
+			printf "rokid"
+			;;
+		ipad-place)
+			printf "ipad"
+			;;
+		*)
+			printf "%s" "$GATE"
+			;;
+	esac
+}
+
+wait_for_selected_devices() {
+	local title="${1:-wait for device readiness}"
+	local readiness_gate
+	readiness_gate="$(readiness_gate_for_selected_gate)"
+	local wait_args=(
+		"$PROJECT_ROOT/tools/c00/wait_for_device_ready.sh"
+		--gate "$readiness_gate"
+		--package "$PACKAGE"
+		--timeout "$WAIT_TIMEOUT_SECONDS"
+		--interval "$WAIT_INTERVAL_SECONDS"
+	)
+	if [[ "$GATE" == "ipad" || "$GATE" == "ipad-place" || "$GATE" == "all" ]]; then
+		if [[ -n "$DEVICE" ]]; then
+			wait_args+=(--device "$DEVICE")
+		fi
+	fi
+	run_step "$title" "${wait_args[@]}"
+}
+
+run_android_adb_recovery() {
+	local recovery_gate="$1"
+	run_step "recover Android ADB transport: $recovery_gate" \
+		node "$PROJECT_ROOT/tools/c00/recover_android_adb_transport.js" \
+		--gate "$recovery_gate" \
+		--package "$PACKAGE"
+}
+
+run_ipad_ddi_recovery() {
+	if [[ -z "$DEVICE" ]]; then
+		echo "Skipping iPad DDI recovery because --device / DEVICE is empty."
+		return 1
+	fi
+	run_step "recover iPad DDI services" \
+		node "$PROJECT_ROOT/tools/c00/recover_ios_ddi_services.js" \
+		--device "$DEVICE" \
+		--package "$PACKAGE"
+}
+
+run_device_recovery() {
+	local recovery_status=0
+	case "$GATE" in
+		rokid)
+			run_android_adb_recovery rokid || recovery_status=$?
+			;;
+		rokid-place)
+			run_android_adb_recovery rokid-place || recovery_status=$?
+			;;
+		android-arcore)
+			run_android_adb_recovery android-arcore || recovery_status=$?
+			;;
+		ipad|ipad-place)
+			run_ipad_ddi_recovery || recovery_status=$?
+			;;
+		all)
+			run_android_adb_recovery rokid || recovery_status=$?
+			run_android_adb_recovery android-arcore || recovery_status=$?
+			run_ipad_ddi_recovery || recovery_status=$?
+			;;
+		*)
+			echo "No automatic device recovery is defined for gate '$GATE'."
+			recovery_status=1
+			;;
+	esac
+	return "$recovery_status"
+}
+
 main() {
 	local status=0
 
@@ -414,21 +507,18 @@ main() {
 	if [[ "$RUN_DEVICE_CYCLE" == "1" ]]; then
 		local cycle_ready=1
 		if [[ "$WAIT_FOR_DEVICES" == "1" ]]; then
-			local wait_args=(
-				"$PROJECT_ROOT/tools/c00/wait_for_device_ready.sh"
-				--gate "$GATE"
-				--timeout "$WAIT_TIMEOUT_SECONDS"
-				--interval "$WAIT_INTERVAL_SECONDS"
-			)
-			if [[ "$GATE" == "ipad" || "$GATE" == "ipad-place" || "$GATE" == "all" ]]; then
-				if [[ -n "$DEVICE" ]]; then
-					wait_args+=(--device "$DEVICE")
-				fi
+			local wait_status=0
+			wait_for_selected_devices "wait for device readiness" || wait_status=$?
+			if [[ "$wait_status" != "0" && "$AUTO_RECOVER_DEVICES" == "1" ]]; then
+				echo "Device readiness did not pass. Running automatic recovery once, then retrying readiness."
+				run_device_recovery || true
+				wait_status=0
+				wait_for_selected_devices "retry wait for device readiness after recovery" || wait_status=$?
 			fi
-			run_step "wait for device readiness" "${wait_args[@]}" || {
-				status=$?
+			if [[ "$wait_status" != "0" ]]; then
+				status="$wait_status"
 				cycle_ready=0
-			}
+			fi
 		fi
 
 		local cycle_args=("$PROJECT_ROOT/tools/c00/run_device_cycle.sh" "$GATE")
@@ -482,7 +572,10 @@ main() {
 			echo "  $(project_path "$STATIC_REPORT")"
 		fi
 		if [[ "$WAIT_FOR_DEVICES" == "1" ]]; then
-			echo "  releases/phase_0_smoke/evidence/device-ready-${GATE}-*.md"
+			echo "  releases/phase_0_smoke/evidence/device-ready-$(readiness_gate_for_selected_gate)-*.md"
+			if [[ "$AUTO_RECOVER_DEVICES" == "1" ]]; then
+				echo "  releases/phase_0_smoke/evidence/*-recovery-*.md"
+			fi
 		fi
 		if [[ "$RUN_COMPLETION_AUDIT" == "1" ]]; then
 			echo "  $(project_path "$AUDIT_REPORT")"

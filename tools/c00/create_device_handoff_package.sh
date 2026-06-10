@@ -220,8 +220,16 @@ node tools/c00/audit_phase1_completion.js
 
 1. Connect Rokid/Android and confirm \`adb devices -l\` shows state \`device\`.
 2. Unlock iPad, trust this Mac, open Xcode Devices and Simulators, and wait until the iPad is no longer \`offline\` / \`unavailable\`.
-3. Run the primary commands above.
-4. If device evidence was collected outside these scripts, import it with \`tools/c00/import_device_evidence.sh\`.
+3. Run the primary commands above. The phase runner will automatically attempt \`recover_android_adb_transport.js\` and \`recover_ios_ddi_services.js\` once if readiness times out; add \`--no-recover-devices\` only when doing a pure diagnostic pass.
+4. Manual recovery commands are available when you need to isolate a platform:
+
+\`\`\`bash
+node tools/c00/recover_android_adb_transport.js --gate rokid
+node tools/c00/recover_android_adb_transport.js --gate android-arcore
+node tools/c00/recover_ios_ddi_services.js --device "$DEVICE"
+\`\`\`
+
+5. If device evidence was collected outside these scripts, import it with \`tools/c00/import_device_evidence.sh\`.
 
 ## Warnings
 

@@ -200,7 +200,7 @@ tools/c00/run_phase1_device_lab.sh \
   --wait-timeout 600
 ```
 
-`--wait-devices` 会调用 `tools/c00/wait_for_device_ready.sh`。如果设备一直不可用，它会跳过 device cycle，保留 readiness report，并继续生成 completion audit，避免把“设备未连接/离线”误判成应用运行失败。
+`--wait-devices` 会调用 `tools/c00/wait_for_device_ready.sh`。如果设备一直不可用，默认会先运行一次自动恢复：Rokid/Android 执行 `recover_android_adb_transport.js`，iPad 执行 `recover_ios_ddi_services.js`，然后再次等待 readiness；仍失败时才跳过 device cycle，保留 readiness / recovery report，并继续生成 completion audit，避免把“设备未连接/离线”误判成应用运行失败。纯诊断或 CI 场景可加 `--no-recover-devices` 或设置 `AUTO_RECOVER_DEVICES=0`。
 
 如果设备机能访问外网，但下载容易中断，可以不用离线包，直接让一键入口按 spec 顺序续传并安装依赖：
 
