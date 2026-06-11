@@ -511,6 +511,11 @@ gate_needs_ipad_device_arg() {
 	[[ "$gate" == "ipad" || "$gate" == "ipad-place" || "$gate" == "all" ]]
 }
 
+gate_uses_adb_serial() {
+	local gate="$1"
+	[[ "$gate" == "rokid" || "$gate" == "rokid-place" || "$gate" == "android-arcore" ]]
+}
+
 safe_gate_name() {
 	printf "%s" "$1" | tr -c 'A-Za-z0-9_.-' '-'
 }
@@ -534,6 +539,26 @@ if (selected) {
 ' "$json_file" 2>/dev/null || true
 }
 
+resolve_ready_android_serial_from_json() {
+	local json_file="$1"
+	local gate_name="$2"
+	if [[ ! -f "$json_file" ]]; then
+		return 0
+	fi
+	node -e '
+const fs = require("fs");
+const file = process.argv[1];
+const gate = process.argv[2];
+const summary = JSON.parse(fs.readFileSync(file, "utf8"));
+const result = (Array.isArray(summary.results) ? summary.results : []).find((item) => item && item.gate === gate);
+const selected = result && result.evidence && result.evidence.selected_device;
+const serial = selected && selected.serial ? selected.serial : "";
+if (serial) {
+	process.stdout.write(String(serial));
+}
+' "$json_file" "$gate_name" 2>/dev/null || true
+}
+
 set_ready_ipad_device_from_json_if_needed() {
 	local gate="$1"
 	local json_file="$2"
@@ -549,6 +574,25 @@ set_ready_ipad_device_from_json_if_needed() {
 		DEVICE="$selected_device"
 		export DEVICE
 		echo "Using auto-discovered iPad device for later gate runs: $DEVICE"
+	fi
+}
+
+set_ready_android_serial_from_json_if_needed() {
+	local gate="$1"
+	local readiness_gate="$2"
+	local json_file="$3"
+	if [[ -n "${ADB_SERIAL:-}" ]]; then
+		return 0
+	fi
+	if ! gate_uses_adb_serial "$gate"; then
+		return 0
+	fi
+	local selected_serial
+	selected_serial="$(resolve_ready_android_serial_from_json "$json_file" "$readiness_gate")"
+	if [[ -n "$selected_serial" ]]; then
+		ADB_SERIAL="$selected_serial"
+		export ADB_SERIAL
+		echo "Using auto-discovered ADB serial for later gate runs: $ADB_SERIAL"
 	fi
 }
 
@@ -584,6 +628,7 @@ wait_for_gate_readiness() {
 	local wait_status=$?
 	if [[ "$wait_status" == "0" ]]; then
 		set_ready_ipad_device_from_json_if_needed "$gate" "$wait_json"
+		set_ready_android_serial_from_json_if_needed "$gate" "$readiness_gate" "$wait_json"
 	fi
 	return "$wait_status"
 }
@@ -695,10 +740,22 @@ run_cycle_group_after_readiness() {
 	shift
 	local group_status=0
 	local wait_status=0
+	local saved_adb_serial_was_set=0
+	local saved_adb_serial=""
+	if [[ -n "${ADB_SERIAL+x}" ]]; then
+		saved_adb_serial_was_set=1
+		saved_adb_serial="$ADB_SERIAL"
+	fi
 	if [[ "$WAIT_FOR_DEVICES" == "1" ]]; then
 		wait_recover_for_gate "$readiness_gate" || wait_status=$?
 		if [[ "$wait_status" != "0" ]]; then
 			echo "Skipping device cycle group '$readiness_gate' because readiness did not pass."
+			if [[ "$saved_adb_serial_was_set" == "1" ]]; then
+				ADB_SERIAL="$saved_adb_serial"
+				export ADB_SERIAL
+			else
+				unset ADB_SERIAL
+			fi
 			return "$wait_status"
 		fi
 	fi
@@ -706,9 +763,21 @@ run_cycle_group_after_readiness() {
 	for gate in "$@"; do
 		run_single_device_cycle "$gate" || group_status=$?
 		if [[ "$group_status" != "0" && "$CONTINUE_AFTER_CYCLE" != "1" ]]; then
+			if [[ "$saved_adb_serial_was_set" == "1" ]]; then
+				ADB_SERIAL="$saved_adb_serial"
+				export ADB_SERIAL
+			else
+				unset ADB_SERIAL
+			fi
 			return "$group_status"
 		fi
 	done
+	if [[ "$saved_adb_serial_was_set" == "1" ]]; then
+		ADB_SERIAL="$saved_adb_serial"
+		export ADB_SERIAL
+	else
+		unset ADB_SERIAL
+	fi
 	return "$group_status"
 }
 

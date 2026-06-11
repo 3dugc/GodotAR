@@ -105,6 +105,26 @@ if (selected) {
 ' "$json_file" 2>/dev/null || true
 }
 
+resolve_ready_android_serial_from_json() {
+	local json_file="$1"
+	local gate_name="$2"
+	if [[ ! -f "$json_file" ]]; then
+		return 0
+	fi
+	node -e '
+const fs = require("fs");
+const file = process.argv[1];
+const gate = process.argv[2];
+const summary = JSON.parse(fs.readFileSync(file, "utf8"));
+const result = (Array.isArray(summary.results) ? summary.results : []).find((item) => item && item.gate === gate);
+const selected = result && result.evidence && result.evidence.selected_device;
+const serial = selected && selected.serial ? selected.serial : "";
+if (serial) {
+	process.stdout.write(String(serial));
+}
+' "$json_file" "$gate_name" 2>/dev/null || true
+}
+
 set_ready_ipad_device_from_json_if_needed() {
 	if [[ -n "$DEVICE" ]]; then
 		return 0
@@ -125,6 +145,26 @@ set_ready_ipad_device_from_json_if_needed() {
 	fi
 }
 
+set_ready_android_serial_from_json_if_needed() {
+	if [[ -n "${ADB_SERIAL:-}" ]]; then
+		return 0
+	fi
+	case "$GATE" in
+		rokid|android-arcore)
+			;;
+		*)
+			return 0
+			;;
+	esac
+	local selected_serial
+	selected_serial="$(resolve_ready_android_serial_from_json "$JSON_REPORT" "$GATE")"
+	if [[ -n "$selected_serial" ]]; then
+		ADB_SERIAL="$selected_serial"
+		export ADB_SERIAL
+		echo "Using auto-discovered ADB serial for gate run: $ADB_SERIAL"
+	fi
+}
+
 deadline=$(( $(date +%s) + TIMEOUT_SECONDS ))
 attempt=1
 status=1
@@ -142,6 +182,7 @@ while true; do
 	if [[ "$status" -eq 0 ]]; then
 		echo "Device readiness passed. Report: $REPORT"
 		set_ready_ipad_device_from_json_if_needed
+		set_ready_android_serial_from_json_if_needed
 		if [[ "$RUN_GATE" == "1" ]]; then
 			echo "Running C00 device gate: $GATE"
 			case "$GATE" in

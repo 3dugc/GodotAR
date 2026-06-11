@@ -64,6 +64,8 @@ const checks = [
 			["readiness JSON report path", /JSON_REPORT/],
 			["readiness iPad device resolver", /resolve_ready_ipad_device_from_json/],
 			["readiness auto-discovered iPad propagation", /Using auto-discovered iPad device for gate run/],
+			["readiness Android serial resolver", /resolve_ready_android_serial_from_json/],
+			["readiness auto-discovered ADB serial propagation", /Using auto-discovered ADB serial for gate run/],
 			["timeout loop", /Device readiness timed out/],
 			["remaining timeout sleep cap", /deadline - now/],
 			["bounded readiness sleep", /sleep_seconds/],
