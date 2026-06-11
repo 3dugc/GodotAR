@@ -175,6 +175,23 @@ tools/c00/run_phase1_priority_ar_lab.sh \
 
 该入口内部调用 `run_phase1_device_lab.sh --gate all --no-audit`，并设置 `INCLUDE_ANDROID_ARCORE=0`，默认运行 `ipad`、`ipad-place`、`rokid`、`rokid-place`。报告输出到 `releases/phase_0_smoke/C01_PRIORITY_AR_REPORT.md`。这份报告可以作为 iPad/Rokid 优先阶段成果发表材料，但不是完整 Phase 1 completion audit；最终仍要补齐 Android/ARCore 并运行全量审计。
 
+如果自动 collector 失败，但现场已经有 Xcode Console / Android Studio 日志、系统录屏、截图和 device profile 文件，使用优先证据导入入口：
+
+```bash
+tools/c00/import_priority_ar_evidence.sh \
+  --rokid-log path/to/rokid.log \
+  --rokid-screenshot path/to/rokid.png \
+  --rokid-video path/to/rokid.mp4 \
+  --rokid-device-profile path/to/rokid-device.md \
+  --rokid-device-profile-json path/to/rokid-device.json \
+  --ipad-log path/to/ipad.log \
+  --ipad-manual-media path/to/ipad.mov \
+  --ipad-device-profile path/to/ipad-device.md \
+  --ipad-device-profile-json path/to/ipad-device.json
+```
+
+它会调用 `import_device_evidence.sh` 把手动证据复制到标准 evidence 目录，再运行 `verify_phase_evidence.js` 聚合 `rokid`、`ipad`、`rokid-place`、`ipad-place`。默认仍要求 placement 证据；仅导入 base smoke 时可加 `--no-place-demos`，但不能标记为优先真机成果完成。
+
 如果没有离线包但网络可用，使用在线依赖续传入口：
 
 ```bash

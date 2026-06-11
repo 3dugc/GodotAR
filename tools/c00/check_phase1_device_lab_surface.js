@@ -9,6 +9,7 @@ const failures = [];
 const files = {
 	lab: "tools/c00/run_phase1_device_lab.sh",
 	priorityLab: "tools/c00/run_phase1_priority_ar_lab.sh",
+	priorityImport: "tools/c00/import_priority_ar_evidence.sh",
 	exportWithGodot: "tools/c00/export_with_godot.sh",
 	staticGates: "tools/c00/run_static_gates.js",
 	readme: "tools/c00/README_CN.md",
@@ -110,6 +111,22 @@ if (failures.length === 0) {
 		"ipad-place",
 		"rokid-place",
 		"This is not a full Phase 1 completion audit",
+	]);
+
+	requireContains(files.priorityImport, [
+		"import_device_evidence.sh",
+		"verify_phase_evidence.js",
+		"C01_PRIORITY_AR_REPORT.md",
+		"--gate rokid",
+		"--gate ipad",
+		"--gate rokid-place",
+		"--gate ipad-place",
+		"--rokid-log",
+		"--ipad-log",
+		"--ipad-manual-media",
+		"--allow-missing-device-profile",
+		"Priority AR evidence report",
+		"full Phase 1 still requires Android/ARCore",
 	]);
 
 	requireContains("tools/c00/preflight.sh", [
@@ -215,6 +232,7 @@ if (failures.length === 0) {
 	requireContains(files.readme, [
 		"run_phase1_device_lab.sh",
 		"run_phase1_priority_ar_lab.sh",
+		"import_priority_ar_evidence.sh",
 		"--bundle",
 		"--dry-run",
 		"--wait-devices",
@@ -227,6 +245,7 @@ if (failures.length === 0) {
 	requireContains(files.runbook, [
 		"run_phase1_device_lab.sh",
 		"run_phase1_priority_ar_lab.sh",
+		"import_priority_ar_evidence.sh",
 		"completion audit",
 		"--wait-devices",
 		"--no-recover-devices",
@@ -237,6 +256,7 @@ if (failures.length === 0) {
 	requireContains(files.spec, [
 		"run_phase1_device_lab.sh",
 		"run_phase1_priority_ar_lab.sh",
+		"import_priority_ar_evidence.sh",
 		"设备机",
 		"--wait-devices",
 		"AUTO_RECOVER_DEVICES",

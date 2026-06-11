@@ -85,6 +85,7 @@ demo/02_backend_switcher.tscn
 - `tools/c00/check_c01_demo_surface.js` 和 `tools/c00/run_static_gates.js --gate all` 已覆盖 C01 demo 的场景、节点、manager、boot route、导出清单和日志标记。
 - `tools/c00/collect_c01_editor_smoke.sh` 已落地 C01 EditorSim evidence 采集入口；它会运行两个 C01 场景并用 `validate_smoke_log.js --gate c01-place` / `--gate c01-backend` 生成 Markdown/JSON 报告。
 - `tools/c00/run_phase1_priority_ar_lab.sh` 已落地 iPad/ARKit + Rokid/OpenXR 第一优先级真机 lane；它默认等待并恢复设备、运行 `ipad` / `ipad-place` / `rokid` / `rokid-place`，输出 `C01_PRIORITY_AR_REPORT.md`，但不替代包含 Android/ARCore 的完整 Phase 1 completion audit。
+- `tools/c00/import_priority_ar_evidence.sh` 已落地优先真机 lane 的手动证据导入入口；当 Xcode/ADB 自动 collector 失败但现场有日志、截图/录屏和 device profile 时，可导入并复用同一套 `verify_phase_evidence.js` 聚合验证。
 
 ## 检测计划
 
@@ -99,6 +100,7 @@ demo/02_backend_switcher.tscn
 | C01 Godot 运行 | 本机/Godot | `Godot --headless --path . --xr-mode off --quit --scene res://demo/01_place_on_plane.tscn` 与 `... --scene res://demo/02_backend_switcher.tscn` | 两个 C01 场景可一帧启动并输出 `GXF_C01_PLACE` / `GXF_C01_BACKEND` |
 | C01 证据采集 | 本机/Godot | `tools/c00/collect_c01_editor_smoke.sh` | 生成 `c01-place-*.md/json`、`c01-backend-*.md/json` 和 `c01-editor-*.md`，且 validator 通过 |
 | C01 优先真机 lane | 设备机 | `tools/c00/run_phase1_priority_ar_lab.sh --device "iPad M4" --wait-devices` | 生成 `C01_PRIORITY_AR_REPORT.md`，并验证 `ipad`、`ipad-place`、`rokid`、`rokid-place`；Android/ARCore 仍由完整 Phase 1 audit 补齐 |
+| C01 手动证据导入 | 设备机/本机 | `tools/c00/import_priority_ar_evidence.sh --rokid-log ... --ipad-log ...` | 手动证据被复制到标准 evidence 目录，并生成同一份 `C01_PRIORITY_AR_REPORT.md`；缺失真机日志/媒体/profile 时保持 NOT_READY |
 
 ## 发表要求
 
