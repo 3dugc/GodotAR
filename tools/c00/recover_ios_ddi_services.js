@@ -12,7 +12,7 @@ if (args.help || args.h) {
 	process.exit(0);
 }
 
-const device = String(args.device || process.env.DEVICE || "");
+const requestedDevice = String(args.device || process.env.DEVICE || "");
 const packageName = String(args.package || process.env.PACKAGE || "org.godotengine.godotxrfoundation");
 const timeout = String(args.timeout || process.env.DEVICECTL_TIMEOUT || "60");
 const runGate = flagEnabled(args["run-gate"]);
@@ -21,21 +21,19 @@ const evidenceDir = path.resolve(args.dir || path.join(PROJECT_ROOT, "releases/p
 const reportPath = path.resolve(args.report || path.join(evidenceDir, `ipad-ddi-recovery-${stamp}.md`));
 const jsonPath = path.resolve(args.json || path.join(evidenceDir, `ipad-ddi-recovery-${stamp}.json`));
 
-if (!device) {
-	usage();
-	process.exit(2);
-}
-
 fs.mkdirSync(evidenceDir, { recursive: true });
 
-const before = runReadiness("before");
-const ddi = runDdiAutoMount();
-const after = runReadiness("after");
-const gate = runGate && after.status === 0 ? runIpadGate() : null;
+const resolvedDevice = resolveRecoveryDevice(requestedDevice);
+const device = resolvedDevice.device;
+const before = device ? runReadiness("before") : null;
+const ddi = device ? runDdiAutoMount() : null;
+const after = device ? runReadiness("after") : null;
+const gate = device && runGate && after.status === 0 ? runIpadGate() : null;
 
 const summary = {
-	pass: after.status === 0 && (!runGate || (gate && gate.status === 0)),
+	pass: Boolean(device) && after.status === 0 && (!runGate || (gate && gate.status === 0)),
 	device,
+	device_selection: resolvedDevice,
 	package: packageName,
 	generated_at: new Date().toISOString(),
 	evidence_dir: evidenceDir,
@@ -54,16 +52,161 @@ fs.writeFileSync(reportPath, renderMarkdown(summary), "utf8");
 console.log(JSON.stringify({
 	pass: summary.pass,
 	device,
+	device_selection: {
+		source: resolvedDevice.source,
+		requested_device: resolvedDevice.requested_device,
+		selected_device: resolvedDevice.device,
+		warnings: resolvedDevice.warnings,
+		failure: resolvedDevice.failure,
+	},
 	report: reportPath,
 	json: jsonPath,
-	before: before.report,
-	ddi_json: ddi.json_output,
-	ddi_log: ddi.log_output,
-	after: after.report,
+	before: before ? before.report : null,
+	ddi_json: ddi ? ddi.json_output : null,
+	ddi_log: ddi ? ddi.log_output : null,
+	after: after ? after.report : null,
 	gate: gate ? gate.status : null,
 	next_actions: summary.next_actions,
 }, null, 2));
 process.exit(summary.pass ? 0 : 1);
+
+
+function resolveRecoveryDevice(explicitDevice) {
+	if (explicitDevice) {
+		return {
+			device: explicitDevice,
+			source: "explicit",
+			requested_device: explicitDevice,
+			warnings: [],
+			failure: "",
+			next_actions: [],
+			evidence: {},
+		};
+	}
+
+	const discovery = discoverIpadDevices();
+	if (discovery.host_permission_blocked) {
+		return {
+			device: "",
+			source: "auto-devicectl",
+			requested_device: "",
+			warnings: [],
+			failure: "Automatic iPad discovery was blocked by host permissions.",
+			next_actions: [
+				"Run this recovery command from a normal macOS terminal or an approved unsandboxed Codex command so devicectl can access CoreDevice services.",
+				"Or pass --device <name-or-uuid> explicitly if you want to bypass auto-discovery.",
+			],
+			evidence: discovery,
+		};
+	}
+	if (!discovery.command || discovery.command.ok === false) {
+		return {
+			device: "",
+			source: "auto-devicectl",
+			requested_device: "",
+			warnings: discovery.command ? [`devicectl list devices failed during auto-discovery: ${discovery.command.stderr || discovery.command.stdout || discovery.command.error || "unknown error"}`] : [],
+			failure: "Automatic iPad discovery failed.",
+			next_actions: [
+				"Pass --device <name-or-uuid> or set DEVICE to the iPad name/identifier printed by `xcrun devicectl list devices`.",
+				"Reconnect and unlock the iPad, trust this Mac, then retry DDI recovery.",
+			],
+			evidence: discovery,
+		};
+	}
+	if (discovery.ipads.length === 1) {
+		const selected = discovery.ipads[0].name || discovery.ipads[0].identifier;
+		return {
+			device: selected,
+			source: "auto-devicectl",
+			requested_device: "",
+			warnings: [`Auto-selected iPad device '${selected}' from devicectl list devices.`],
+			failure: "",
+			next_actions: [],
+			evidence: discovery,
+		};
+	}
+	if (discovery.ipads.length > 1) {
+		return {
+			device: "",
+			source: "auto-devicectl",
+			requested_device: "",
+			warnings: [],
+			failure: "Multiple iPad devices were visible; pass --device <name-or-uuid> so DDI recovery uses the intended device.",
+			next_actions: discovery.ipads.map((item) => `Candidate: ${item.name || "unnamed"} (${item.identifier || "no identifier"}) state=${item.state || "unknown"}`),
+			evidence: discovery,
+		};
+	}
+	return {
+		device: "",
+		source: "auto-devicectl",
+		requested_device: "",
+		warnings: [],
+		failure: "No iPad device was visible to devicectl auto-discovery.",
+		next_actions: [
+			"Connect the iPad over USB-C, unlock it, keep the screen awake, and accept any Trust This Computer prompt.",
+			"Run `xcrun devicectl list devices` and confirm the iPad appears before rerunning DDI recovery.",
+		],
+		evidence: discovery,
+	};
+}
+
+
+function discoverIpadDevices() {
+	const command = run("xcrun", ["devicectl", "list", "devices"]);
+	const text = [command.stdout, command.stderr, command.error].filter(Boolean).join("\n");
+	const devices = parseDevicectlDeviceTable(command.stdout);
+	const ipads = devices.filter((item) => /ipad/i.test([item.name, item.model].join(" ")));
+	return {
+		command,
+		host_permission_blocked: isDefiniteIpadHostPermissionBlocked(text),
+		device_count: devices.length,
+		ipad_count: ipads.length,
+		devices,
+		ipads,
+	};
+}
+
+
+function parseDevicectlDeviceTable(text) {
+	const devices = [];
+	let sawDivider = false;
+	for (const line of String(text || "").split(/\r?\n/)) {
+		const trimmed = line.trim();
+		if (!trimmed || /^Name\s+Hostname\s+Identifier\s+State\s+Model/i.test(trimmed)) {
+			continue;
+		}
+		if (/^-+\s+-+\s+-+\s+-+\s+-+/.test(trimmed)) {
+			sawDivider = true;
+			continue;
+		}
+		if (!sawDivider) {
+			continue;
+		}
+		const columns = trimmed.split(/\s{2,}/);
+		if (columns.length < 4) {
+			continue;
+		}
+		devices.push({
+			name: columns[0] || "",
+			hostname: columns[1] || "",
+			identifier: columns[2] || "",
+			state: columns[3] || "",
+			model: columns.slice(4).join(" ") || "",
+		});
+	}
+	return devices;
+}
+
+
+function isDefiniteIpadHostPermissionBlocked(text) {
+	return /Operation not permitted|XPCError|connection was invalidated|Cannot create temporary directory for Instruments Analysis Core|com\.apple\.dt\.InstrumentsCLI|permission to save the file|permission denied/i.test(String(text || ""));
+}
+
+
+function run(command, argv) {
+	const result = spawnSync(command, argv, { cwd: PROJECT_ROOT, encoding: "utf8" });
+	return commandResult([command, ...argv], result, {});
+}
 
 
 function runReadiness(label) {
@@ -140,6 +283,12 @@ function commandResult(command, result, extra) {
 
 function recoveryNextActions(context) {
 	const actions = [];
+	if (!device) {
+		for (const action of resolvedDevice.next_actions || []) {
+			actions.push(action);
+		}
+		return actions;
+	}
 	if (context.after && context.after.status === 0) {
 		if (context.gate && context.gate.status !== 0) {
 			actions.push("iPad readiness passed after DDI recovery, but the iPad gate failed. Inspect the gate stdout/stderr in the recovery JSON, then rerun `tools/c00/run_device_cycle.sh ipad <device>`.");
@@ -192,16 +341,35 @@ function renderMarkdown(summary) {
 	lines.push("");
 	lines.push(`Device: \`${summary.device}\``);
 	lines.push("");
+	lines.push(`Device selection: \`${summary.device_selection.source}\``);
+	if (summary.device_selection.failure) {
+		lines.push("");
+		lines.push(`Selection failure: ${summary.device_selection.failure}`);
+	}
+	if (summary.device_selection.warnings.length > 0) {
+		lines.push("");
+		lines.push("Selection warnings:");
+		for (const warning of summary.device_selection.warnings) {
+			lines.push(`- ${warning}`);
+		}
+	}
+	lines.push("");
 	lines.push(`Result: ${summary.pass ? "PASS" : "FAIL"}`);
 	lines.push("");
 	lines.push("## Artifacts");
 	lines.push("");
-	lines.push(`- Before readiness: \`${summary.before.report}\``);
-	lines.push(`- Before readiness JSON: \`${summary.before.json}\``);
-	lines.push(`- DDI auto-mount JSON: \`${summary.ddi.json_output}\``);
-	lines.push(`- DDI auto-mount log: \`${summary.ddi.log_output}\``);
-	lines.push(`- After readiness: \`${summary.after.report}\``);
-	lines.push(`- After readiness JSON: \`${summary.after.json}\``);
+	if (summary.before) {
+		lines.push(`- Before readiness: \`${summary.before.report}\``);
+		lines.push(`- Before readiness JSON: \`${summary.before.json}\``);
+	}
+	if (summary.ddi) {
+		lines.push(`- DDI auto-mount JSON: \`${summary.ddi.json_output}\``);
+		lines.push(`- DDI auto-mount log: \`${summary.ddi.log_output}\``);
+	}
+	if (summary.after) {
+		lines.push(`- After readiness: \`${summary.after.report}\``);
+		lines.push(`- After readiness JSON: \`${summary.after.json}\``);
+	}
 	lines.push("");
 	lines.push("## Commands");
 	lines.push("");
@@ -222,6 +390,9 @@ function renderMarkdown(summary) {
 
 
 function pushCommand(lines, title, result) {
+	if (!result) {
+		return;
+	}
 	lines.push(`### ${title}`);
 	lines.push("");
 	lines.push(`- Status: ${result.ok ? "PASS" : "FAIL"}${result.status === null ? "" : ` (${result.status})`}`);
@@ -259,10 +430,11 @@ function parseArgs(argv) {
 function usage() {
 	console.error([
 		"Usage:",
-		"  node tools/c00/recover_ios_ddi_services.js --device <ipad-name-or-uuid> [--package <bundle-id>] [--timeout <seconds>] [--dir <evidence-dir>] [--report <file>] [--json <file>] [--run-gate]",
+		"  node tools/c00/recover_ios_ddi_services.js [--device <ipad-name-or-uuid>] [--package <bundle-id>] [--timeout <seconds>] [--dir <evidence-dir>] [--report <file>] [--json <file>] [--run-gate]",
 		"",
 		"Runs iPad readiness, attempts `devicectl device info ddiServices --auto-mount-ddis`,",
-		"then runs readiness again and preserves all evidence paths.",
+		"then runs readiness again and preserves all evidence paths. If --device is omitted,",
+		"the tool auto-selects a single visible iPad from `xcrun devicectl list devices`.",
 	].join("\n"));
 }
 

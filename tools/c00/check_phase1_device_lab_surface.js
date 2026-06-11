@@ -53,6 +53,8 @@ if (failures.length === 0) {
 		"recover_android_adb_transport.js",
 		"recover_ios_ddi_services.js",
 		"run_device_recovery",
+		"local recovery_args=(",
+		"recovery_args+=(--device \"$DEVICE\")",
 		"run_split_all_device_cycles",
 		"run_cycle_group_after_readiness",
 		"run_phase_verify_after_split",

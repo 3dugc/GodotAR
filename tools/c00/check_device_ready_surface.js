@@ -71,6 +71,12 @@ const checks = [
 	{
 		file: "tools/c00/recover_ios_ddi_services.js",
 		requirements: [
+			["optional device argument", /recover_ios_ddi_services\.js \[--device <ipad-name-or-uuid>\]/],
+			["recovery iPad automatic discovery", /resolveRecoveryDevice/],
+			["recovery devicectl discovery", /discoverIpadDevices/],
+			["recovery devicectl table parser", /parseDevicectlDeviceTable/],
+			["recovery auto-selected iPad warning", /Auto-selected iPad device/],
+			["recovery selection evidence", /device_selection/],
 			["before readiness", /runReadiness\("before"\)/],
 			["after readiness", /runReadiness\("after"\)/],
 			["DDI auto-mount command", /device",\s*"info",\s*"ddiServices".*--auto-mount-ddis/s],

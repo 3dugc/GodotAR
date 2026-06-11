@@ -549,14 +549,14 @@ run_android_adb_recovery() {
 }
 
 run_ipad_ddi_recovery() {
-	if [[ -z "$DEVICE" ]]; then
-		echo "Skipping iPad DDI recovery because --device / DEVICE is empty."
-		return 1
-	fi
-	run_step "recover iPad DDI services" \
-		node "$PROJECT_ROOT/tools/c00/recover_ios_ddi_services.js" \
-		--device "$DEVICE" \
+	local recovery_args=(
+		node "$PROJECT_ROOT/tools/c00/recover_ios_ddi_services.js"
 		--package "$PACKAGE"
+	)
+	if [[ -n "$DEVICE" ]]; then
+		recovery_args+=(--device "$DEVICE")
+	fi
+	run_step "recover iPad DDI services" "${recovery_args[@]}"
 }
 
 run_device_recovery_for_gate() {
