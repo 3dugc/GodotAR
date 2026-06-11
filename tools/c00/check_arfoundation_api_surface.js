@@ -236,6 +236,14 @@ const checks = [
 	{
 		file: "addons/godot_xr_foundation/scripts/providers/native_xr_provider.gd",
 		requirements: [
+			["native singleton lazy cache", /func\s+_current_singleton\s*\(/],
+			["native singleton cache refresh", /plugin_singleton\s*=\s*_find_singleton\(\)/],
+			["native provider plane lazy lookup", /func\s+get_planes\s*\(\)[\s\S]*var\s+singleton\s*:=\s*_current_singleton\(\)/],
+			["native provider raycast lazy lookup", /func\s+try_raycast\s*\([\s\S]*var\s+singleton\s*:=\s*_current_singleton\(\)/],
+			["native provider anchor lazy lookup", /func\s+create_anchor\s*\([\s\S]*var\s+singleton\s*:=\s*_current_singleton\(\)/],
+			["native raycast flexible bridge call", /_call_raycast_method\(singleton,\s*method,\s*origin,\s*direction,\s*max_distance,\s*mask\)/],
+			["native anchor flexible bridge call", /_call_create_anchor_method\(singleton,\s*method,\s*transform,\s*attached_trackable\)/],
+			["native method arity helper", /func\s+_method_argument_count\s*\(/],
 			["native anchor conversion call", /return\s+_convert_anchor\(raw,\s*transform\)/],
 			["native anchor conversion helper", /func\s+_convert_anchor\s*\(/],
 			["native anchor dictionary preservation", /ARAnchor\.from_dictionary\(data\)/],

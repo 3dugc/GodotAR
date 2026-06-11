@@ -167,6 +167,8 @@ demo/00_device_smoke_test.tscn
 - `XRFoundation.get_ar_session_state()`
 - `XRFoundation.get_not_tracking_reason()`
 - native singleton `arkit_tracking_reason` / `tracking_reason` -> `XRFoundation.get_not_tracking_reason()`
+- `NativeXRProvider._current_singleton()` 懒缓存 native singleton，并在 capabilities/status/planes/raycast/anchors 查询中复用，避免 Unity-style manager 在 session 显式 start 前查询时退回错误 backend。
+- `NativeXRProvider._call_raycast_method(...)` / `_call_create_anchor_method(...)` 根据 native bridge 参数数量适配 2/3/4 参数 raycast 与 1/2 参数 anchor API，降低 ARKit/ARCore 插件签名差异对迁移层的影响。
 - `ARRaycastManager.TryRaycast(...)`
 - `ARRaycastManager.RaycastToList(...)`
 - `ARRaycastManager.RaycastFromScreen(...)`

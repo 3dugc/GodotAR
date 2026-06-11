@@ -33,7 +33,7 @@ func get_provider_source() -> StringName:
 
 func check_availability(options: Dictionary = {}) -> Dictionary:
 	var report := super.check_availability(options)
-	var singleton := _find_singleton()
+	var singleton := _current_singleton()
 	report["interface_names"] = _string_names_to_strings(interface_names)
 	report["singleton_names"] = _string_names_to_strings(singleton_names)
 	report["interface_registered"] = _find_interface() != null
@@ -44,7 +44,7 @@ func check_availability(options: Dictionary = {}) -> Dictionary:
 
 
 func install(_options: Dictionary = {}) -> bool:
-	plugin_singleton = _find_singleton()
+	plugin_singleton = _current_singleton()
 	if plugin_singleton:
 		return _call_first_bool(plugin_singleton, ["install", "request_install", "request_arcore_install"])
 	return is_supported()
@@ -53,7 +53,7 @@ func install(_options: Dictionary = {}) -> bool:
 func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	var capabilities := super.get_capabilities(options)
 	var xr_iface := _find_interface()
-	var singleton := _find_singleton()
+	var singleton := _current_singleton()
 	var plugin_available := xr_iface != null or singleton != null
 
 	capabilities["session"] = plugin_available
@@ -125,7 +125,7 @@ func get_tracking_status() -> int:
 	if xr_interface:
 		return super.get_tracking_status()
 
-	var singleton := plugin_singleton if plugin_singleton else _find_singleton()
+	var singleton := _current_singleton()
 	if singleton:
 		for method in ["get_tracking_status", "get_tracking_state"]:
 			if singleton.has_method(method):
@@ -145,7 +145,7 @@ func get_not_tracking_reason() -> int:
 	if xr_interface:
 		return super.get_not_tracking_reason()
 
-	var singleton := plugin_singleton if plugin_singleton else _find_singleton()
+	var singleton := _current_singleton()
 	if singleton:
 		for method in ["get_not_tracking_reason", "get_tracking_reason", "get_arkit_tracking_reason"]:
 			if singleton.has_method(method):
@@ -161,18 +161,20 @@ func get_not_tracking_reason() -> int:
 
 
 func get_planes() -> Array[ARPlane]:
-	if plugin_singleton:
+	var singleton := _current_singleton()
+	if singleton:
 		for method in ["get_planes", "get_detected_planes"]:
-			if plugin_singleton.has_method(method):
-				return _convert_planes(plugin_singleton.call(method))
+			if singleton.has_method(method):
+				return _convert_planes(singleton.call(method))
 	return super.get_planes()
 
 
 func try_raycast(origin: Vector3, direction: Vector3, max_distance: float = 20.0, mask: int = 0xffffffff) -> Array[XRHit]:
-	if plugin_singleton:
+	var singleton := _current_singleton()
+	if singleton:
 		for method in ["try_raycast", "raycast", "hit_test"]:
-			if plugin_singleton.has_method(method):
-				var raw: Variant = plugin_singleton.call(method, origin, direction, max_distance)
+			if singleton.has_method(method):
+				var raw: Variant = _call_raycast_method(singleton, method, origin, direction, max_distance, mask)
 				var converted := _convert_hits(raw)
 				if not converted.is_empty():
 					return converted
@@ -180,10 +182,11 @@ func try_raycast(origin: Vector3, direction: Vector3, max_distance: float = 20.0
 
 
 func create_anchor(transform: Transform3D, attached_trackable: ARTrackable = null) -> ARAnchor:
-	if plugin_singleton:
+	var singleton := _current_singleton()
+	if singleton:
 		for method in ["create_anchor", "add_anchor"]:
-			if plugin_singleton.has_method(method):
-				var raw: Variant = plugin_singleton.call(method, transform, attached_trackable)
+			if singleton.has_method(method):
+				var raw: Variant = _call_create_anchor_method(singleton, method, transform, attached_trackable)
 				return _convert_anchor(raw, transform)
 	return super.create_anchor(transform, attached_trackable)
 
@@ -203,6 +206,13 @@ func _find_singleton() -> Object:
 	return null
 
 
+func _current_singleton() -> Object:
+	if plugin_singleton:
+		return plugin_singleton
+	plugin_singleton = _find_singleton()
+	return plugin_singleton
+
+
 func _call_first_bool(target: Object, methods: Array) -> bool:
 	for method in methods:
 		if target.has_method(method):
@@ -211,6 +221,36 @@ func _call_first_bool(target: Object, methods: Array) -> bool:
 				return bool(result)
 			return true
 	return true
+
+
+func _call_raycast_method(target: Object, method: String, origin: Vector3, direction: Vector3, max_distance: float, mask: int) -> Variant:
+	var arg_count := _method_argument_count(target, method)
+	if arg_count >= 4:
+		return target.call(method, origin, direction, max_distance, mask)
+	if arg_count == 2:
+		return target.call(method, origin, direction)
+	if arg_count >= 0 and arg_count < 2:
+		return []
+	return target.call(method, origin, direction, max_distance)
+
+
+func _call_create_anchor_method(target: Object, method: String, transform: Transform3D, attached_trackable: ARTrackable) -> Variant:
+	var arg_count := _method_argument_count(target, method)
+	if arg_count >= 2 or arg_count < 0:
+		return target.call(method, transform, attached_trackable)
+	if arg_count == 1:
+		return target.call(method, transform)
+	return null
+
+
+func _method_argument_count(target: Object, method: String) -> int:
+	for info in target.get_method_list():
+		if String(info.get("name", "")) == method:
+			var args: Variant = info.get("args", [])
+			if args is Array:
+				return args.size()
+			return -1
+	return -1
 
 
 func _singleton_availability(singleton: Object) -> Dictionary:

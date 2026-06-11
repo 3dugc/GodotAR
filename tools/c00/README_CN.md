@@ -499,7 +499,7 @@ node tools/c00/check_godot_project_static.js
 node tools/c00/check_arfoundation_api_surface.js
 ```
 
-该检查不需要 Godot binary。它确认 Unity 风格的 `ARSession.state/notTrackingReason/requestedTrackingMode/matchFrameRate`、`ARRaycastManager` screen/list raycast、`ARPlaneManager`/`ARAnchorManager` trackables 与 changed events 仍存在，用于防止后续周期破坏 Unity 项目迁移入口。
+该检查不需要 Godot binary。它确认 Unity 风格的 `ARSession.state/notTrackingReason/requestedTrackingMode/matchFrameRate`、`ARRaycastManager` screen/list raycast、`ARPlaneManager`/`ARAnchorManager` trackables 与 changed events 仍存在，并检查 `NativeXRProvider` 对 native singleton 的懒加载、raycast/anchor 参数兼容和 ARKit/ARCore bridge 查询路径，用于防止后续周期破坏 Unity 项目迁移入口。
 
 检查 XRI 迁移 API surface：
 
