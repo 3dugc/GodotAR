@@ -119,9 +119,16 @@ rewrite_project_only_export_name() {
 	local stem="$1"
 	local old_name="$2"
 	local new_name="$3"
+	local hidden_short_name=""
 	if [ "$old_name" = "$new_name" ]; then
 		return
 	fi
+
+	case "$old_name" in
+		.*.tmp-*)
+			hidden_short_name="${old_name%%.tmp-*}"
+			;;
+	esac
 
 	if [ -f "$stem/$old_name-Info.plist" ]; then
 		mv -f "$stem/$old_name-Info.plist" "$stem/$new_name-Info.plist"
@@ -133,12 +140,13 @@ rewrite_project_only_export_name() {
 		mv -f "$stem.xcodeproj/xcshareddata/xcschemes/$old_name.xcscheme" "$stem.xcodeproj/xcshareddata/xcschemes/$new_name.xcscheme"
 	fi
 
-	node - "$stem" "$old_name" "$new_name" <<'NODE'
+	node - "$stem" "$new_name" "$old_name" "$hidden_short_name" <<'NODE'
 const fs = require("fs");
 const path = require("path");
 
-const [stem, oldName, newName] = process.argv.slice(2);
+const [stem, newName, ...oldNames] = process.argv.slice(2);
 const roots = [stem, `${stem}.xcodeproj`];
+const aliases = [...new Set(oldNames.filter((name) => name && name !== newName))];
 
 for (const root of roots) {
 	for (const file of walk(root)) {
@@ -146,11 +154,19 @@ for (const root of roots) {
 		if (before.includes(0)) {
 			continue;
 		}
-		const text = before.toString("utf8");
-		if (!text.includes(oldName)) {
+		let text = before.toString("utf8");
+		let changed = false;
+		for (const oldName of aliases) {
+			if (!text.includes(oldName)) {
+				continue;
+			}
+			text = text.split(oldName).join(newName);
+			changed = true;
+		}
+		if (!changed) {
 			continue;
 		}
-		fs.writeFileSync(file, text.split(oldName).join(newName), "utf8");
+		fs.writeFileSync(file, text, "utf8");
 	}
 }
 

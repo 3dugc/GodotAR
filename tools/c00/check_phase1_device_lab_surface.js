@@ -8,6 +8,7 @@ const failures = [];
 
 const files = {
 	lab: "tools/c00/run_phase1_device_lab.sh",
+	exportWithGodot: "tools/c00/export_with_godot.sh",
 	staticGates: "tools/c00/run_static_gates.js",
 	readme: "tools/c00/README_CN.md",
 	runbook: "releases/phase_0_smoke/RUNBOOK_CN.md",
@@ -128,6 +129,12 @@ if (failures.length === 0) {
 		"build_status",
 		"export_with_godot_checked",
 		"export_status",
+	]);
+
+	requireContains(files.exportWithGodot, [
+		"rewrite_project_only_export_name",
+		"hidden_short_name",
+		"old_name%%.tmp-*",
 	]);
 
 	requireContains("tools/c00/validate_smoke_log.js", [
