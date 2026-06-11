@@ -61,7 +61,7 @@ const checks = [
 			["APK _cl_ launch args inspection", /unzip\s+-p\s+"\$apk"\s+assets\/_cl_/],
 			["Rokid APK launch arg requirement", /--xr-platform=rokid/],
 			["Android ARCore APK launch arg requirement", /--xr-platform=arcore/],
-			["force-stop before launch", /(?:adb|"\$ADB")\s+shell\s+am\s+force-stop\s+"\$PACKAGE"/],
+			["force-stop before launch", /(?:adb|"\$ADB"|adb_device)\s+shell\s+am\s+force-stop\s+"\$PACKAGE"/],
 		],
 	},
 ];

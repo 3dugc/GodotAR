@@ -80,8 +80,9 @@ function usage() {
 
 function collectProfile() {
 	const generatedAt = new Date().toISOString();
-	const devices = runAdb(["devices", "-l"]);
+	const devices = runAdbHost(["devices", "-l"]);
 	const connectedDevices = parseAdbDevices(devices.stdout);
+	const selectedDevice = selectAdbDevice(connectedDevices);
 	const host = collectHostDiagnostics(devices);
 	const properties = collectProperties();
 	const display = {
@@ -100,7 +101,7 @@ function collectProfile() {
 		.filter((line) => /camera|vulkan|vr|xr|ar/i.test(line))
 		.sort();
 	const targetPackage = parseTargetPackage(targetPackageText);
-	const warnings = collectWarnings({ devices, connectedDevices, properties, display, notableFeatures, xrPackages, targetPackage });
+	const warnings = collectWarnings({ devices, connectedDevices, selectedDevice, properties, display, notableFeatures, xrPackages, targetPackage });
 
 	return {
 		gate,
@@ -111,7 +112,8 @@ function collectProfile() {
 			serial: adbSerial || null,
 			available: devices.ok,
 			version: host.adb_version,
-			has_connected_device: connectedDevices.some((item) => item.state === "device"),
+			has_connected_device: selectedDevice ? selectedDevice.state === "device" : false,
+			selected_device: selectedDevice,
 			connected_devices: connectedDevices,
 			devices: devices.stdout.trim(),
 			error: devices.ok ? "" : devices.stderr.trim(),
@@ -128,7 +130,7 @@ function collectProfile() {
 
 
 function collectHostDiagnostics(devicesResult) {
-	const adbVersion = runAdb(["version"]);
+	const adbVersion = runAdbHost(["version"]);
 	return {
 		adb_binary: adbBin,
 		adb_version: parseAdbVersion(adbVersion.stdout || adbVersion.stderr),
@@ -282,7 +284,11 @@ function collectWarnings(profile) {
 	if (!profile.devices.ok) {
 		warnings.push(`adb devices failed: ${profile.devices.stderr.trim() || profile.devices.error || "unknown error"}`);
 	}
-	if (!profile.connectedDevices.some((item) => item.state === "device")) {
+	if (adbSerial && !profile.selectedDevice) {
+		warnings.push(`ADB_SERIAL=${adbSerial} was requested, but it was not listed by adb devices -l.`);
+	} else if (adbSerial && profile.selectedDevice.state !== "device") {
+		warnings.push(`ADB_SERIAL=${adbSerial} is in adb state '${profile.selectedDevice.state}', not 'device'.`);
+	} else if (!profile.connectedDevices.some((item) => item.state === "device")) {
 		warnings.push("No connected Android device is in adb state 'device'. Connect and authorize the Rokid/Android device before running the gate.");
 	}
 	if (!profile.properties["ro.product.model"]) {
@@ -304,6 +310,14 @@ function collectWarnings(profile) {
 		warnings.push("No Vulkan feature was detected in pm list features.");
 	}
 	return warnings;
+}
+
+
+function selectAdbDevice(devices) {
+	if (adbSerial) {
+		return devices.find((item) => item.serial === adbSerial) || null;
+	}
+	return devices.find((item) => item.state === "device") || null;
 }
 
 
@@ -334,7 +348,12 @@ function matchLine(text, pattern) {
 }
 
 
-function runAdb(argsList) {
+function runAdbHost(argsList) {
+	return runAdb(argsList, { serial: false });
+}
+
+
+function runAdb(argsList, options = {}) {
 	if (!adbBin) {
 		return {
 			ok: false,
@@ -344,7 +363,7 @@ function runAdb(argsList) {
 			error: "adb not found",
 		};
 	}
-	const result = spawnSync(adbBin, withSerial(argsList), { encoding: "utf8" });
+	const result = spawnSync(adbBin, withSerial(argsList, options), { encoding: "utf8" });
 	return {
 		ok: result.status === 0,
 		stdout: result.stdout || "",
@@ -360,8 +379,8 @@ function runAdbShell(shellArgs) {
 }
 
 
-function withSerial(argsList) {
-	if (!adbSerial) {
+function withSerial(argsList, options = {}) {
+	if (!adbSerial || options.serial === false) {
 		return argsList;
 	}
 	return ["-s", adbSerial, ...argsList];
@@ -404,6 +423,7 @@ function renderMarkdown(profile) {
 	lines.push(`- Available: ${profile.adb.available ? "yes" : "no"}`);
 	lines.push(`- Connected device: ${profile.adb.has_connected_device ? "yes" : "no"}`);
 	lines.push(`- Version: ${profile.adb.version || "unknown"}`);
+	lines.push(`- Selected device: ${profile.adb.selected_device ? `\`${profile.adb.selected_device.serial}\` (${profile.adb.selected_device.state})` : "none"}`);
 	lines.push("");
 	lines.push("## Host Diagnostics");
 	lines.push("");

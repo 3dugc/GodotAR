@@ -166,6 +166,7 @@ function analyzeProfile(profile, gateName) {
 			device: deviceText || "unknown",
 			host_permission_blocked: hostPermissionBlocked,
 			host: summarizeHost(profile.host || {}),
+			selected_device: profile.adb ? profile.adb.selected_device || null : null,
 			connected_devices: (profile.adb && Array.isArray(profile.adb.connected_devices)) ? profile.adb.connected_devices : [],
 			target_package_installed: Boolean(targetPackage.installed),
 			target_package_version: targetPackage.version_name || targetPackage.version_code || "",

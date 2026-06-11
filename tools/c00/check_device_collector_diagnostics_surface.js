@@ -16,6 +16,9 @@ const checks = [
 		requirements: [
 			["parsed adb devices", /function parseAdbDevices/],
 			["connected device evidence", /has_connected_device/],
+			["selected device evidence", /selected_device/],
+			["ADB serial-specific selection", /function selectAdbDevice/],
+			["host adb command without serial", /function runAdbHost/],
 			["no connected device warning", /No connected Android device is in adb state 'device'/],
 			["host diagnostics evidence", /collectHostDiagnostics/],
 			["USB Android-like evidence", /android_like_devices/],
@@ -27,6 +30,7 @@ const checks = [
 		requirements: [
 			["no connected device failure", /No connected Android device was available in adb state 'device'/],
 			["connected devices evidence", /connected_devices/],
+			["selected device evidence", /selected_device/],
 			["host diagnostics evidence", /host:\s*summarizeHost/],
 			["USB Android-like guidance", /macOS USB sees possible Android\/XR hardware/],
 		],
@@ -34,6 +38,12 @@ const checks = [
 	{
 		file: "tools/c00/collect_android_smoke.sh",
 		requirements: [
+			["ADB serial capture", /ADB_SERIAL/],
+			["device-scoped adb helper", /adb_device\(\)/],
+			["serial passed to device profile", /PROFILE_ARGS\+=\(--serial "\$ADB_SERIAL"\)/],
+			["device-scoped get-state", /adb_device get-state/],
+			["device-scoped APK install", /adb_device install -r/],
+			["device-scoped logcat capture", /adb_device logcat -v brief/],
 			["collector status accumulator", /COLLECT_STATUS=0/],
 			["smoke status capture", /SMOKE_STATUS="\$\?"/],
 			["evidence status capture", /EVIDENCE_STATUS="\$\?"/],

@@ -319,6 +319,7 @@ function analyzeDeviceProfileJson(parsed, gate) {
 		warnings,
 		evidence: {
 			device: device || "unknown",
+			selected_device: parsed.adb ? parsed.adb.selected_device || null : null,
 			connected_devices: (parsed.adb && Array.isArray(parsed.adb.connected_devices)) ? parsed.adb.connected_devices : [],
 			target_package_installed: Boolean(targetPackage.installed),
 			target_package_version: targetPackage.version_name || targetPackage.version_code || "",
@@ -473,6 +474,7 @@ function summarizeDeviceProfileJson(parsed) {
 		warnings: Array.isArray(parsed.warnings) ? parsed.warnings : [],
 		selected_device: parsed.selected_device || null,
 		target_package: parsed.target_package || null,
+		adb_selected_device: parsed.adb ? parsed.adb.selected_device || null : null,
 		target_app: parsed.target_app || null,
 	};
 }

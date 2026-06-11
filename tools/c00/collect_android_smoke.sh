@@ -106,6 +106,15 @@ if ! ADB="$(resolve_adb_binary)"; then
 	exit 2
 fi
 echo "Using adb: $ADB"
+ADB_DEVICE_ARGS=()
+if [ -n "${ADB_SERIAL:-}" ]; then
+	ADB_DEVICE_ARGS=(-s "$ADB_SERIAL")
+	echo "Using ADB serial: $ADB_SERIAL"
+fi
+
+adb_device() {
+	"$ADB" "${ADB_DEVICE_ARGS[@]}" "$@"
+}
 
 check_apk_launch_args "$APK_PATH"
 
@@ -113,12 +122,17 @@ echo "Connected devices:"
 "$ADB" devices -l
 
 echo "Collecting Android device profile -> $PROFILE_PATH"
-if ! node "$PROJECT_ROOT/tools/c00/collect_android_device_profile.js" \
+PROFILE_ARGS=(
 	--gate "$GATE" \
 	--package "$PACKAGE" \
 	--adb "$ADB" \
 	--report "$PROFILE_PATH" \
-	--json "$PROFILE_JSON_PATH"; then
+	--json "$PROFILE_JSON_PATH"
+)
+if [ -n "${ADB_SERIAL:-}" ]; then
+	PROFILE_ARGS+=(--serial "$ADB_SERIAL")
+fi
+if ! node "$PROJECT_ROOT/tools/c00/collect_android_device_profile.js" "${PROFILE_ARGS[@]}"; then
 	echo "Android device profile collection failed; continuing to smoke collection."
 fi
 if [ -f "$PROFILE_JSON_PATH" ]; then
@@ -132,7 +146,7 @@ if [ -f "$PROFILE_JSON_PATH" ]; then
 fi
 
 DEVICE_READY=1
-if ! "$ADB" get-state >/dev/null 2>&1; then
+if ! adb_device get-state >/dev/null 2>&1; then
 	DEVICE_READY=0
 	COLLECT_STATUS=2
 	{
@@ -144,31 +158,31 @@ fi
 if [ "$DEVICE_READY" = "1" ]; then
 	if [ -n "$APK_PATH" ]; then
 		echo "Installing APK: $APK_PATH"
-		"$ADB" install -r "$APK_PATH"
+		adb_device install -r "$APK_PATH"
 	fi
 
 	echo "Clearing logcat..."
-	"$ADB" logcat -c || true
+	adb_device logcat -c || true
 
 	if [ "$ANDROID_FORCE_STOP" != "0" ]; then
 		echo "Force stopping package before launch: $PACKAGE"
-		"$ADB" shell am force-stop "$PACKAGE" >/dev/null 2>&1 || true
+		adb_device shell am force-stop "$PACKAGE" >/dev/null 2>&1 || true
 	fi
 
 	echo "Launching package: $PACKAGE"
-	"$ADB" shell monkey -p "$PACKAGE" 1 >/dev/null || true
+	adb_device shell monkey -p "$PACKAGE" 1 >/dev/null || true
 
 	if [ "$CAPTURE_MEDIA" != "0" ]; then
 		echo "Recording ${VIDEO_SECONDS}s screen capture -> $VIDEO_PATH"
-		"$ADB" shell rm -f "$REMOTE_VIDEO" >/dev/null 2>&1 || true
-		"$ADB" shell screenrecord --time-limit "$VIDEO_SECONDS" "$REMOTE_VIDEO" &
+		adb_device shell rm -f "$REMOTE_VIDEO" >/dev/null 2>&1 || true
+		adb_device shell screenrecord --time-limit "$VIDEO_SECONDS" "$REMOTE_VIDEO" &
 		SCREENRECORD_PID="$!"
 	else
 		SCREENRECORD_PID=""
 	fi
 
 	echo "Collecting logcat for ${DURATION}s -> $LOG_PATH"
-	"$ADB" logcat -v brief > "$LOG_PATH" &
+	adb_device logcat -v brief > "$LOG_PATH" &
 	LOGCAT_PID="$!"
 	sleep "$DURATION"
 	kill "$LOGCAT_PID" >/dev/null 2>&1 || true
@@ -176,11 +190,11 @@ if [ "$DEVICE_READY" = "1" ]; then
 
 	if [ "$CAPTURE_MEDIA" != "0" ]; then
 		wait "$SCREENRECORD_PID" >/dev/null 2>&1 || true
-		"$ADB" pull "$REMOTE_VIDEO" "$VIDEO_PATH" >/dev/null 2>&1 || echo "Screen recording pull failed; keep manual recording if available."
-		"$ADB" shell rm -f "$REMOTE_VIDEO" >/dev/null 2>&1 || true
+		adb_device pull "$REMOTE_VIDEO" "$VIDEO_PATH" >/dev/null 2>&1 || echo "Screen recording pull failed; keep manual recording if available."
+		adb_device shell rm -f "$REMOTE_VIDEO" >/dev/null 2>&1 || true
 
 		echo "Capturing screenshot -> $SCREENSHOT_PATH"
-		"$ADB" exec-out screencap -p > "$SCREENSHOT_PATH" || echo "Screenshot capture failed; capture manually."
+		adb_device exec-out screencap -p > "$SCREENSHOT_PATH" || echo "Screenshot capture failed; capture manually."
 	fi
 else
 	echo "Skipping APK install, launch, logcat, and media capture because no Android device is connected."

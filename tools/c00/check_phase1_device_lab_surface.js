@@ -61,6 +61,7 @@ if (failures.length === 0) {
 		"device-ready-${readiness_gate}-${safe_gate}-${TIMESTAMP}.json",
 		"Using auto-discovered iPad device for later gate runs",
 		"gate_uses_adb_serial",
+		"ADB_BIN ADB_SERIAL",
 		"resolve_ready_android_serial_from_json",
 		"set_ready_android_serial_from_json_if_needed",
 		"Using auto-discovered ADB serial for later gate runs",
@@ -107,6 +108,7 @@ if (failures.length === 0) {
 		"C00_DEVICE_ENV_FILE",
 		"C00_AUTO_SOURCE_DEVICE_ENV",
 		"source_device_env_if_present",
+		"ADB_BIN ADB_SERIAL",
 	]);
 
 	requireContains("tools/c00/run_device_cycle.sh", [
@@ -117,6 +119,7 @@ if (failures.length === 0) {
 		"clear_split_gate_version_env",
 		"C00_SPLIT_GATE_INHERIT_VERSION_ENV",
 		"GODOT_EXPORT_TEMPLATES_VERSION GODOT_EXPORT_TEMPLATES_DIR GODOT_BIN",
+		"ADB_BIN ADB_SERIAL",
 		"INCLUDE_PLACE_DEMOS",
 		"ios-simulator-place",
 		"rokid-place",
