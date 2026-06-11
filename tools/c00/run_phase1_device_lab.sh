@@ -972,7 +972,9 @@ main() {
 			if [[ "$GATE" == "all" && "$SPLIT_ALL_DEVICE_CYCLE" == "1" ]]; then
 				echo "  releases/phase_0_smoke/evidence/device-ready-ipad-*.md"
 				echo "  releases/phase_0_smoke/evidence/device-ready-rokid-*.md"
-				echo "  releases/phase_0_smoke/evidence/device-ready-android-arcore-*.md"
+				if [[ "${INCLUDE_ANDROID_ARCORE:-1}" == "1" ]]; then
+					echo "  releases/phase_0_smoke/evidence/device-ready-android-arcore-*.md"
+				fi
 			else
 				echo "  releases/phase_0_smoke/evidence/device-ready-$(readiness_gate_for_selected_gate)-*.md"
 			fi

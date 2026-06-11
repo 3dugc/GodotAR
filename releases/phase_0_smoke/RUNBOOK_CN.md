@@ -163,6 +163,18 @@ tools/c00/run_phase1_device_lab.sh \
 
 `--gate all` + `--wait-devices` 默认启用 split-all device cycle：iPad、Rokid 和 Android ARCore 会分别等待、分别恢复、分别进入 gate，避免单台设备缺席挡住其它已 ready 设备产出证据；纯串行 all-at-once 诊断可加 `--no-split-all-devices` 或设置 `SPLIT_ALL_DEVICE_CYCLE=0`。设备在超时时间内仍不可用时，wrapper 默认会先做一次自动恢复：Rokid/Android 执行 `recover_android_adb_transport.js`，iPad 执行 `recover_ios_ddi_services.js`，然后再次等待 readiness。二次等待仍失败时才保留 readiness / recovery report、跳过对应安装/启动 cycle，并继续生成 completion audit。这样报告会明确停在“设备离线/不可用”或“恢复后仍无 transport”，不会把 transport 问题混成应用启动失败。纯诊断或 CI 场景可加 `--no-recover-devices` 或设置 `AUTO_RECOVER_DEVICES=0`。
 
+如果本次现场只要求先把最高优先级的 iPad/ARKit 与 Rokid/OpenXR 跑通，使用 priority AR lane：
+
+```bash
+tools/c00/run_phase1_priority_ar_lab.sh \
+  --bundle /Volumes/USB/device-bundle \
+  --device "iPad M4" \
+  --wait-devices \
+  --wait-timeout 600
+```
+
+该入口内部调用 `run_phase1_device_lab.sh --gate all --no-audit`，并设置 `INCLUDE_ANDROID_ARCORE=0`，默认运行 `ipad`、`ipad-place`、`rokid`、`rokid-place`。报告输出到 `releases/phase_0_smoke/C01_PRIORITY_AR_REPORT.md`。这份报告可以作为 iPad/Rokid 优先阶段成果发表材料，但不是完整 Phase 1 completion audit；最终仍要补齐 Android/ARCore 并运行全量审计。
+
 如果没有离线包但网络可用，使用在线依赖续传入口：
 
 ```bash
