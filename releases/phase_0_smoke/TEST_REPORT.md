@@ -118,6 +118,7 @@ Codex implementation status:
 - Slow device-machine networks can now run `--online-deps-only` with `ONLINE_DEPS=templates,jdk,android-sdk,android-export` subsets, or pass `--online-deps-list`, so large C00 dependencies can be resumed and verified in smaller publishable steps.
 - `tools/c00/run_phase1_device_lab.sh --wait-devices` now waits for selected real devices to become ready before running the install/launch cycle; if readiness times out it preserves device-ready evidence, skips the device cycle, and continues to the completion audit instead of confusing offline hardware with an app runtime failure.
 - `tools/c00/run_phase1_priority_ar_lab.sh` now provides the first-priority iPad/ARKit + Rokid/OpenXR lane: it wraps `run_phase1_device_lab.sh --gate all --no-audit`, sets `INCLUDE_ANDROID_ARCORE=0`, keeps placement demos enabled by default, and writes `C01_PRIORITY_AR_REPORT.md` without claiming full Phase 1 completion.
+- `tools/c00/append_priority_ar_diagnostics.js` now appends a `Priority Lane Diagnostics` section to `C01_PRIORITY_AR_REPORT.md`, linking the priority readiness/static reports, latest iPad/Rokid readiness, DDI/ADB recovery, and smoke/placement artifacts so NOT_READY device-lab runs still produce a usable handoff report.
 - `tools/c00/import_priority_ar_evidence.sh` now provides the manual evidence fallback for the priority lane: it imports iPad/Rokid logs, media, and device profiles through `import_device_evidence.sh`, then runs the same priority `verify_phase_evidence.js` aggregate without weakening required real-device evidence.
 - Native singleton providers can now report tracking status without an `XRInterface`; `GodotARKit` exposes `is_running()` and `get_tracking_status()` for the C00 panel and logs.
 - `NativeXRProvider` now lazily caches native singleton bridges for capabilities, status, plane, raycast, and anchor queries, and adapts common native raycast/anchor argument shapes so Unity-style managers remain usable across ARKit/ARCore plugin lifecycle ordering differences.
@@ -205,7 +206,7 @@ Hardware status:
 - On 2026-06-09, sandbox-external readiness checks confirmed ADB is operational but has no connected `device` entries, and Xcode sees `iPad M4` as `unavailable` / `Devices Offline`.
 - Do not mark this report as passed until the device evidence below is filled.
 
-## Local Verification Through 2026-06-11
+## Local Verification Through 2026-06-12
 
 | Check | Result | Notes |
 | --- | --- | --- |
@@ -213,6 +214,7 @@ Hardware status:
 | `node tools/c00/check_unity_reference_baseline.js` | Pass | Guards `UNITY_REFERENCE_RULES_CN.md`, `MIGRATION_UNITY.md`, C00, and C01 against drifting below the newest observed Unity XR baseline or dropping the unreleased/pre-release policy |
 | `node tools/c00/check_arfoundation_api_surface.js` | Pass | Re-run on 2026-06-12; guards Unity 6.x-style `XROrigin`, deprecated `ARSessionOrigin` shim, origin smoke metadata, ARSession/camera/raycast/anchor/trackables migration APIs, and `NativeXRProvider` lazy singleton / flexible native raycast-anchor bridge surface |
 | `node tools/c00/run_static_gates.js --gate all --format json` | Pass | Re-run on 2026-06-12; includes `git diff --check`, Unity latest reference baseline, ARFoundation/XRI surface checks, export preset checks, ARKit artifact checks, Android export surface checks, Android export credentials surface, 4.7 source-version guards, and atomic export surface |
+| `tools/c00/run_phase1_priority_ar_lab.sh --dry-run --device "iPad M4"` and `node tools/c00/append_priority_ar_diagnostics.js --report /tmp/godotar-priority-diagnostics-smoke.md` | Pass | Re-run on 2026-06-12; priority dry-run shows the diagnostics append step after phase evidence verify, and the append smoke report classifies current static gates as PASS while iPad/Rokid readiness/recovery remain FAIL until hardware is ready |
 | Godot headless C01 place/backend switcher scenes | Pass | Re-run on 2026-06-12 with project-local Godot `4.6.3-stable` and `--xr-platform=simulator`; both scenes loaded scripts cleanly, entered EditorSim session, and backend switcher exercised OpenXR/ARCore/ARKit availability reports |
 | `tools/c00/collect_editor_smoke.sh 5` | Pass | Latest evidence `releases/phase_0_smoke/evidence/editor-20260609-120814.md` reports `GXF_SMOKE.origin` with `Camera=XRCamera3D`, `Origin=XRFoundationRig`, `TrackablesParent=TrackablesParent`, and camera/origin-space metadata |
 | `node tools/c00/audit_phase1_completion.js` | Not ready as expected | Re-run on 2026-06-12; static/API/plugin gates pass, and the only reported failure is missing real Rokid/OpenXR, iPad/ARKit, and Android/ARCore phase evidence plus placement demos |

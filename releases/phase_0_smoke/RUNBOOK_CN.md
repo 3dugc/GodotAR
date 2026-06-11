@@ -173,7 +173,7 @@ tools/c00/run_phase1_priority_ar_lab.sh \
   --wait-timeout 600
 ```
 
-该入口内部调用 `run_phase1_device_lab.sh --gate all --no-audit`，并设置 `INCLUDE_ANDROID_ARCORE=0`，默认运行 `ipad`、`ipad-place`、`rokid`、`rokid-place`。报告输出到 `releases/phase_0_smoke/C01_PRIORITY_AR_REPORT.md`。这份报告可以作为 iPad/Rokid 优先阶段成果发表材料，但不是完整 Phase 1 completion audit；最终仍要补齐 Android/ARCore 并运行全量审计。
+该入口内部调用 `run_phase1_device_lab.sh --gate all --no-audit`，并设置 `INCLUDE_ANDROID_ARCORE=0`，默认运行 `ipad`、`ipad-place`、`rokid`、`rokid-place`。报告输出到 `releases/phase_0_smoke/C01_PRIORITY_AR_REPORT.md`，并自动追加 `Priority Lane Diagnostics` 附录，列出本轮 priority readiness、static gates、最近 iPad/Rokid readiness、DDI/ADB recovery 和 smoke/placement 日志。即使报告仍是 `NOT_READY`，也可以作为现场交接材料说明下一步是设备恢复、重新 collector，还是补媒体/device profile。它可以作为 iPad/Rokid 优先阶段成果发表材料，但不是完整 Phase 1 completion audit；最终仍要补齐 Android/ARCore 并运行全量审计。
 
 如果自动 collector 失败，但现场已经有 Xcode Console / Android Studio 日志、系统录屏、截图和 device profile 文件，使用优先证据导入入口：
 

@@ -68,7 +68,9 @@ Environment:
 This is the first-priority AR lane for Phase 1. It runs iPad/ARKit and
 Rokid/OpenXR evidence gates, including placement demos by default. It is not a
 full Phase 1 completion audit because Android/ARCore remains outside this
-priority lane unless you run the full audit separately.
+priority lane unless you run the full audit separately. The final priority
+report also gets a diagnostics appendix that links readiness, recovery, and
+latest iPad/Rokid runtime artifacts.
 EOF
 }
 
@@ -167,6 +169,20 @@ project_path() {
 	esac
 }
 
+append_priority_diagnostics() {
+	if [[ "$DRY_RUN" == "1" ]]; then
+		echo
+		echo "DRY RUN: node tools/c00/append_priority_ar_diagnostics.js --report $(project_path "$PHASE_REPORT")"
+		return 0
+	fi
+	echo
+	echo "Appending priority readiness/recovery diagnostics to: $(project_path "$PHASE_REPORT")"
+	node "$PROJECT_ROOT/tools/c00/append_priority_ar_diagnostics.js" \
+		--report "$(project_path "$PHASE_REPORT")" \
+		--readiness-report "$(project_path "$READINESS_REPORT")" \
+		--static-report "$(project_path "$STATIC_REPORT")"
+}
+
 lab_args=(--gate all --no-audit --wait-timeout "$WAIT_TIMEOUT_SECONDS" --wait-interval "$WAIT_INTERVAL_SECONDS")
 
 if [[ "$WAIT_FOR_DEVICES" == "1" ]]; then
@@ -222,6 +238,12 @@ DRY_RUN="$DRY_RUN" \
 	"$PROJECT_ROOT/tools/c00/run_phase1_device_lab.sh" "${lab_args[@]}"
 status="$?"
 set -e
+
+diagnostics_status=0
+append_priority_diagnostics || diagnostics_status=$?
+if [[ "$status" == "0" && "$diagnostics_status" != "0" ]]; then
+	status="$diagnostics_status"
+fi
 
 audit_status=0
 if [[ "$RUN_FULL_AUDIT" == "1" ]]; then

@@ -10,6 +10,7 @@ const files = {
 	lab: "tools/c00/run_phase1_device_lab.sh",
 	priorityLab: "tools/c00/run_phase1_priority_ar_lab.sh",
 	priorityImport: "tools/c00/import_priority_ar_evidence.sh",
+	priorityDiagnostics: "tools/c00/append_priority_ar_diagnostics.js",
 	exportWithGodot: "tools/c00/export_with_godot.sh",
 	staticGates: "tools/c00/run_static_gates.js",
 	readme: "tools/c00/README_CN.md",
@@ -111,6 +112,20 @@ if (failures.length === 0) {
 		"ipad-place",
 		"rokid-place",
 		"This is not a full Phase 1 completion audit",
+		"append_priority_ar_diagnostics.js",
+		"append_priority_diagnostics",
+		"readiness/recovery diagnostics",
+	]);
+
+	requireContains(files.priorityDiagnostics, [
+		"Priority Lane Diagnostics",
+		"Latest iPad readiness",
+		"Latest Rokid readiness",
+		"Latest iPad DDI recovery",
+		"Latest Rokid ADB recovery",
+		"Latest iPad placement log",
+		"Latest Rokid placement log",
+		"It does not weaken the required real-device evidence gates above.",
 	]);
 
 	requireContains(files.priorityImport, [

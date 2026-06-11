@@ -225,7 +225,7 @@ tools/c00/run_phase1_priority_ar_lab.sh \
   --wait-timeout 600
 ```
 
-这个入口会调用 `run_phase1_device_lab.sh --gate all --no-audit`，但设置 `INCLUDE_ANDROID_ARCORE=0`，默认只跑 `ipad`、`ipad-place`、`rokid`、`rokid-place`，并输出 `releases/phase_0_smoke/C01_PRIORITY_AR_REPORT.md`。它用于尽快证明 iPad/Rokid 可运行和可放置，不是完整 Phase 1 completion audit；最终发布仍要回到 `tools/c00/run_phase1_device_lab.sh --wait-devices` 或 `node tools/c00/audit_phase1_completion.js --include-place-demos`。
+这个入口会调用 `run_phase1_device_lab.sh --gate all --no-audit`，但设置 `INCLUDE_ANDROID_ARCORE=0`，默认只跑 `ipad`、`ipad-place`、`rokid`、`rokid-place`，并输出 `releases/phase_0_smoke/C01_PRIORITY_AR_REPORT.md`。报告末尾会由 `append_priority_ar_diagnostics.js` 自动追加 readiness、recovery 和最近 iPad/Rokid smoke/placement artifacts 的诊断附录，所以即使结果仍是 `NOT_READY`，也能直接看到是卡在 DDI、ADB、collector 还是证据缺项。它用于尽快证明 iPad/Rokid 可运行和可放置，不是完整 Phase 1 completion audit；最终发布仍要回到 `tools/c00/run_phase1_device_lab.sh --wait-devices` 或 `node tools/c00/audit_phase1_completion.js --include-place-demos`。
 
 如果自动 collector 因 Xcode/ADB 工具链问题失败，但现场已经从 Xcode Console、Android Studio、系统录屏或手动文件拿到了日志和媒体，可用优先证据导入入口：
 
