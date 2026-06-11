@@ -144,6 +144,16 @@ function inspectExport(root, targetName = "") {
 		allText.includes("Metal.framework"),
 		"Exported Xcode project should link Metal.framework."
 	);
+	if (targetName) {
+		const escapedTarget = escapeRegex(targetName);
+		const hiddenTargetPath = new RegExp(`path\\s*=\\s*"\\.${escapedTarget}(?:/|\\.tmp-)`);
+		if (hiddenTargetPath.test(allText)) {
+			failures.push(`Exported Xcode project still references a hidden temporary project path for ${targetName}; rerun tools/c00/export_with_godot.sh with the current atomic export fix.`);
+		}
+	}
+	if (/path\s*=\s*"\.[^"]+\.tmp-\d+/.test(allText)) {
+		failures.push("Exported Xcode project still references an atomic temporary export path.");
+	}
 
 	if (!plistText.includes("NSCameraUsageDescription")) {
 		failures.push("Exported Info.plist should include NSCameraUsageDescription.");
@@ -260,6 +270,11 @@ function textHits(textByFile, needle, root) {
 		}
 	}
 	return hits;
+}
+
+
+function escapeRegex(text) {
+	return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 

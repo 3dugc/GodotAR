@@ -106,6 +106,32 @@ cleanup_project_only_export_stem() {
 	rm -f "$stem.pck"
 }
 
+cleanup_stale_atomic_project_only_exports() {
+	local dir="$1"
+	local stem="$2"
+	local stale
+	if [ -z "$dir" ] || [ -z "$stem" ]; then
+		return
+	fi
+	for stale in "$dir/.$stem.tmp-"*; do
+		if [ ! -e "$stale" ]; then
+			continue
+		fi
+		case "$stale" in
+			*.xcodeproj|*.xcframework)
+				rm -rf "$stale"
+				;;
+			*)
+				if [ -d "$stale" ]; then
+					rm -rf "$stale"
+				else
+					rm -f "$stale"
+				fi
+				;;
+		esac
+	done
+}
+
 has_project_only_ios_export() {
 	local path="$1"
 	local stem
@@ -243,9 +269,11 @@ if [ "${C00_ATOMIC_EXPORT:-1}" != "0" ]; then
 			EXPORT_TMP="$export_dir/.${export_stem}.tmp-$$.${export_ext}"
 			;;
 		*)
+			export_stem="$export_name"
 			EXPORT_TMP="$export_dir/.${export_name}.tmp-$$"
 			;;
 	esac
+	cleanup_stale_atomic_project_only_exports "$export_dir" "$export_stem"
 	rm -f "$EXPORT_TMP"
 	if tmp_project_stem="$(project_only_stem_for_zip "$EXPORT_TMP")"; then
 		cleanup_project_only_export_stem "$tmp_project_stem"

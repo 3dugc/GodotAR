@@ -135,6 +135,13 @@ if (failures.length === 0) {
 		"rewrite_project_only_export_name",
 		"hidden_short_name",
 		"old_name%%.tmp-*",
+		"cleanup_stale_atomic_project_only_exports",
+	]);
+
+	requireContains("tools/c00/check_ios_export_project.js", [
+		"hidden temporary project path",
+		"atomic temporary export path",
+		"escapeRegex",
 	]);
 
 	requireContains("tools/c00/validate_smoke_log.js", [
