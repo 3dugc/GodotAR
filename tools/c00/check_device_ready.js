@@ -14,7 +14,7 @@ if (args.help || args.h) {
 }
 
 const gate = String(args.gate || "all").toLowerCase();
-const device = String(args.device || process.env.DEVICE || "");
+const requestedDevice = String(args.device || process.env.DEVICE || "");
 const packageName = String(args.package || process.env.PACKAGE || "org.godotengine.godotxrfoundation");
 const reportPath = args.report ? path.resolve(String(args.report)) : "";
 const jsonPath = args.json ? path.resolve(String(args.json)) : "";
@@ -112,15 +112,23 @@ function checkAndroidReady(gateName) {
 function checkIpadReady() {
 	const failures = [];
 	const warnings = [];
-	if (!device) {
+	const resolvedDevice = resolveIpadDevice(requestedDevice);
+	for (const warning of resolvedDevice.warnings || []) {
+		warnings.push(warning);
+	}
+	if (!resolvedDevice.device) {
 		return {
 			gate: "ipad",
 			pass: false,
-			failures: ["iPad device name or identifier is required. Pass --device <name-or-uuid> or set DEVICE."],
+			failures: [resolvedDevice.failure || "iPad device name or identifier is required. Pass --device <name-or-uuid> or set DEVICE."],
 			warnings,
-			evidence: {},
+			next_actions: resolvedDevice.next_actions || [],
+			evidence: {
+				auto_discovery: resolvedDevice.evidence || {},
+			},
 		};
 	}
+	const device = resolvedDevice.device;
 
 	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "godotar-ipad-ready-"));
 	const profileJsonPath = path.join(tempDir, "ipad-device.json");
@@ -171,10 +179,102 @@ function checkIpadReady() {
 		next_actions: ipadReadinessNextActions({ device, profile, analysis, hostPermissionBlocked }),
 		evidence: {
 			device,
+			device_selection: {
+				source: resolvedDevice.source,
+				requested_device: requestedDevice,
+				selected_device: device,
+				auto_discovery: resolvedDevice.evidence || {},
+			},
 			host_permission_blocked: hostPermissionBlocked,
 			profile: summarizeIpadProfile(profile),
 			analysis: analysis.evidence || {},
 		},
+	};
+}
+
+
+function resolveIpadDevice(explicitDevice) {
+	if (explicitDevice) {
+		return {
+			device: explicitDevice,
+			source: "explicit",
+			warnings: [],
+			next_actions: [],
+			evidence: {},
+		};
+	}
+	const discovery = discoverIpadDevices();
+	if (discovery.host_permission_blocked) {
+		return {
+			device: "",
+			source: "auto-devicectl",
+			failure: "iPad device name or identifier is required, and automatic iPad discovery was blocked by host permissions.",
+			warnings: [],
+			next_actions: [
+				"Run the readiness command from a normal macOS terminal or an approved unsandboxed Codex command so devicectl can access CoreDevice services.",
+				"Or pass --device <name-or-uuid> explicitly if you want to bypass auto-discovery.",
+			],
+			evidence: discovery,
+		};
+	}
+	if (!discovery.command || discovery.command.ok === false) {
+		return {
+			device: "",
+			source: "auto-devicectl",
+			failure: "iPad device name or identifier is required, and automatic iPad discovery failed.",
+			warnings: discovery.command ? [`devicectl list devices failed during auto-discovery: ${discovery.command.stderr || discovery.command.stdout || discovery.command.error || "unknown error"}`] : [],
+			next_actions: [
+				"Pass --device <name-or-uuid> or set DEVICE to the iPad name/identifier printed by `xcrun devicectl list devices`.",
+				"Reconnect and unlock the iPad, trust this Mac, then retry readiness.",
+			],
+			evidence: discovery,
+		};
+	}
+	if (discovery.ipads.length === 1) {
+		return {
+			device: discovery.ipads[0].name || discovery.ipads[0].identifier,
+			source: "auto-devicectl",
+			warnings: [`Auto-selected iPad device '${discovery.ipads[0].name || discovery.ipads[0].identifier}' from devicectl list devices.`],
+			next_actions: [],
+			evidence: discovery,
+		};
+	}
+	if (discovery.ipads.length > 1) {
+		return {
+			device: "",
+			source: "auto-devicectl",
+			failure: "Multiple iPad devices were visible; pass --device <name-or-uuid> so the ARKit gate uses the intended device.",
+			warnings: [],
+			next_actions: discovery.ipads.map((item) => `Candidate: ${item.name || "unnamed"} (${item.identifier || "no identifier"}) state=${item.state || "unknown"}`),
+			evidence: discovery,
+		};
+	}
+	return {
+		device: "",
+		source: "auto-devicectl",
+		failure: "No iPad device was visible to devicectl auto-discovery. Pass --device once the iPad appears, or reconnect/unlock/trust the iPad.",
+		warnings: [],
+		next_actions: [
+			"Connect the iPad over USB-C, unlock it, keep the screen awake, and accept any Trust This Computer prompt.",
+			"Run `xcrun devicectl list devices` and confirm the iPad appears before rerunning readiness.",
+		],
+		evidence: discovery,
+	};
+}
+
+
+function discoverIpadDevices() {
+	const command = run("xcrun", ["devicectl", "list", "devices"]);
+	const text = [command.stdout, command.stderr].filter(Boolean).join("\n");
+	const devices = parseDevicectlDeviceTable(command.stdout);
+	const ipads = devices.filter((item) => /ipad/i.test([item.name, item.model].join(" ")));
+	return {
+		command: commandSummary(command),
+		host_permission_blocked: isDefiniteIpadHostPermissionBlocked(text),
+		device_count: devices.length,
+		ipad_count: ipads.length,
+		devices,
+		ipads,
 	};
 }
 
@@ -418,6 +518,37 @@ function parseAdbDevices(text) {
 			serial: columns[0],
 			state: columns[1],
 			details: columns.slice(2),
+		});
+	}
+	return devices;
+}
+
+
+function parseDevicectlDeviceTable(text) {
+	const devices = [];
+	let sawDivider = false;
+	for (const line of String(text || "").split(/\r?\n/)) {
+		const trimmed = line.trim();
+		if (!trimmed || /^Name\s+Hostname\s+Identifier\s+State\s+Model/i.test(trimmed)) {
+			continue;
+		}
+		if (/^-+\s+-+\s+-+\s+-+\s+-+/.test(trimmed)) {
+			sawDivider = true;
+			continue;
+		}
+		if (!sawDivider) {
+			continue;
+		}
+		const columns = trimmed.split(/\s{2,}/);
+		if (columns.length < 4) {
+			continue;
+		}
+		devices.push({
+			name: columns[0] || "",
+			hostname: columns[1] || "",
+			identifier: columns[2] || "",
+			state: columns[3] || "",
+			model: columns.slice(4).join(" ") || "",
 		});
 	}
 	return devices;

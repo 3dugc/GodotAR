@@ -16,6 +16,9 @@ const checks = [
 		requirements: [
 			["ADB device state readiness", /state 'device'/],
 			["iPad availability readiness", /not offline or unavailable/],
+			["iPad automatic discovery", /resolveIpadDevice/],
+			["devicectl device table parser", /parseDevicectlDeviceTable/],
+			["auto-selected iPad warning", /Auto-selected iPad device/],
 			["iPad profile analyzer", /analyze_ios_device_profile\.js/],
 			["xctrace evidence summary", /xctrace_devices/],
 			["Android parsed devices", /parseAdbDevices/],

@@ -96,6 +96,7 @@ tools/c00/wait_for_device_ready.sh --gate ipad --device "iPad M4" --timeout 300
 ```
 
 Rokid/Android readiness 要求 `adb devices -l` 至少有一个 `device` 状态的已授权设备。iPad readiness 会采集 devicectl/xctrace device profile，并要求目标 iPad 不处于 `offline` / `unavailable` 状态；目标 bundle 尚未安装只会作为等待阶段 warning，因为真正安装发生在 device gate 内。
+如果现场只有一台 iPad，`check_device_ready.js --gate all` 和 iPad readiness 可以省略 `--device`，脚本会从 `xcrun devicectl list devices` 自动选择唯一 iPad 并把选择证据写入报告；如果出现多台 iPad，仍需显式传 `--device <name-or-uuid>`。
 
 设备 ready 后也可以自动进入 spec gate：
 
