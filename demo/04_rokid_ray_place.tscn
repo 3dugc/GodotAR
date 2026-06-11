@@ -92,6 +92,7 @@ enabled = true
 target_position = Vector3(0.42, -0.18, -1.55)
 script = ExtResource("7_xri_ray")
 interaction_manager_path = NodePath("../../../XRInteractionManager")
+ar_raycast_manager_path = NodePath("../../../ARRaycastManager")
 max_raycast_distance = 2.0
 
 [node name="ARRaycastManager" type="Node" parent="."]

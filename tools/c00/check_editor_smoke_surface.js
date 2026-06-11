@@ -19,6 +19,8 @@ const requirements = [
 	["headless argument assembly", /GODOT_ARGS=\(--headless "\$\{GODOT_ARGS\[@\]\}"\)/],
 	["xr-mode argument assembly", /GODOT_ARGS\+=\(--xr-mode "\$EDITOR_XR_MODE"\)/],
 	["simulator platform argument", /"--xr-platform=\$\{EDITOR_XR_PLATFORM\}"/],
+	["project-local Godot log path", /GODOT_LOG_PATH="\$OUT_DIR\/editor-\$\{STAMP\}\.godot\.log"/],
+	["explicit Godot log-file argument", /--log-file "\$GODOT_LOG_PATH"/],
 ];
 
 const failures = [];

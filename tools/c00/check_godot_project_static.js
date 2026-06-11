@@ -60,6 +60,7 @@ checkScene("demo/00_device_smoke_test.tscn", {
 		{ node: "DeviceSmokeTest/ARAnchorManager", property: "anchors_parent_path", target: "DeviceSmokeTest/XRFoundationRig" },
 		{ node: "DeviceSmokeTest/ARCameraManager", property: "camera_path", target: "DeviceSmokeTest/XRFoundationRig/XRCamera3D" },
 		{ node: "DeviceSmokeTest/XRFoundationRig/XRCamera3D/XRRayInteractor", property: "interaction_manager_path", target: "DeviceSmokeTest/XRInteractionManager" },
+		{ node: "DeviceSmokeTest/XRFoundationRig/XRCamera3D/XRRayInteractor", property: "ar_raycast_manager_path", target: "DeviceSmokeTest/ARRaycastManager" },
 		{ node: "DeviceSmokeTest/World/XRGrabInteractable", property: "interaction_manager_path", target: "DeviceSmokeTest/XRInteractionManager" },
 	],
 });

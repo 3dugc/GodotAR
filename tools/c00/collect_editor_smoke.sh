@@ -12,6 +12,7 @@ DEFAULT_GODOT_BIN="$PROJECT_ROOT/.godot/cache/c00/godot-editor/Godot.app/Content
 STAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="$PROJECT_ROOT/releases/phase_0_smoke/evidence"
 LOG_PATH="$OUT_DIR/editor-${STAMP}.log"
+GODOT_LOG_PATH="$OUT_DIR/editor-${STAMP}.godot.log"
 REPORT_PATH="$OUT_DIR/editor-${STAMP}.md"
 
 mkdir -p "$OUT_DIR"
@@ -29,7 +30,7 @@ if [ -z "$GODOT" ] || [ ! -x "$GODOT" ]; then
 	exit 2
 fi
 
-GODOT_ARGS=(--path "$PROJECT_ROOT" "--xr-platform=${EDITOR_XR_PLATFORM}")
+GODOT_ARGS=(--path "$PROJECT_ROOT" --log-file "$GODOT_LOG_PATH" "--xr-platform=${EDITOR_XR_PLATFORM}")
 if [[ "$EDITOR_HEADLESS" != "0" ]]; then
 	GODOT_ARGS=(--headless "${GODOT_ARGS[@]}")
 fi
@@ -45,6 +46,7 @@ fi
 echo "Launching Godot editor simulator for ${DURATION}s -> $LOG_PATH"
 echo "Godot: $GODOT"
 echo "Args: ${GODOT_ARGS[*]}"
+echo "Godot log: $GODOT_LOG_PATH"
 "$GODOT" "${GODOT_ARGS[@]}" > "$LOG_PATH" 2>&1 &
 GODOT_PID="$!"
 

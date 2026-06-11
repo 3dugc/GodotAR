@@ -25,7 +25,9 @@ signal lastSelectExited(target: XRGrabInteractable)
 @export var select_action: StringName = &"xr_select"
 @export var activate_action: StringName = &"xr_activate"
 @export var interaction_manager_path: NodePath
+@export var ar_raycast_manager_path: NodePath
 @export var max_raycast_distance := 10.0
+@export var ar_trackable_types := XRFoundationTypes.TRACKABLE_TYPE_PLANES
 @export var keep_selected_target_valid := true
 @export var enable_interaction_with_ui_gameobjects := false
 @export var auto_force_update := true
@@ -132,30 +134,55 @@ func deactivate() -> bool:
 	return true
 
 
-func TryGetCurrent3DRaycastHit(result: Variant = null) -> Variant:
+func TryGetCurrent3DRaycastHit(result: Variant = null, raycast_endpoint_index: Array = []) -> Variant:
 	var hit := _current_3d_raycast_hit()
 	if result is Array:
 		result.clear()
+		raycast_endpoint_index.clear()
 		if bool(hit.get("success", false)):
 			result.append(hit)
+			raycast_endpoint_index.append(int(hit.get("raycastEndpointIndex", 0)))
 			return true
 		return false
 	return hit
 
 
-func TryGetCurrentRaycast(raycast_hit: Array = [], raycast_hit_index: Array = [], ui_raycast_hit: Array = [], ui_raycast_hit_index: Array = [], is_ui_hit_closest: Array = []) -> bool:
+func TryGetCurrentARRaycastHit(result: Array = [], raycast_endpoint_index: Array = []) -> bool:
+	var hit := _current_ar_raycast_hit()
+	result.clear()
+	raycast_endpoint_index.clear()
+	if not bool(hit.get("success", false)):
+		return false
+	result.append(hit)
+	raycast_endpoint_index.append(int(hit.get("raycastEndpointIndex", 0)))
+	return true
+
+
+func TryGetCurrentRaycast(raycast_hit: Array = [], raycast_hit_index: Array = [], ui_raycast_hit: Array = [], ui_raycast_hit_index: Array = [], is_ui_hit_closest: Array = [], ar_raycast_hit: Array = [], ar_raycast_hit_index: Array = [], is_ar_hit_closest: Array = []) -> bool:
 	var hit := _current_3d_raycast_hit()
+	var ar_hit := _current_ar_raycast_hit()
+	var has_3d := bool(hit.get("success", false))
+	var has_ar := bool(ar_hit.get("success", false))
 	raycast_hit.clear()
 	raycast_hit_index.clear()
 	ui_raycast_hit.clear()
 	ui_raycast_hit_index.clear()
 	is_ui_hit_closest.clear()
-	if not bool(hit.get("success", false)):
+	ar_raycast_hit.clear()
+	ar_raycast_hit_index.clear()
+	is_ar_hit_closest.clear()
+	if not has_3d and not has_ar:
 		is_ui_hit_closest.append(false)
+		is_ar_hit_closest.append(false)
 		return false
-	raycast_hit.append(hit)
-	raycast_hit_index.append(0)
+	if has_3d:
+		raycast_hit.append(hit)
+		raycast_hit_index.append(int(hit.get("raycastEndpointIndex", 0)))
+	if has_ar:
+		ar_raycast_hit.append(ar_hit)
+		ar_raycast_hit_index.append(int(ar_hit.get("raycastEndpointIndex", 0)))
 	is_ui_hit_closest.append(false)
+	is_ar_hit_closest.append(_is_ar_hit_closest(hit, ar_hit))
 	return true
 
 
@@ -169,16 +196,88 @@ func GetCurrent3DRaycastHit() -> Dictionary:
 	return _current_3d_raycast_hit()
 
 
+func GetCurrentARRaycastHit() -> Dictionary:
+	return _current_ar_raycast_hit()
+
+
+func TryGetHitInfo(position: Array = [], normal: Array = [], position_in_line: Array = [], is_valid_target: Array = []) -> bool:
+	var hit := _current_3d_raycast_hit()
+	if not bool(hit.get("success", false)):
+		hit = _current_ar_raycast_hit()
+	position.clear()
+	normal.clear()
+	position_in_line.clear()
+	is_valid_target.clear()
+	if not bool(hit.get("success", false)):
+		is_valid_target.append(false)
+		return false
+	position.append(hit.get("position", Vector3.ZERO))
+	normal.append(hit.get("normal", Vector3.UP))
+	position_in_line.append(int(hit.get("raycastEndpointIndex", 0)))
+	is_valid_target.append(true)
+	return true
+
+
+func IsOverUIGameObject() -> bool:
+	return false
+
+
 func _current_3d_raycast_hit() -> Dictionary:
 	if not is_colliding():
 		return {"success": false}
+	var position := get_collision_point()
 	return {
 		"success": true,
 		"collider": get_collider(),
-		"position": get_collision_point(),
+		"position": position,
 		"normal": get_collision_normal(),
+		"distance": global_transform.origin.distance_to(position),
+		"raycastEndpointIndex": 0,
+		"source": "3d",
 		"interactable": _find_interactable(get_collider()),
 	}
+
+
+func _current_ar_raycast_hit() -> Dictionary:
+	var manager := _resolve_ar_raycast_manager()
+	if manager == null:
+		return {"success": false, "source": "ar"}
+	var results: Array = []
+	var ray := {
+		"origin": global_transform.origin,
+		"direction": _ray_direction_world(),
+	}
+	if not bool(manager.Raycast(ray, results, ar_trackable_types)):
+		return {"success": false, "source": "ar"}
+	if results.is_empty():
+		return {"success": false, "source": "ar"}
+	var raw_hit: Variant = results[0]
+	var hit := {}
+	if raw_hit is XRHit:
+		hit = raw_hit.to_dictionary()
+	elif raw_hit is Dictionary:
+		hit = raw_hit.duplicate()
+	else:
+		return {"success": false, "source": "ar"}
+	hit["success"] = true
+	hit["source"] = "ar"
+	hit["raycastEndpointIndex"] = int(hit.get("raycastEndpointIndex", 0))
+	return hit
+
+
+func _ray_direction_world() -> Vector3:
+	var local_direction := target_position.normalized()
+	if local_direction == Vector3.ZERO:
+		local_direction = Vector3.FORWARD
+	return (global_transform.basis * local_direction).normalized()
+
+
+func _is_ar_hit_closest(hit: Dictionary, ar_hit: Dictionary) -> bool:
+	if not bool(ar_hit.get("success", false)):
+		return false
+	if not bool(hit.get("success", false)):
+		return true
+	return float(ar_hit.get("distance", INF)) <= float(hit.get("distance", INF))
 
 
 func GetValidTargets(results: Array = []) -> Array:
@@ -208,6 +307,29 @@ func _resolve_interaction_manager() -> XRInteractionManager:
 	var root := get_tree().current_scene if get_tree() else null
 	if root:
 		var found := _find_manager_in_tree(root)
+		if found:
+			return found
+	return null
+
+
+func _resolve_ar_raycast_manager() -> ARRaycastManager:
+	if ar_raycast_manager_path != NodePath():
+		var manager := get_node_or_null(ar_raycast_manager_path)
+		if manager is ARRaycastManager:
+			return manager
+	var root := get_tree().current_scene if get_tree() else null
+	if root:
+		var found := _find_ar_raycast_manager_in_tree(root)
+		if found:
+			return found
+	return null
+
+
+func _find_ar_raycast_manager_in_tree(node: Node) -> ARRaycastManager:
+	if node is ARRaycastManager:
+		return node
+	for child in node.get_children():
+		var found := _find_ar_raycast_manager_in_tree(child)
 		if found:
 			return found
 	return null

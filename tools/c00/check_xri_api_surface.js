@@ -49,14 +49,22 @@ const checks = [
 		requirements: [
 			["XRRayInteractor class", /class_name\s+XRRayInteractor/],
 			["interaction manager path", /interaction_manager_path/],
+			["AR raycast manager path", /ar_raycast_manager_path/],
 			["max raycast distance", /max_raycast_distance/],
+			["AR trackable type mask", /ar_trackable_types/],
 			["keep selected target valid", /keep_selected_target_valid/],
 			["valid target API", /func\s+GetValidTargets\s*\(/],
 			["raycast hit API", /func\s+TryGetCurrent3DRaycastHit\s*\(/],
 			["raycast hit Array output compatibility", /result\s+is\s+Array/],
+			["AR raycast hit API", /func\s+TryGetCurrentARRaycastHit\s*\(/],
+			["current AR hit getter", /func\s+GetCurrentARRaycastHit\s*\(/],
 			["current raycast API", /func\s+TryGetCurrentRaycast\s*\(/],
+			["current raycast AR output", /ar_raycast_hit/],
 			["current UI raycast API", /func\s+TryGetCurrentUIRaycastResult\s*\(/],
 			["current 3D hit getter", /func\s+GetCurrent3DRaycastHit\s*\(/],
+			["hit info API", /func\s+TryGetHitInfo\s*\(/],
+			["UI hover API", /func\s+IsOverUIGameObject\s*\(/],
+			["AR manager resolver", /func\s+_resolve_ar_raycast_manager\s*\(/],
 			["Unity hoverEntered signal", /signal\s+hoverEntered\s*\(/],
 			["Unity selectEntered signal", /signal\s+selectEntered\s*\(/],
 			["Unity firstSelectEntered signal", /signal\s+firstSelectEntered\s*\(/],
@@ -89,6 +97,7 @@ const checks = [
 			["XRI manager in smoke scene", /XRInteractionManager/],
 			["XRI ray interactor in smoke scene", /XRRayInteractor/],
 			["XRI interactable in smoke scene", /XRGrabInteractable/],
+			["XRI AR raycast manager path in smoke scene", /ar_raycast_manager_path\s*=\s*NodePath\("\.\.\/\.\.\/\.\.\/ARRaycastManager"\)/],
 		],
 	},
 	{
@@ -96,7 +105,23 @@ const checks = [
 		requirements: [
 			["XRI smoke fields", /xri_hover_count/],
 			["XRI smoke log payload", /"xri"/],
+			["XRI AR ray smoke payload", /"ar_ray_hit"/],
 			["XRI status panel", /"XRI:/],
+		],
+	},
+	{
+		file: "demo/04_rokid_ray_place.tscn",
+		requirements: [
+			["Rokid XRI AR raycast manager path", /ar_raycast_manager_path\s*=\s*NodePath\("\.\.\/\.\.\/\.\.\/ARRaycastManager"\)/],
+		],
+	},
+	{
+		file: "MIGRATION_UNITY.md",
+		requirements: [
+			["XRI 3.5.1 XRRayInteractor reference", /com\.unity\.xr\.interaction\.toolkit%403\.5\/api\/UnityEngine\.XR\.Interaction\.Toolkit\.Interactors\.XRRayInteractor\.html/],
+			["TryGetCurrentARRaycastHit migration row", /XRRayInteractor\.TryGetCurrentARRaycastHit/],
+			["TryGetCurrentRaycast AR output migration", /ar_raycast_hit,\s*ar_raycast_hit_index,\s*is_ar_hit_closest/],
+			["TryGetHitInfo migration row", /XRRayInteractor\.TryGetHitInfo/],
 		],
 	},
 ];

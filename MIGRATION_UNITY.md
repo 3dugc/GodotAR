@@ -90,7 +90,9 @@ Godot's `XROrigin3D` remains the low-level tracking-space root. `addons/godot_xr
 | `XRRayInteractor` | `XRRayInteractor` |
 | `XRGrabInteractable` | `XRGrabInteractable` |
 | `XRRayInteractor.TryGetCurrent3DRaycastHit(out RaycastHit)` | `XRRayInteractor.TryGetCurrent3DRaycastHit(result_array)` fills the array and returns `bool`; calling without arguments still returns a Dictionary |
-| `XRRayInteractor.TryGetCurrentRaycast(...)` | `XRRayInteractor.TryGetCurrentRaycast(raycast_hit, raycast_hit_index, ui_raycast_hit, ui_raycast_hit_index, is_ui_hit_closest)` fills arrays and reports `bool` |
+| `XRRayInteractor.TryGetCurrentARRaycastHit(out ARRaycastHit)` | `XRRayInteractor.TryGetCurrentARRaycastHit(result_array, endpoint_index_array)` bridges to `ARRaycastManager` via `ar_raycast_manager_path` or scene auto-discovery |
+| `XRRayInteractor.TryGetCurrentRaycast(...)` | `XRRayInteractor.TryGetCurrentRaycast(raycast_hit, raycast_hit_index, ui_raycast_hit, ui_raycast_hit_index, is_ui_hit_closest, ar_raycast_hit, ar_raycast_hit_index, is_ar_hit_closest)` fills arrays and reports `bool` |
+| `XRRayInteractor.TryGetHitInfo(...)` | `XRRayInteractor.TryGetHitInfo(position_array, normal_array, position_in_line_array, is_valid_target_array)` reports the current 3D or AR hit |
 | `XRRayInteractor.TryGetCurrentUIRaycastResult(out RaycastResult)` | `XRRayInteractor.TryGetCurrentUIRaycastResult(result_array, endpoint_index_array)` currently returns `false` until Godot UI hit bridging is implemented |
 | `hoverEntered` / `hoverExited` | XRI-style camelCase signals are emitted alongside Godot snake_case `hover_entered` / `hover_exited` |
 | `selectEntered` / `selectExited` | XRI-style camelCase signals are emitted alongside `select_entered` / `select_exited`; `firstSelectEntered` and `lastSelectExited` are also emitted for single-select migration |
@@ -125,7 +127,7 @@ This check is meant to run in CI or on a device machine before the real iPad/Rok
 C00 includes a thin XRI-style interaction smoke layer so Unity services that assume XRI concepts have a stable landing point before full interaction features are implemented.
 
 - `XRInteractionManager` centrally registers interactors/interactables and dispatches hover/select/activate transitions.
-- `XRRayInteractor` exposes `GetValidTargets(...)`, `TryGetCurrent3DRaycastHit()`, `TryGetCurrentRaycast(...)`, `TryGetCurrentUIRaycastResult(...)`, `select()`, `release()`, `activate()`, and `deactivate()`. The out-parameter style methods use caller-provided arrays so Unity services can keep a similar control flow after porting to GDScript.
+- `XRRayInteractor` exposes `GetValidTargets(...)`, `TryGetCurrent3DRaycastHit()`, `TryGetCurrentARRaycastHit()`, `TryGetCurrentRaycast(...)`, `TryGetHitInfo(...)`, `TryGetCurrentUIRaycastResult(...)`, `select()`, `release()`, `activate()`, and `deactivate()`. The out-parameter style methods use caller-provided arrays so Unity services can keep a similar control flow after porting to GDScript.
 - `XRRayInteractor`, `XRGrabInteractable`, and `XRInteractionManager` emit both Godot-style snake_case signals and Unity XRI-style camelCase signals such as `hoverEntered`, `selectEntered`, `firstSelectEntered`, `lastSelectExited`, `activated`, and `deactivated`.
 - `XRGrabInteractable` exposes XRI-style hover/select/activate events plus `IsHovered()` and `IsSelected()`.
 - `XRInputProfile` exposes a small capability-derived descriptor for gaze/ray/controller modes, so OpenXR device demos can report the intended XRI selection path before full controller profile bindings are implemented.
@@ -254,7 +256,6 @@ The provider layer in this addon is designed so those features can be added per 
 - Apple ARKit `ARCamera`: https://developer.apple.com/documentation/arkit/arcamera
 - Apple ARKit `ARFrame.lightEstimate`: https://developer.apple.com/documentation/arkit/arframe/lightestimate
 - Unity AR Foundation 6 `ARPlaneManager.trackablesChanged`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.0/manual/features/plane-detection/arplanemanager.html
-- Unity AR Foundation 6.4 `ARRaycastManager`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.4/api/UnityEngine.XR.ARFoundation.ARRaycastManager.html
+- Unity AR Foundation 6.5 `ARRaycastManager`: https://docs.unity3d.com/Packages/com.unity.xr.arfoundation%406.5/api/UnityEngine.XR.ARFoundation.ARRaycastManager.html
 - Unity AR Foundation 6 `ARAnchorManager.AttachAnchor` / `TryAddAnchorAsync`: https://docs.unity.cn/Packages/com.unity.xr.arfoundation%406.1/api/UnityEngine.XR.ARFoundation.ARAnchorManager.html
-- Unity XR Interaction Toolkit `XRRayInteractor`: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%402.5/manual/xr-ray-interactor.html
-- Unity XR Interaction Toolkit `TryGetCurrent3DRaycastHit`: https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit%401.0/api/UnityEngine.XR.Interaction.Toolkit.XRRayInteractor.html
+- Unity XR Interaction Toolkit 3.5.1 `XRRayInteractor`: https://docs.unity3d.com/Packages/com.unity.xr.interaction.toolkit%403.5/api/UnityEngine.XR.Interaction.Toolkit.Interactors.XRRayInteractor.html

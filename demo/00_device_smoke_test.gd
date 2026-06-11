@@ -200,10 +200,15 @@ func _runtime_metadata() -> Dictionary:
 
 func _xri_metadata() -> Dictionary:
 	var raycast: Dictionary = {"success": false}
+	var ar_raycast: Dictionary = {"success": false}
 	if xri_ray_interactor:
 		var raycast_result: Variant = xri_ray_interactor.TryGetCurrent3DRaycastHit()
 		if raycast_result is Dictionary:
 			raycast = raycast_result
+		if xri_ray_interactor.has_method("GetCurrentARRaycastHit"):
+			var ar_raycast_result: Variant = xri_ray_interactor.GetCurrentARRaycastHit()
+			if ar_raycast_result is Dictionary:
+				ar_raycast = ar_raycast_result
 	return {
 		"interaction_manager": xri_interaction_manager != null,
 		"ray_interactor": xri_ray_interactor != null,
@@ -215,6 +220,7 @@ func _xri_metadata() -> Dictionary:
 		"active_hover": xri_active_hover,
 		"active_selection": xri_active_selection,
 		"ray_hit": bool(raycast.get("success", false)),
+		"ar_ray_hit": bool(ar_raycast.get("success", false)),
 	}
 
 
