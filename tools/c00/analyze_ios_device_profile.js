@@ -162,10 +162,11 @@ function iosNextActions(context) {
 		actions.push("Reconnect the iPad over USB-C, unlock it, keep the screen awake, and accept any Trust This Computer prompt.");
 		actions.push("Open Xcode Devices and Simulators once to let CoreDevice finish pairing and developer service setup.");
 	}
-	if (selectedDevice.ddiServicesAvailable === false) {
+	if (deviceProperty(selectedDevice, "ddiServicesAvailable") === false) {
 		actions.push(buildDdiServicesAction(profile, selectedDevice));
 	}
-	if (selectedDevice.developerModeStatus && String(selectedDevice.developerModeStatus).toLowerCase() !== "enabled") {
+	const developerModeStatus = deviceProperty(selectedDevice, "developerModeStatus");
+	if (developerModeStatus && String(developerModeStatus).toLowerCase() !== "enabled") {
 		actions.push("Enable Developer Mode on the iPad and reboot when prompted.");
 	}
 	if (context.lockState === "locked") {
@@ -183,11 +184,11 @@ function iosNextActions(context) {
 
 function buildDdiServicesAction(profile, selectedDevice) {
 	const host = summarizeHost(profile.host || {}, profile.commands || {});
-	const deviceVersion = selectedDevice.osVersionNumber || selectedDevice.osVersion || selectedDevice.productVersion || "";
+	const deviceVersion = deviceProperty(selectedDevice, "osVersionNumber") || deviceProperty(selectedDevice, "osVersion") || deviceProperty(selectedDevice, "productVersion") || "";
 	const xcodeVersion = host.xcode || "unknown";
 	const iphoneosSdk = host.iphoneos_sdk_version || "unknown";
 	const sdkHint = compareMajorMinor(deviceVersion, iphoneosSdk);
-	const deviceArg = shellQuote(profile.device || selectedDevice.identifier || selectedDevice.name || "iPad");
+	const deviceArg = shellQuote(profile.device || deviceProperty(selectedDevice, "identifier") || deviceProperty(selectedDevice, "name") || "iPad");
 	let action = `Xcode reports ddiServicesAvailable=false for iPadOS ${deviceVersion || "unknown"}; host Xcode=${xcodeVersion}, iphoneos SDK=${iphoneosSdk}. Open Xcode Devices and Simulators, install/update matching iPadOS device support, then reconnect the iPad. To force CoreDevice to mount/update DDI from terminal, run \`xcrun devicectl device info ddiServices --device ${deviceArg} --auto-mount-ddis\` after the iPad is unlocked and trusted.`;
 	if (sdkHint === "device-newer") {
 		action += " The iPadOS version appears newer than the host iphoneos SDK, so install a newer Xcode/Xcode beta or update the host SDK line.";
@@ -321,11 +322,11 @@ function matchingDeviceLines(profile) {
 	const commands = profile.commands || {};
 	const tokens = [
 		profile.device,
-		profile.selected_device && profile.selected_device.name,
-		profile.selected_device && profile.selected_device.identifier,
-		profile.selected_device && profile.selected_device.udid,
-		profile.selected_device && profile.selected_device.serialNumber,
-		profile.selected_device && profile.selected_device.serial_number,
+		deviceProperty(profile.selected_device, "name"),
+		deviceProperty(profile.selected_device, "identifier"),
+		deviceProperty(profile.selected_device, "udid"),
+		deviceProperty(profile.selected_device, "serialNumber"),
+		deviceProperty(profile.selected_device, "serial_number"),
 	].map(normalizeToken).filter(Boolean);
 	const texts = [
 		commands.list_devices ? `${commands.list_devices.stdout || ""}\n${commands.list_devices.stderr || ""}\n${commands.list_devices.log || ""}` : "",
@@ -375,13 +376,30 @@ function summarizeDevice(device) {
 		return "unknown";
 	}
 	return [
-		device.name,
-		device.identifier,
-		device.udid,
-		device.serialNumber,
-		device.serial_number,
-		device.model,
+		deviceProperty(device, "name"),
+		deviceProperty(device, "identifier"),
+		deviceProperty(device, "udid"),
+		deviceProperty(device, "serialNumber"),
+		deviceProperty(device, "serial_number"),
+		deviceProperty(device, "model") || deviceProperty(device, "marketingName") || deviceProperty(device, "productType"),
 	].filter(Boolean).join(" / ") || "unknown";
+}
+
+
+function deviceProperty(device, key) {
+	if (!device || typeof device !== "object") {
+		return "";
+	}
+	if (device[key] !== undefined && device[key] !== null && device[key] !== "") {
+		return device[key];
+	}
+	for (const groupKey of ["deviceProperties", "hardwareProperties", "connectionProperties"]) {
+		const group = device[groupKey];
+		if (group && typeof group === "object" && group[key] !== undefined && group[key] !== null && group[key] !== "") {
+			return group[key];
+		}
+	}
+	return "";
 }
 
 

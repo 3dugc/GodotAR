@@ -21,6 +21,9 @@ const checks = [
 			["allow missing target option", /allow-missing-target/],
 			["DDI services host toolchain action", /ddiServicesAvailable=false for iPadOS.*host Xcode=.*iphoneos SDK=/],
 			["DDI services auto-mount action", /device info ddiServices --device .*--auto-mount-ddis/],
+			["nested CoreDevice property helper", /function\s+deviceProperty\s*\(/],
+			["nested CoreDevice deviceProperties support", /deviceProperties/],
+			["nested CoreDevice hardwareProperties support", /hardwareProperties/],
 			["DDI services evidence", /ddi_services:\s*summarizeDdiServices/],
 			["host toolchain evidence", /host:\s*summarizeHost/],
 		],
@@ -67,6 +70,8 @@ const checks = [
 			["readiness DDI action", /ddiServicesAvailable=false for iPadOS.*host Xcode=.*iphoneos SDK=/],
 			["readiness DDI services summary", /ddi_services:\s*profile\.ddi_services\s*\|\|\s*commandSummary/],
 			["readiness DDI auto-mount action", /device info ddiServices --device .*--auto-mount-ddis/],
+			["readiness nested CoreDevice property helper", /function\s+ipadDeviceProperty\s*\(/],
+			["readiness nested CoreDevice deviceProperties support", /deviceProperties/],
 		],
 	},
 	{

@@ -435,10 +435,11 @@ function ipadReadinessNextActions(context) {
 		actions.push("Unlock the iPad, keep the screen awake, reconnect USB-C, and accept any Trust This Computer prompt.");
 		actions.push("Open Xcode Devices and Simulators once so CoreDevice can finish pairing and developer services setup.");
 	}
-	if (selectedDevice.ddiServicesAvailable === false) {
+	if (ipadDeviceProperty(selectedDevice, "ddiServicesAvailable") === false) {
 		actions.push(buildDdiServicesAction(profile, selectedDevice));
 	}
-	if (selectedDevice.developerModeStatus && String(selectedDevice.developerModeStatus).toLowerCase() !== "enabled") {
+	const developerModeStatus = ipadDeviceProperty(selectedDevice, "developerModeStatus");
+	if (developerModeStatus && String(developerModeStatus).toLowerCase() !== "enabled") {
 		actions.push("Enable Developer Mode on the iPad and reboot when iPadOS asks for it.");
 	}
 	if (evidence.lock_state === "locked") {
@@ -571,10 +572,10 @@ function summarizeIpadProfile(profile) {
 
 function buildDdiServicesAction(profile, selectedDevice) {
 	const host = profile.host || summarizeIpadHost(profile.commands || {});
-	const deviceVersion = selectedDevice.osVersionNumber || selectedDevice.osVersion || selectedDevice.productVersion || "";
+	const deviceVersion = ipadDeviceProperty(selectedDevice, "osVersionNumber") || ipadDeviceProperty(selectedDevice, "osVersion") || ipadDeviceProperty(selectedDevice, "productVersion") || "";
 	const xcodeVersion = host.xcode || "unknown";
 	const iphoneosSdk = host.iphoneos_sdk_version || "unknown";
-	const deviceArg = shellQuote(profile.device || selectedDevice.identifier || selectedDevice.name || "iPad");
+	const deviceArg = shellQuote(profile.device || ipadDeviceProperty(selectedDevice, "identifier") || ipadDeviceProperty(selectedDevice, "name") || "iPad");
 	let action = `Xcode reports ddiServicesAvailable=false for iPadOS ${deviceVersion || "unknown"}; host Xcode=${xcodeVersion}, iphoneos SDK=${iphoneosSdk}. Open Xcode Devices and Simulators, install/update matching iPadOS device support, then reconnect the iPad. To force CoreDevice to mount/update DDI from terminal, run \`xcrun devicectl device info ddiServices --device ${deviceArg} --auto-mount-ddis\` after the iPad is unlocked and trusted.`;
 	const sdkHint = compareMajorMinor(deviceVersion, iphoneosSdk);
 	if (sdkHint === "device-newer") {
@@ -667,6 +668,23 @@ function commandSummary(result) {
 		stdout: truncate(result.stdout || result.log || "", 1200),
 		stderr: truncate(result.stderr || "", 1200),
 	};
+}
+
+
+function ipadDeviceProperty(device, key) {
+	if (!device || typeof device !== "object") {
+		return "";
+	}
+	if (device[key] !== undefined && device[key] !== null && device[key] !== "") {
+		return device[key];
+	}
+	for (const groupKey of ["deviceProperties", "hardwareProperties", "connectionProperties"]) {
+		const group = device[groupKey];
+		if (group && typeof group === "object" && group[key] !== undefined && group[key] !== null && group[key] !== "") {
+			return group[key];
+		}
+	}
+	return "";
 }
 
 
