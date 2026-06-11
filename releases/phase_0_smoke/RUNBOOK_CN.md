@@ -123,7 +123,7 @@ tools/c00/wait_for_device_ready.sh --gate ipad --device "iPad M4" --timeout 300 
 ```
 
 Rokid/Android ready 条件是 ADB 出现 `device` 状态的已授权设备；iPad ready 条件是 devicectl/xctrace 不再显示 `offline` / `unavailable`。`--run-gate` 会在 ready 后调用 `tools/c00/run_device_cycle.sh`，并继续按本 runbook 的证据规则归档。
-如果现场只有一台 iPad，`check_device_ready.js --gate all` 和 iPad readiness 可以省略 `--device`，脚本会从 `xcrun devicectl list devices` 自动选择唯一 iPad 并把选择证据写入报告；如果出现多台 iPad，仍需显式传 `--device <name-or-uuid>`。
+如果现场只有一台 iPad，`check_device_ready.js --gate all` 和 iPad readiness 可以省略 `--device`，脚本会从 `xcrun devicectl list devices` 自动选择唯一 iPad 并把选择证据写入报告；`wait_for_device_ready.sh --run-gate` 和 `run_phase1_device_lab.sh --wait-devices` 会继续把该选择传给后续 iPad gate。若出现多台 iPad，仍需显式传 `--device <name-or-uuid>`。
 readiness 和 device profile 报告里的 `Next Actions` 是现场恢复清单：例如接入/授权 ADB、解锁并信任 iPad、打开 Xcode Devices and Simulators、处理 `ddiServicesAvailable=false` 或等待 gate 安装目标 app。iPad readiness 会同时记录 host Xcode 版本、build、`iphoneos` / `iphonesimulator` SDK 版本和只读 `DDI services` probe；如果 `ddiServicesAvailable=false`，优先用报告里的 iPadOS 与 Xcode/SDK 组合判断是否需要安装匹配设备支持包、更新 Xcode/Xcode beta，或更新 iPadOS。设备已解锁/信任后，可按报告命令运行 `xcrun devicectl device info ddiServices --device <device> --auto-mount-ddis` 触发 CoreDevice 挂载/更新 DDI。
 也可以运行 `node tools/c00/recover_ios_ddi_services.js` 进行 iPad DDI recovery；现场只有一台 iPad 时它会从 `xcrun devicectl list devices` 自动选择，多台 iPad 时再传 `--device "iPad M4"`。该工具会保存 auto-mount 前后 readiness、`devicectl` JSON/log、device selection 和 summary。若追加 `--run-gate`，它只会在恢复后 iPad readiness 通过时继续执行 iPad gate。
 Rokid/Android readiness 会记录 ADB 版本、Android SDK 环境、JAVA_HOME、PATH 中是否有 `adb`，并在 macOS 上尝试列出 USB 中疑似 Android/XR 的设备；如果 USB 能看到设备但 ADB 没有 transport，优先处理 USB debugging、RSA 授权和 USB 模式，而不是先重装 APK。

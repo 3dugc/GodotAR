@@ -61,6 +61,9 @@ const checks = [
 		file: "tools/c00/wait_for_device_ready.sh",
 		requirements: [
 			["readiness checker invocation", /check_device_ready\.js/],
+			["readiness JSON report path", /JSON_REPORT/],
+			["readiness iPad device resolver", /resolve_ready_ipad_device_from_json/],
+			["readiness auto-discovered iPad propagation", /Using auto-discovered iPad device for gate run/],
 			["timeout loop", /Device readiness timed out/],
 			["remaining timeout sleep cap", /deadline - now/],
 			["bounded readiness sleep", /sleep_seconds/],

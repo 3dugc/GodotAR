@@ -86,6 +86,45 @@ mkdir -p "$OUT_DIR"
 REPORT="${REPORT:-$OUT_DIR/device-ready-${GATE}-${STAMP}.md}"
 JSON_REPORT="${JSON_REPORT:-$OUT_DIR/device-ready-${GATE}-${STAMP}.json}"
 
+resolve_ready_ipad_device_from_json() {
+	local json_file="$1"
+	if [[ ! -f "$json_file" ]]; then
+		return 0
+	fi
+	node -e '
+const fs = require("fs");
+const file = process.argv[1];
+const summary = JSON.parse(fs.readFileSync(file, "utf8"));
+const ipad = (Array.isArray(summary.results) ? summary.results : []).find((item) => item && item.gate === "ipad");
+const evidence = (ipad && ipad.evidence) || {};
+const selection = evidence.device_selection || {};
+const selected = evidence.device || selection.selected_device || "";
+if (selected) {
+	process.stdout.write(String(selected));
+}
+' "$json_file" 2>/dev/null || true
+}
+
+set_ready_ipad_device_from_json_if_needed() {
+	if [[ -n "$DEVICE" ]]; then
+		return 0
+	fi
+	case "$GATE" in
+		ipad|all)
+			;;
+		*)
+			return 0
+			;;
+	esac
+	local selected_device
+	selected_device="$(resolve_ready_ipad_device_from_json "$JSON_REPORT")"
+	if [[ -n "$selected_device" ]]; then
+		DEVICE="$selected_device"
+		export DEVICE
+		echo "Using auto-discovered iPad device for gate run: $DEVICE"
+	fi
+}
+
 deadline=$(( $(date +%s) + TIMEOUT_SECONDS ))
 attempt=1
 status=1
@@ -102,6 +141,7 @@ while true; do
 	set -e
 	if [[ "$status" -eq 0 ]]; then
 		echo "Device readiness passed. Report: $REPORT"
+		set_ready_ipad_device_from_json_if_needed
 		if [[ "$RUN_GATE" == "1" ]]; then
 			echo "Running C00 device gate: $GATE"
 			case "$GATE" in

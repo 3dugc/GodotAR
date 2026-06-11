@@ -511,6 +511,47 @@ gate_needs_ipad_device_arg() {
 	[[ "$gate" == "ipad" || "$gate" == "ipad-place" || "$gate" == "all" ]]
 }
 
+safe_gate_name() {
+	printf "%s" "$1" | tr -c 'A-Za-z0-9_.-' '-'
+}
+
+resolve_ready_ipad_device_from_json() {
+	local json_file="$1"
+	if [[ ! -f "$json_file" ]]; then
+		return 0
+	fi
+	node -e '
+const fs = require("fs");
+const file = process.argv[1];
+const summary = JSON.parse(fs.readFileSync(file, "utf8"));
+const ipad = (Array.isArray(summary.results) ? summary.results : []).find((item) => item && item.gate === "ipad");
+const evidence = (ipad && ipad.evidence) || {};
+const selection = evidence.device_selection || {};
+const selected = evidence.device || selection.selected_device || "";
+if (selected) {
+	process.stdout.write(String(selected));
+}
+' "$json_file" 2>/dev/null || true
+}
+
+set_ready_ipad_device_from_json_if_needed() {
+	local gate="$1"
+	local json_file="$2"
+	if [[ -n "$DEVICE" ]]; then
+		return 0
+	fi
+	if ! gate_needs_ipad_device_arg "$gate"; then
+		return 0
+	fi
+	local selected_device
+	selected_device="$(resolve_ready_ipad_device_from_json "$json_file")"
+	if [[ -n "$selected_device" ]]; then
+		DEVICE="$selected_device"
+		export DEVICE
+		echo "Using auto-discovered iPad device for later gate runs: $DEVICE"
+	fi
+}
+
 wait_for_gate_readiness() {
 	local gate="$1"
 	local title="${1:-wait for device readiness}"
@@ -521,12 +562,18 @@ wait_for_gate_readiness() {
 		title="wait for device readiness: $gate"
 	fi
 	readiness_gate="$(readiness_gate_for_gate "$gate")"
+	local safe_gate
+	safe_gate="$(safe_gate_name "$gate")"
+	local wait_report="$PROJECT_ROOT/releases/phase_0_smoke/evidence/device-ready-${readiness_gate}-${safe_gate}-${TIMESTAMP}.md"
+	local wait_json="$PROJECT_ROOT/releases/phase_0_smoke/evidence/device-ready-${readiness_gate}-${safe_gate}-${TIMESTAMP}.json"
 	local wait_args=(
 		"$PROJECT_ROOT/tools/c00/wait_for_device_ready.sh"
 		--gate "$readiness_gate"
 		--package "$PACKAGE"
 		--timeout "$WAIT_TIMEOUT_SECONDS"
 		--interval "$WAIT_INTERVAL_SECONDS"
+		--report "$wait_report"
+		--json "$wait_json"
 	)
 	if gate_needs_ipad_device_arg "$gate"; then
 		if [[ -n "$DEVICE" ]]; then
@@ -534,6 +581,11 @@ wait_for_gate_readiness() {
 		fi
 	fi
 	run_step "$title" "${wait_args[@]}"
+	local wait_status=$?
+	if [[ "$wait_status" == "0" ]]; then
+		set_ready_ipad_device_from_json_if_needed "$gate" "$wait_json"
+	fi
+	return "$wait_status"
 }
 
 wait_for_selected_devices() {
