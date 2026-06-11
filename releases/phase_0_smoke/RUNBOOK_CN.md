@@ -179,7 +179,7 @@ ONLINE_DEPS=templates tools/c00/run_phase1_device_lab.sh --online-deps-only --ga
 
 `ONLINE_DEPS` 可用 `auto` / `all`，或逗号、空格分隔的 `templates,jdk,android-sdk,android-export`；命令行也可以传 `--online-deps-list templates,jdk`。
 
-这个 wrapper 会按 spec 顺序串起离线依赖导入或在线依赖续传、readiness report、静态 gate、按 gate 分组的 `run_device_cycle.sh` 子进程和 completion audit。默认会同时运行 `ipad-place` 与 `rokid-place`，并在 completion audit 中要求 C02/C04 placement 证据；如果某台设备失败，仍会继续生成后续报告，最后以 `NOT_READY` 退出。按 gate 分组可以让 Rokid/Android 使用 latest lane，让 iPad 使用 ARKit stable fallback lane。临时只调基础 smoke 时可加 `--no-place-demos`，但不能作为第一阶段完整通过。
+这个 wrapper 会按 spec 顺序串起离线依赖导入或在线依赖续传、readiness report、静态 gate、按 gate 分组的 `run_device_cycle.sh` 子进程和 completion audit。默认会同时运行 `ipad-place` 与 `rokid-place`，并在 completion audit 中要求 C02/C04 placement 证据；如果某台设备失败，仍会继续生成后续报告，最后以 `NOT_READY` 退出。handoff 包会带上 latest readiness/recovery 的 Markdown 和 JSON，方便接收方继续查看 selected device、ADB serial 与 Next Actions。按 gate 分组可以让 Rokid/Android 使用 latest lane，让 iPad 使用 ARKit stable fallback lane。临时只调基础 smoke 时可加 `--no-place-demos`，但不能作为第一阶段完整通过。
 
 第一次接设备机时先演练：
 

@@ -187,8 +187,19 @@ include_file "$PROJECT_ROOT/specs/cycles/CYCLE_00_DEVICE_SMOKE_SPEC_CN.md" "$PAC
 include_dir "$PROJECT_ROOT/tools/c00" "$PACKAGE_DIR/scripts/tools/c00"
 
 include_latest_glob "$EVIDENCE_DIR/device-ready-all-*.md" "$PACKAGE_DIR/evidence"
+include_latest_glob "$EVIDENCE_DIR/device-ready-all-*.json" "$PACKAGE_DIR/evidence"
 include_latest_glob "$EVIDENCE_DIR/device-ready-rokid-*.md" "$PACKAGE_DIR/evidence"
+include_latest_glob "$EVIDENCE_DIR/device-ready-rokid-*.json" "$PACKAGE_DIR/evidence"
 include_latest_glob "$EVIDENCE_DIR/device-ready-ipad-*.md" "$PACKAGE_DIR/evidence"
+include_latest_glob "$EVIDENCE_DIR/device-ready-ipad-*.json" "$PACKAGE_DIR/evidence"
+include_latest_glob "$EVIDENCE_DIR/device-ready-android-arcore-*.md" "$PACKAGE_DIR/evidence"
+include_latest_glob "$EVIDENCE_DIR/device-ready-android-arcore-*.json" "$PACKAGE_DIR/evidence"
+include_latest_glob "$EVIDENCE_DIR/android-adb-recovery-rokid-*.md" "$PACKAGE_DIR/evidence"
+include_latest_glob "$EVIDENCE_DIR/android-adb-recovery-rokid-*.json" "$PACKAGE_DIR/evidence"
+include_latest_glob "$EVIDENCE_DIR/android-adb-recovery-android-arcore-*.md" "$PACKAGE_DIR/evidence"
+include_latest_glob "$EVIDENCE_DIR/android-adb-recovery-android-arcore-*.json" "$PACKAGE_DIR/evidence"
+include_latest_glob "$EVIDENCE_DIR/ipad-ddi-recovery-*.md" "$PACKAGE_DIR/evidence"
+include_latest_glob "$EVIDENCE_DIR/ipad-ddi-recovery-*.json" "$PACKAGE_DIR/evidence"
 include_latest_glob "$EVIDENCE_DIR/editor-*.md" "$PACKAGE_DIR/evidence"
 include_latest_glob "$EVIDENCE_DIR/ios-simulator-*.md" "$PACKAGE_DIR/evidence"
 
@@ -215,6 +226,7 @@ node tools/c00/audit_phase1_completion.js
 - Android ARCore APK: \`artifacts/android-arcore/c00.apk\` when present.
 - iPad Xcode export: \`artifacts/ipad/c00.xcodeproj\` plus sibling exported files when present.
 - iPad no-sign app: \`artifacts/ipad/GodotXRFoundation-nosign.app\` is build evidence only; real install requires signing/provisioning on the device machine.
+- Latest readiness/recovery evidence is copied into \`evidence/\`, including JSON where available, so the receiving device machine can inspect selected devices and Next Actions without rerunning probes first.
 
 ## Recovery Flow
 
