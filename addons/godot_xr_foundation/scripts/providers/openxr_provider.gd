@@ -47,6 +47,26 @@ const PASSTHROUGH_STOP_METHODS := [
 	"set_passthrough",
 ]
 
+const VENDOR_PLANE_METHODS := [
+	"get_planes",
+	"get_detected_planes",
+	"get_trackable_planes",
+	"get_openxr_planes",
+]
+
+const VENDOR_RAYCAST_METHODS := [
+	"try_raycast",
+	"raycast",
+	"hit_test",
+	"raycast_from_ray",
+]
+
+const VENDOR_ANCHOR_METHODS := [
+	"create_anchor",
+	"add_anchor",
+	"try_create_anchor",
+]
+
 var _passthrough_start_report := {}
 var _passthrough_started_targets: Array[String] = []
 var virtual_plane_fallback_enabled := true
@@ -88,14 +108,18 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	var has_ar_blend := has_alpha_blend or has_additive_blend
 	var vendor_singletons := _available_vendor_singletons(options)
 	var vendor_feature_report := _vendor_feature_report(vendor_singletons)
+	var vendor_trackable_report := _vendor_trackable_bridge_report(vendor_singletons)
 	var interface_passthrough_supported := _interface_has_bool_method(xr_iface, "is_passthrough_supported")
 	var has_vendor_passthrough := interface_passthrough_supported or _vendor_report_has_true(vendor_feature_report, PASSTHROUGH_EVIDENCE_METHODS) or _has_vendor_passthrough_singleton(vendor_singletons, vendor_feature_report)
 	var passthrough_started := _passthrough_is_started(xr_iface, vendor_feature_report)
 	var has_planes := _has_openxr_plane_trackers()
+	var has_vendor_planes := _vendor_bridge_has_methods(vendor_trackable_report, "planes")
+	var has_vendor_raycast := _vendor_bridge_has_methods(vendor_trackable_report, "raycast")
+	var has_vendor_anchors := _vendor_bridge_has_methods(vendor_trackable_report, "anchors")
 	var has_virtual_plane_fallback := _has_virtual_plane_fallback(has_planes)
 	var has_tracking := xr_iface != null
 	var has_input_ray := xr_iface != null
-	var ar_tier := _classify_ar_tier(has_alpha_blend, has_additive_blend, has_vendor_passthrough, has_planes, has_tracking, has_input_ray)
+	var ar_tier := _classify_ar_tier(has_alpha_blend, has_additive_blend, has_vendor_passthrough, has_planes or has_vendor_planes, has_tracking, has_input_ray)
 	var ar_evidence := _ar_evidence(has_alpha_blend, has_additive_blend, interface_passthrough_supported, has_vendor_passthrough, vendor_feature_report)
 
 	capabilities["session"] = xr_iface != null
@@ -103,7 +127,7 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	capabilities["camera_background"] = has_ar_blend or has_vendor_passthrough
 	capabilities["passthrough"] = has_ar_blend or has_vendor_passthrough
 	capabilities["raycast"] = true
-	capabilities["plane_detection"] = has_planes or has_virtual_plane_fallback
+	capabilities["plane_detection"] = has_planes or has_vendor_planes or has_virtual_plane_fallback
 	capabilities["anchors"] = true
 	capabilities["input_ray"] = has_input_ray
 	capabilities["hand_tracking"] = xr_iface != null
@@ -114,6 +138,9 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	capabilities["openxr_selected_blend_mode"] = _current_environment_blend_mode_name(xr_iface)
 	capabilities["openxr_vendor_singletons"] = vendor_singletons
 	capabilities["openxr_vendor_feature_report"] = vendor_feature_report
+	capabilities["openxr_vendor_trackable_bridge"] = vendor_trackable_report
+	capabilities["openxr_vendor_raycast_bridge"] = has_vendor_raycast
+	capabilities["openxr_vendor_anchor_bridge"] = has_vendor_anchors
 	capabilities["openxr_interface_passthrough_supported"] = interface_passthrough_supported
 	capabilities["openxr_vendor_passthrough"] = has_vendor_passthrough
 	capabilities["openxr_passthrough_started"] = passthrough_started
@@ -125,6 +152,8 @@ func get_capabilities(options: Dictionary = {}) -> Dictionary:
 	var plane_source := "none"
 	if has_planes:
 		plane_source = "xr_tracker"
+	elif has_vendor_planes:
+		plane_source = "vendor_singleton_bridge"
 	elif has_virtual_plane_fallback:
 		plane_source = "virtual_floor_fallback"
 	capabilities["openxr_plane_source"] = plane_source
@@ -174,17 +203,28 @@ func get_planes() -> Array[ARPlane]:
 		var tracker_class := tracker.get_class().to_lower()
 		if tracker_class.contains("plane"):
 			planes.append(_plane_from_tracker(tracker_name, tracker))
+	planes.append_array(_vendor_planes())
 	if planes.is_empty() and _has_virtual_plane_fallback(false):
 		planes.append(_virtual_floor_plane())
 	return planes
 
 
 func try_raycast(origin: Vector3, direction: Vector3, max_distance: float = 20.0, mask: int = 0xffffffff) -> Array[XRHit]:
+	var vendor_hits := _vendor_raycast(origin, direction, max_distance, mask)
+	if not vendor_hits.is_empty():
+		return vendor_hits
 	if _has_virtual_plane_fallback(_has_openxr_plane_trackers()):
 		var fallback_hits := _virtual_floor_raycast(origin, direction, max_distance)
 		if not fallback_hits.is_empty():
 			return fallback_hits
 	return super.try_raycast(origin, direction, max_distance, mask)
+
+
+func create_anchor(transform: Transform3D, attached_trackable: ARTrackable = null) -> ARAnchor:
+	var vendor_anchor := _vendor_create_anchor(transform, attached_trackable)
+	if vendor_anchor != null:
+		return vendor_anchor
+	return super.create_anchor(transform, attached_trackable)
 
 
 func _has_openxr_plane_trackers() -> bool:
@@ -233,6 +273,113 @@ func _vendor_feature_report(vendor_singletons: Array[String]) -> Dictionary:
 		if not feature_report.is_empty():
 			report[singleton_name] = feature_report
 	return report
+
+
+func _vendor_trackable_bridge_report(vendor_singletons: Array[String]) -> Dictionary:
+	var report := {}
+	for singleton_name in vendor_singletons:
+		var singleton := Engine.get_singleton(StringName(singleton_name))
+		if singleton == null:
+			continue
+		var bridge_report := {}
+		var plane_methods := _available_methods(singleton, VENDOR_PLANE_METHODS)
+		var raycast_methods := _available_methods(singleton, VENDOR_RAYCAST_METHODS)
+		var anchor_methods := _available_methods(singleton, VENDOR_ANCHOR_METHODS)
+		if not plane_methods.is_empty():
+			bridge_report["planes"] = plane_methods
+		if not raycast_methods.is_empty():
+			bridge_report["raycast"] = raycast_methods
+		if not anchor_methods.is_empty():
+			bridge_report["anchors"] = anchor_methods
+		if not bridge_report.is_empty():
+			report[singleton_name] = bridge_report
+	return report
+
+
+func _available_methods(target: Object, method_names: Array) -> PackedStringArray:
+	var methods := PackedStringArray()
+	for method_name in method_names:
+		if target.has_method(method_name):
+			methods.append(String(method_name))
+	return methods
+
+
+func _vendor_bridge_has_methods(vendor_trackable_report: Dictionary, feature_name: String) -> bool:
+	for singleton_name in vendor_trackable_report.keys():
+		var bridge_report: Variant = vendor_trackable_report[singleton_name]
+		if bridge_report is Dictionary:
+			var methods: Variant = bridge_report.get(feature_name, [])
+			if methods is Array or methods is PackedStringArray:
+				if not methods.is_empty():
+					return true
+	return false
+
+
+func _vendor_planes() -> Array[ARPlane]:
+	var planes: Array[ARPlane] = []
+	for singleton_name in _available_vendor_singletons():
+		var singleton := Engine.get_singleton(StringName(singleton_name))
+		if singleton == null:
+			continue
+		for method_name in VENDOR_PLANE_METHODS:
+			if not singleton.has_method(method_name):
+				continue
+			var converted := _convert_planes(singleton.call(method_name), singleton_name)
+			if not converted.is_empty():
+				planes.append_array(converted)
+				break
+	return planes
+
+
+func _vendor_raycast(origin: Vector3, direction: Vector3, max_distance: float, mask: int) -> Array[XRHit]:
+	for singleton_name in _available_vendor_singletons():
+		var singleton := Engine.get_singleton(StringName(singleton_name))
+		if singleton == null:
+			continue
+		for method_name in VENDOR_RAYCAST_METHODS:
+			if not singleton.has_method(method_name):
+				continue
+			var raw := _call_vendor_raycast_method(singleton, method_name, origin, direction, max_distance, mask)
+			var hits := _convert_hits(raw)
+			if not hits.is_empty():
+				return hits
+	var empty_hits: Array[XRHit] = []
+	return empty_hits
+
+
+func _vendor_create_anchor(transform: Transform3D, attached_trackable: ARTrackable) -> ARAnchor:
+	for singleton_name in _available_vendor_singletons():
+		var singleton := Engine.get_singleton(StringName(singleton_name))
+		if singleton == null:
+			continue
+		for method_name in VENDOR_ANCHOR_METHODS:
+			if not singleton.has_method(method_name):
+				continue
+			var raw := _call_vendor_anchor_method(singleton, method_name, transform, attached_trackable)
+			if raw == null:
+				continue
+			return _convert_anchor(raw, transform, singleton_name)
+	return null
+
+
+func _call_vendor_raycast_method(target: Object, method_name: String, origin: Vector3, direction: Vector3, max_distance: float, mask: int) -> Variant:
+	var argument_count := _method_argument_count(target, method_name)
+	if argument_count >= 4:
+		return target.call(method_name, origin, direction, max_distance, mask)
+	if argument_count == 3:
+		return target.call(method_name, origin, direction, max_distance)
+	if argument_count == 2:
+		return target.call(method_name, origin, direction)
+	return []
+
+
+func _call_vendor_anchor_method(target: Object, method_name: String, transform: Transform3D, attached_trackable: ARTrackable) -> Variant:
+	var argument_count := _method_argument_count(target, method_name)
+	if argument_count >= 2:
+		return target.call(method_name, transform, attached_trackable)
+	if argument_count == 1:
+		return target.call(method_name, transform)
+	return null
 
 
 func _start_passthrough(options: Dictionary = {}) -> void:
@@ -414,6 +561,12 @@ func _feature_flags(capabilities: Dictionary) -> PackedStringArray:
 		flags.append("PASSTHROUGH")
 	if bool(capabilities.get("openxr_vendor_passthrough", false)):
 		flags.append("VENDOR_PASSTHROUGH")
+	if _vendor_bridge_has_methods(capabilities.get("openxr_vendor_trackable_bridge", {}), "planes"):
+		flags.append("VENDOR_TRACKABLE_PLANES")
+	if _vendor_bridge_has_methods(capabilities.get("openxr_vendor_trackable_bridge", {}), "raycast"):
+		flags.append("VENDOR_RAYCAST")
+	if _vendor_bridge_has_methods(capabilities.get("openxr_vendor_trackable_bridge", {}), "anchors"):
+		flags.append("VENDOR_ANCHORS")
 	if bool(capabilities.get("plane_detection", false)):
 		flags.append("TRACKABLE_PLANES")
 	if bool(capabilities.get("openxr_virtual_plane_fallback", false)):
@@ -485,6 +638,58 @@ func _plane_from_tracker(tracker_name: StringName, tracker: Object) -> ARPlane:
 
 	var plane := ARPlane.new(tracker_name, Transform3D.IDENTITY, size, alignment, tracker)
 	plane.label = label
+	return plane
+
+
+func _convert_planes(raw: Variant, source_name: String) -> Array[ARPlane]:
+	var planes: Array[ARPlane] = []
+	if raw is Array:
+		for item in raw:
+			if item is ARPlane:
+				planes.append(item)
+			elif item is Dictionary:
+				planes.append(_plane_from_dictionary(item, source_name))
+	elif raw is Dictionary:
+		planes.append(_plane_from_dictionary(raw, source_name))
+	return planes
+
+
+func _convert_hits(raw: Variant) -> Array[XRHit]:
+	var hits: Array[XRHit] = []
+	if raw is Array:
+		for item in raw:
+			if item is XRHit:
+				hits.append(item)
+			elif item is Dictionary:
+				hits.append(XRHit.from_dictionary(item))
+	elif raw is Dictionary:
+		hits.append(XRHit.from_dictionary(raw))
+	return hits
+
+
+func _convert_anchor(raw: Variant, fallback_transform: Transform3D, source_name: String) -> ARAnchor:
+	if raw is ARAnchor:
+		return raw
+	if raw is Dictionary:
+		var data: Dictionary = raw.duplicate()
+		if not data.has("trackable_id") and not data.has("id") and not data.has("anchor_id"):
+			data["trackable_id"] = _make_id(StringName("%s_anchor" % source_name))
+		if not data.has("transform") and not data.has("pose"):
+			data["transform"] = fallback_transform
+		return ARAnchor.from_dictionary(data)
+	return ARAnchor.new(_make_id(StringName("%s_anchor" % source_name)), fallback_transform, raw)
+
+
+func _plane_from_dictionary(data: Dictionary, source_name: String) -> ARPlane:
+	var plane := ARPlane.new(
+		StringName(data.get("trackable_id", data.get("id", data.get("plane_id", _make_id(StringName("%s_plane" % source_name)))))),
+		data.get("transform", data.get("pose", Transform3D.IDENTITY)),
+		_vector2_from_variant(data.get("size", data.get("extent", Vector2.ONE)), Vector2.ONE),
+		StringName(data.get("alignment", data.get("plane_alignment", "unknown"))),
+		data.get("raw_tracker", data)
+	)
+	plane.label = StringName(data.get("label", data.get("classification", "")))
+	plane.tracking_state = int(data.get("tracking_state", XRFoundationTypes.TrackingState.TRACKING))
 	return plane
 
 

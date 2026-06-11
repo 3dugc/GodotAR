@@ -14,7 +14,7 @@
 - 启动 passthrough 或 see-through 合成。
 - 在 provider `start()` 生命周期中优先调用 `XRInterface.start_passthrough()` / vendor singleton passthrough 启动方法，并在 `stop()` 中成对停止。
 - 提供输入 profile。
-- 将 OpenXR/vendor trackables、raycasts、anchors 转换为 Godot XR Foundation 的统一数据结构。
+- 将 XRServer plane trackers，以及 OpenXR vendor singleton 暴露的 `get_planes` / `raycast` / `create_anchor` 这类 bridge，转换为 Godot XR Foundation 的统一 `ARPlane` / `XRHit` / `ARAnchor` 数据结构。
 - 在 AR 能力不足时提供 fallback。
 
 `OpenXRProvider` 不负责：
@@ -94,13 +94,14 @@ var notes: String
 [OpenXRProvider] blend_modes=
 [OpenXRProvider] selected_blend_mode=
 [OpenXRProvider] vendor_singletons=
+[OpenXRProvider] vendor_trackable_bridge=
 [OpenXRProvider] capabilities=
 [OpenXRProvider] ar_tier=A|B|C|D
 [OpenXRProvider] passthrough_started=
 [OpenXRProvider] passthrough_start_report=
 [OpenXRProvider] fallback=
 [OpenXRProvider] virtual_plane_fallback=
-[OpenXRProvider] plane_source=xr_tracker|virtual_floor_fallback|none
+[OpenXRProvider] plane_source=xr_tracker|vendor_singleton_bridge|virtual_floor_fallback|none
 [OpenXRProvider] errors=
 ```
 

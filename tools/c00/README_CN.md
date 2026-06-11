@@ -539,7 +539,7 @@ node tools/c00/check_ios_device_profile_surface.js
 node tools/c00/check_openxr_provider_surface.js
 ```
 
-该检查确认 `OpenXRProvider` 会记录 environment blend、OpenXR Vendors passthrough singleton 方法结果和 `openxr_ar_evidence`，会在 session lifecycle 中尝试 `start_passthrough` / vendor passthrough 启动方法，会在没有真实 plane tracker 时提供明确标记的 `openxr_virtual_plane_fallback` / `openxr_plane_source`，并确认 Rokid smoke gate 不会只凭一个模糊布尔值通过。
+该检查确认 `OpenXRProvider` 会记录 environment blend、OpenXR Vendors passthrough singleton 方法结果和 `openxr_ar_evidence`，会在 session lifecycle 中尝试 `start_passthrough` / vendor passthrough 启动方法，会探测并消费 vendor singleton 暴露的 plane/raycast/anchor bridge，会在没有真实 plane tracker 或 vendor hit 时提供明确标记的 `openxr_virtual_plane_fallback` / `openxr_plane_source`，并确认 Rokid smoke gate 不会只凭一个模糊布尔值通过。
 
 检查 Rokid/OpenXR 导出配置面：
 

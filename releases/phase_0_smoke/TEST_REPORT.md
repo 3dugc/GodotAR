@@ -125,6 +125,7 @@ Codex implementation status:
 - `GodotARKit.get_tracking_status()` now maps real ARKit state to Godot tracking status: normal tracking, limited/unknown tracking, or not tracking.
 - `OpenXRProvider` now reports Unity OpenXR Feature-style runtime diagnostics: selected blend mode, vendor singletons, feature flags, AR tier, and fallback path.
 - `OpenXRProvider` now records method-level OpenXR Vendors/Rokid passthrough evidence in `openxr_vendor_feature_report` and `openxr_ar_evidence`.
+- `OpenXRProvider` now detects vendor singleton plane/raycast/anchor bridge methods, reports them in `openxr_vendor_trackable_bridge`, and tries those native OpenXR device paths before falling back to the C00 virtual floor.
 - `OpenXRProvider` now attempts passthrough lifecycle startup through `XRInterface.start_passthrough()` or vendor singleton passthrough methods and reports `openxr_passthrough_started` / `openxr_passthrough_start_report`.
 - `OpenXRProvider` now supplies a clearly marked C00 `openxr_virtual_plane_fallback` / `openxr_plane_source:"virtual_floor_fallback"` raycast and plane fallback when no real OpenXR plane tracker is available, so Rokid can prove the upper ARFoundation manager/raycast chain without pretending to have true environment understanding.
 - `tools/c00/validate_smoke_log.js` and `tools/c00/verify_phase_evidence.js` now require Rokid/OpenXR logs to include non-empty `capabilities.openxr_ar_evidence`.
