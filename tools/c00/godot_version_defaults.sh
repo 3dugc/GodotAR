@@ -177,3 +177,61 @@ godot_source_matches_template_version() {
 	actual="$(godot_source_template_version "$dir")" || return 1
 	[[ "$actual" == "$(godot_normalize_template_version "$expected")" ]]
 }
+
+godot_android_compile_sdk_from_template_version() {
+	local version
+	version="$(godot_normalize_template_version "$1")"
+	case "$version" in
+		4.7.*) printf "36" ;;
+		*) printf "34" ;;
+	esac
+}
+
+godot_android_target_sdk_from_template_version() {
+	godot_android_compile_sdk_from_template_version "$1"
+}
+
+godot_android_build_tools_from_template_version() {
+	local version
+	version="$(godot_normalize_template_version "$1")"
+	case "$version" in
+		4.7.*) printf "36.1.0" ;;
+		*) printf "34.0.0" ;;
+	esac
+}
+
+godot_android_ndk_from_template_version() {
+	local version
+	version="$(godot_normalize_template_version "$1")"
+	case "$version" in
+		4.7.*) printf "29.0.14206865" ;;
+		*) printf "" ;;
+	esac
+}
+
+godot_android_gradle_distribution_from_template_version() {
+	local version
+	version="$(godot_normalize_template_version "$1")"
+	case "$version" in
+		4.7.*) printf "gradle-8.11.1-bin" ;;
+		*) printf "gradle-8.2-bin" ;;
+	esac
+}
+
+godot_android_agp_from_template_version() {
+	local version
+	version="$(godot_normalize_template_version "$1")"
+	case "$version" in
+		4.7.*) printf "8.6.1" ;;
+		*) printf "8.2.0" ;;
+	esac
+}
+
+godot_android_kotlin_from_template_version() {
+	local version
+	version="$(godot_normalize_template_version "$1")"
+	case "$version" in
+		4.7.*) printf "2.1.21" ;;
+		*) printf "1.9.20" ;;
+	esac
+}

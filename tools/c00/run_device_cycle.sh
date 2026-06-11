@@ -465,17 +465,27 @@ run_export() {
 		return
 	fi
 
+	export_with_godot_checked() {
+		local preset="$1"
+		local output_path="$2"
+		local export_status=0
+		"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$preset" "$output_path" || export_status=$?
+		if [[ "$export_status" -ne 0 ]]; then
+			return "$export_status"
+		fi
+	}
+
 	case "$gate" in
 		rokid)
-			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$ROKID_PRESET" "${APK_PATH:-$ROKID_APK_PATH}"
+			export_with_godot_checked "$ROKID_PRESET" "${APK_PATH:-$ROKID_APK_PATH}" || return $?
 			node "$PROJECT_ROOT/tools/c00/check_android_apk_surface.js" --gate rokid --apk "$(project_path "${APK_PATH:-$ROKID_APK_PATH}")"
 			;;
 		rokid-place)
-			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$ROKID_PLACE_PRESET" "${APK_PATH:-$ROKID_PLACE_APK_PATH}"
+			export_with_godot_checked "$ROKID_PLACE_PRESET" "${APK_PATH:-$ROKID_PLACE_APK_PATH}" || return $?
 			node "$PROJECT_ROOT/tools/c00/check_android_apk_surface.js" --gate rokid-place --apk "$(project_path "${APK_PATH:-$ROKID_PLACE_APK_PATH}")"
 			;;
 		android-arcore)
-			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$ANDROID_ARCORE_PRESET" "${APK_PATH:-$ANDROID_ARCORE_APK_PATH}"
+			export_with_godot_checked "$ANDROID_ARCORE_PRESET" "${APK_PATH:-$ANDROID_ARCORE_APK_PATH}" || return $?
 			node "$PROJECT_ROOT/tools/c00/check_android_apk_surface.js" --gate android-arcore --apk "$(project_path "${APK_PATH:-$ANDROID_ARCORE_APK_PATH}")"
 			;;
 		ipad)
@@ -483,28 +493,28 @@ run_export() {
 				echo "APP_PATH is already set; skipping iPad export: $APP_PATH"
 				return
 			fi
-			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$IPAD_PRESET" "$IPAD_EXPORT_PATH"
+			export_with_godot_checked "$IPAD_PRESET" "$IPAD_EXPORT_PATH" || return $?
 			;;
 		ipad-place)
 			if [[ -n "${APP_PATH:-}" ]]; then
 				echo "APP_PATH is already set; skipping iPad placement export: $APP_PATH"
 				return
 			fi
-			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$IPAD_PLACE_PRESET" "$IPAD_PLACE_EXPORT_PATH"
+			export_with_godot_checked "$IPAD_PLACE_PRESET" "$IPAD_PLACE_EXPORT_PATH" || return $?
 			;;
 		ios-simulator)
 			if [[ -n "${APP_PATH:-}" ]]; then
 				echo "APP_PATH is already set; skipping iOS Simulator export: $APP_PATH"
 				return
 			fi
-			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$IPAD_PRESET" "$IOS_SIMULATOR_EXPORT_PATH"
+			export_with_godot_checked "$IPAD_PRESET" "$IOS_SIMULATOR_EXPORT_PATH" || return $?
 			;;
 		ios-simulator-place)
 			if [[ -n "${APP_PATH:-}" ]]; then
 				echo "APP_PATH is already set; skipping iOS Simulator placement export: $APP_PATH"
 				return
 			fi
-			"$PROJECT_ROOT/tools/c00/export_with_godot.sh" "$IPAD_PLACE_PRESET" "$IOS_SIMULATOR_PLACE_EXPORT_PATH"
+			export_with_godot_checked "$IPAD_PLACE_PRESET" "$IOS_SIMULATOR_PLACE_EXPORT_PATH" || return $?
 			;;
 		editor)
 			echo "EditorSim gate does not require export."

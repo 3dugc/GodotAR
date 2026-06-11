@@ -29,6 +29,7 @@ Implemented:
 - GodotARCore Android plugin v2 landing point with ARCore availability/install/session lifecycle singleton.
 - Android XR/OpenXR trackable plane discovery through `XRServer` tracker signals without hard-linking vendor classes.
 - GodotARKit iOS plugin bridge with native tracking reason, raycast, and plane evidence.
+- Project-owned OpenXR Vendors Android AAR export hook. The upstream desktop/editor `plugin.gdextension` is kept as `plugin.gdextension.disabled` for C00 because it can hang Godot 4.7 headless import/export on the device build machine; Android vendor AAR packaging still goes through `addons/godot_openxr_vendors_export`.
 - Demo scene where mouse clicks place anchored cubes on the simulated floor.
 - OpenXR/Rokid capability lab: `demo/03_openxr_ar_capability_lab.tscn`.
 - Rokid ray/gaze placement demo: `demo/04_rokid_ray_place.tscn`.

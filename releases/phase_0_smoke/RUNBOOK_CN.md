@@ -75,10 +75,12 @@ tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes
 tools/c00/configure_android_export_environment.sh --install-build-template
 ```
 
-截至 2026-06-10，`--latest` 指向 Godot `4.7-rc1` / export templates `4.7.rc1`；稳定 fallback 用 `tools/c00/install_godot_editor.sh --download --latest-stable` 和 `tools/c00/install_godot_export_templates.sh --download --latest-stable`。如果网络不稳定，把 `Godot_v4.7-rc1_macos.universal.zip`、`Godot_v4.7-rc1_export_templates.tpz`、Android command line tools zip、OpenJDK 17 tar.gz、Android SDK 或 JDK 放进离线依赖包，再用 `tools/c00/import_device_dependency_bundle.sh --bundle <dir>` 导入。
+截至 2026-06-11，`--latest` 指向 Godot `4.7-rc1` / export templates `4.7.rc1`；稳定 fallback 用 `tools/c00/install_godot_editor.sh --download --latest-stable` 和 `tools/c00/install_godot_export_templates.sh --download --latest-stable`。如果网络不稳定，把 `Godot_v4.7-rc1_macos.universal.zip`、`Godot_v4.7-rc1_export_templates.tpz`、Android command line tools zip、OpenJDK 17 tar.gz、Android SDK 或 JDK 放进离线依赖包，再用 `tools/c00/import_device_dependency_bundle.sh --bundle <dir>` 导入。
 
 慢网络下可给所有在线依赖安装器加同一组 curl 调优变量，例如 `C00_CURL_RETRY=8 C00_CURL_RETRY_DELAY=15 C00_CURL_SPEED_LIMIT=1024 C00_CURL_SPEED_TIME=30 C00_CURL_MAX_TIME=900 C00_CURL_HTTP1=1`。`C00_CURL_MAX_TIME` 只限制单次下载尝试；`C00_CURL_RETRY_ALL_ERRORS` 默认启用，覆盖 HTTP/2 stream cancel 等错误；保留 `.godot/cache/c00/downloads` 里的 partial 文件后重跑同一命令会继续下载。
 导入后生成的 `.godot/cache/c00/device-env.sh` 会被 `preflight.sh`、`bootstrap_device_machine.sh`、`run_device_cycle.sh` 和 `run_phase1_device_lab.sh` 自动读取；显式传入的 `GODOT_BIN`、`GODOT_EXPORT_TEMPLATES_VERSION`、SDK/JDK/source 路径等变量优先于 device-env 里的旧值。需要换路径时设置 `C00_DEVICE_ENV_FILE=/path/to/device-env.sh`，需要临时忽略时设置 `C00_AUTO_SOURCE_DEVICE_ENV=0`。
+
+Android/Rokid 导出前必须运行 `tools/c00/configure_android_export_environment.sh --install-build-template` 或让 `tools/c00/export_with_godot.sh` 自动调用它。该步骤会写入本机 Godot Android EditorSettings，并生成 `.godot/export_credentials.cfg`，给 Android presets 提供完整 debug keystore/user/password；该文件在 `.godot/` 下，不提交到仓库。
 
 iPad/ARKit 真机构建需要与 iOS export template 版本匹配的 Godot source headers。设备机没有现成 source tree 时，先用 helper 准备：
 
@@ -379,6 +381,7 @@ command_line/extra_args="--xr-platform=rokid"
 这样无论通过 launcher、`monkey` 还是设备桌面启动，Godot 都会优先选择 OpenXR 路径，而不是在 Android 上先尝试 ARCore。
 Godot Android 会从导出 APK 的 `assets/_cl_` 读取这些参数；外部传给 exported Activity 的 `command_line_params` 会被 Godot Activity 清理，不能作为 C00 gate 的可靠启动参数来源。因此采集脚本会在安装前检查 APK `assets/_cl_`，并在启动前 force-stop app，确保本次日志来自带正确启动参数的新进程。
 `tools/c00/export_with_godot.sh` 默认使用临时 artifact 原子导出；如果 Godot headless export 卡住、失败或被终止，旧 APK 不会被覆盖，也不能把旧 APK 的 surface check 计为本次新导出通过。
+导出脚本还默认启用 `C00_GODOT_EXPORT_TIMEOUT_SECONDS=900` watchdog；如果 Godot 在这个时间内没有返回，脚本会终止导出并返回 `124`，方便阶段报告记录确定性失败。慢机器可调大该值；需要贴着 Godot 进程排查内部卡死时可设置为 `0` 暂时关闭。
 
 自动采集和验证：
 

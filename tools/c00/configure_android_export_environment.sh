@@ -9,6 +9,10 @@ JAVA_SDK="${GODOT_JAVA_SDK_PATH:-${JAVA_HOME:-}}"
 DEBUG_KEYSTORE="${GODOT_ANDROID_KEYSTORE_DEBUG_PATH:-$PROJECT_ROOT/.godot/cache/c00/android/debug.keystore}"
 DEBUG_KEYSTORE_USER="${GODOT_ANDROID_KEYSTORE_DEBUG_USER:-androiddebugkey}"
 DEBUG_KEYSTORE_PASS="${GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD:-android}"
+TEMPLATE_VERSION="$(godot_normalize_template_version "${GODOT_EXPORT_TEMPLATES_VERSION:-$C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION}")"
+ANDROID_COMPILE_SDK="${C00_ANDROID_COMPILE_SDK:-$(godot_android_compile_sdk_from_template_version "$TEMPLATE_VERSION")}"
+ANDROID_BUILD_TOOLS_VERSION="${C00_ANDROID_BUILD_TOOLS_VERSION:-$(godot_android_build_tools_from_template_version "$TEMPLATE_VERSION")}"
+ANDROID_NDK_VERSION="${C00_ANDROID_NDK_VERSION:-$(godot_android_ndk_from_template_version "$TEMPLATE_VERSION")}"
 INSTALL_BUILD_TEMPLATE=0
 CONFIGURE_GODOT_SETTINGS=1
 DRY_RUN=0
@@ -147,11 +151,11 @@ check_dir() {
 
 check_apksigner() {
 	local sdk="$1"
-	if find "$sdk/build-tools" -path "*/apksigner" -type f -perm -111 2>/dev/null | head -n 1 | grep -q .; then
-		echo "OK   Android apksigner: $sdk/build-tools"
+	if [[ -x "$sdk/build-tools/$ANDROID_BUILD_TOOLS_VERSION/apksigner" ]]; then
+		echo "OK   Android apksigner: $sdk/build-tools/$ANDROID_BUILD_TOOLS_VERSION/apksigner"
 	else
-		echo "MISS Android apksigner under $sdk/build-tools" >&2
-		echo "Install Android SDK build-tools before exporting Rokid/OpenXR APKs." >&2
+		echo "MISS Android apksigner: $sdk/build-tools/$ANDROID_BUILD_TOOLS_VERSION/apksigner" >&2
+		echo "Install Android SDK build-tools $ANDROID_BUILD_TOOLS_VERSION before exporting Rokid/OpenXR APKs." >&2
 		return 1
 	fi
 }
@@ -162,7 +166,11 @@ JAVA_SDK="$(resolve_java_sdk || true)"
 
 status=0
 check_dir "$ANDROID_SDK/platform-tools" "Android platform-tools" || status=1
-check_dir "$ANDROID_SDK/build-tools" "Android build-tools" || status=1
+check_dir "$ANDROID_SDK/platforms/android-$ANDROID_COMPILE_SDK" "Android platform android-$ANDROID_COMPILE_SDK" || status=1
+check_dir "$ANDROID_SDK/build-tools/$ANDROID_BUILD_TOOLS_VERSION" "Android build-tools $ANDROID_BUILD_TOOLS_VERSION" || status=1
+if [[ -n "$ANDROID_NDK_VERSION" ]]; then
+	check_dir "$ANDROID_SDK/ndk/$ANDROID_NDK_VERSION" "Android NDK $ANDROID_NDK_VERSION" || status=1
+fi
 check_apksigner "$ANDROID_SDK" || status=1
 if [[ -n "$JAVA_SDK" && -d "$JAVA_SDK" ]]; then
 	echo "OK   Java SDK: $JAVA_SDK"
@@ -231,6 +239,10 @@ if [[ "$CONFIGURE_GODOT_SETTINGS" == "1" ]]; then
 		GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="$DEBUG_KEYSTORE_PASS" \
 		GODOT_EXPORT_TEMPLATES_VERSION="${GODOT_EXPORT_TEMPLATES_VERSION:-$C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION}" \
 			node "$PROJECT_ROOT/tools/c00/write_godot_android_editor_settings.js" || status=1
+		GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$DEBUG_KEYSTORE" \
+		GODOT_ANDROID_KEYSTORE_DEBUG_USER="$DEBUG_KEYSTORE_USER" \
+		GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="$DEBUG_KEYSTORE_PASS" \
+			node "$PROJECT_ROOT/tools/c00/write_godot_export_credentials.js" || status=1
 	fi
 fi
 

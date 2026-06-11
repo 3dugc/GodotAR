@@ -315,6 +315,71 @@ resolve_keytool_binary() {
 	return 1
 }
 
+read_android_config_value() {
+	local key="$1"
+	local config="$PROJECT_ROOT/android/build/config.gradle"
+	local value
+	if [ ! -f "$config" ]; then
+		return 1
+	fi
+	value="$(sed -n "s/^[[:space:]]*${key}[[:space:]]*:[[:space:]]*'\\([^']*\\)'.*/\\1/p" "$config" | head -n 1)"
+	if [ -z "$value" ]; then
+		return 1
+	fi
+	printf "%s" "$value"
+}
+
+resolve_android_compile_sdk() {
+	read_android_config_value compileSdk \
+		|| godot_android_compile_sdk_from_template_version "$(resolve_template_version)"
+}
+
+resolve_android_build_tools_version() {
+	read_android_config_value buildTools \
+		|| godot_android_build_tools_from_template_version "$(resolve_template_version)"
+}
+
+resolve_android_ndk_version() {
+	read_android_config_value ndkVersion \
+		|| godot_android_ndk_from_template_version "$(resolve_template_version)"
+}
+
+resolve_android_agp_version() {
+	read_android_config_value androidGradlePlugin \
+		|| godot_android_agp_from_template_version "$(resolve_template_version)"
+}
+
+resolve_android_kotlin_version() {
+	read_android_config_value kotlinVersion \
+		|| godot_android_kotlin_from_template_version "$(resolve_template_version)"
+}
+
+resolve_gradle_distribution() {
+	local wrapper="$PROJECT_ROOT/android/build/gradle/wrapper/gradle-wrapper.properties"
+	local distribution=""
+	if [ -f "$wrapper" ]; then
+		distribution="$(sed -n 's/^distributionUrl=.*\/\(gradle-[^/]*-bin\)\.zip$/\1/p' "$wrapper" | head -n 1)"
+	fi
+	if [ -n "$distribution" ]; then
+		printf "%s" "$distribution"
+	else
+		godot_android_gradle_distribution_from_template_version "$(resolve_template_version)"
+	fi
+}
+
+check_gradle_cache_dir() {
+	local label="$1"
+	local path="$2"
+	local purpose="$3"
+	if [ -d "$path" ]; then
+		printf "OK   %-24s %s\n" "$label" "$path"
+	else
+		printf "MISS %-24s %s\n" "$label" "$path"
+		printf "     %s\n" "$purpose"
+		status=1
+	fi
+}
+
 printf "C00 device smoke preflight\n"
 printf "Project: %s\n\n" "$PROJECT_ROOT"
 printf "Gate: %s\n\n" "$GATE"
@@ -444,13 +509,20 @@ if needs_android_tools; then
 	printf "\nAndroid export toolchain\n"
 	android_sdk_dir="$(resolve_android_sdk_dir)"
 	debug_keystore="$(resolve_android_debug_keystore)"
+	android_compile_sdk="$(resolve_android_compile_sdk)"
+	android_build_tools_version="$(resolve_android_build_tools_version)"
+	android_ndk_version="$(resolve_android_ndk_version)"
 	check_dir "$android_sdk_dir/platform-tools" "Android SDK platform-tools directory required by Godot export settings"
-	check_dir "$android_sdk_dir/build-tools" "Android SDK build-tools directory required by Godot export settings"
-	if find "$android_sdk_dir/build-tools" -path "*/apksigner" -type f -perm -111 2>/dev/null | head -n 1 | grep -q .; then
-		printf "OK   Android apksigner under %s/build-tools\n" "$android_sdk_dir"
+	check_dir "$android_sdk_dir/platforms/android-$android_compile_sdk" "Android SDK platform android-$android_compile_sdk required by the selected Godot Android build template; run tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes"
+	check_dir "$android_sdk_dir/build-tools/$android_build_tools_version" "Android SDK build-tools $android_build_tools_version required by the selected Godot Android build template; run tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes"
+	if [ -n "$android_ndk_version" ]; then
+		check_dir "$android_sdk_dir/ndk/$android_ndk_version" "Android NDK $android_ndk_version required by the selected Godot Android build template; run tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes"
+	fi
+	if [ -x "$android_sdk_dir/build-tools/$android_build_tools_version/apksigner" ]; then
+		printf "OK   Android apksigner %s/build-tools/%s/apksigner\n" "$android_sdk_dir" "$android_build_tools_version"
 	else
-		printf "MISS Android apksigner under %s/build-tools\n" "$android_sdk_dir"
-		printf "     Install Android SDK build-tools and point GODOT_ANDROID_SDK_PATH, ANDROID_SDK_ROOT, or ANDROID_HOME at the SDK root.\n"
+		printf "MISS Android apksigner %s/build-tools/%s/apksigner\n" "$android_sdk_dir" "$android_build_tools_version"
+		printf "     Install matching Android SDK build-tools and point GODOT_ANDROID_SDK_PATH, ANDROID_SDK_ROOT, or ANDROID_HOME at the SDK root.\n"
 		status=1
 	fi
 	java_bin="$(resolve_java_binary || true)"
@@ -459,6 +531,23 @@ if needs_android_tools; then
 		check_working_executable keytool "$keytool_bin" "-help" "required to create or validate the Android debug keystore; install OpenJDK 17 or run tools/c00/install_openjdk17.sh --download"
 	check_file "$debug_keystore" "required for debug APK signing; run tools/c00/configure_android_export_environment.sh --install-build-template"
 	check_file "$PROJECT_ROOT/android/build/build.gradle" "required for Android Gradle exports; run tools/c00/install_android_build_template.sh after installing Godot export templates"
+	if [ "${C00_REQUIRE_ANDROID_GRADLE_CACHE:-1}" = "1" ]; then
+		gradle_home="${GRADLE_USER_HOME:-$HOME/.gradle}"
+		gradle_distribution="$(resolve_gradle_distribution)"
+		android_agp_version="$(resolve_android_agp_version)"
+		android_kotlin_version="$(resolve_android_kotlin_version)"
+		if find "$gradle_home/wrapper/dists/$gradle_distribution" -path "*/bin/gradle" -type f -perm -111 2>/dev/null | head -n 1 | grep -q .; then
+			printf "OK   %-24s %s/wrapper/dists/%s\n" "Gradle wrapper cache" "$gradle_home" "$gradle_distribution"
+		else
+			printf "MISS %-24s %s/wrapper/dists/%s\n" "Gradle wrapper cache" "$gradle_home" "$gradle_distribution"
+			printf "     Prewarm Android Gradle dependencies before device cycles, or set C00_REQUIRE_ANDROID_GRADLE_CACHE=0 if this device machine may download them during export.\n"
+			status=1
+		fi
+		check_gradle_cache_dir "Android Gradle plugin" "$gradle_home/caches/modules-2/files-2.1/com.android.tools.build/gradle/$android_agp_version" "Missing AGP $android_agp_version for the selected Godot Android build template; prewarm Gradle dependencies before export."
+		check_gradle_cache_dir "Kotlin Android plugin" "$gradle_home/caches/modules-2/files-2.1/org.jetbrains.kotlin.android/org.jetbrains.kotlin.android.gradle.plugin/$android_kotlin_version" "Missing Kotlin Android plugin $android_kotlin_version for the selected Godot Android build template; prewarm Gradle dependencies before export."
+	else
+		warn_item "Android Gradle cache" "C00_REQUIRE_ANDROID_GRADLE_CACHE=0; preflight will allow Gradle to download wrapper/plugins during export."
+	fi
 fi
 
 if needs_arkit_static_check; then

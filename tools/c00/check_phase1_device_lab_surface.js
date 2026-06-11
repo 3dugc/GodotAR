@@ -106,6 +106,8 @@ if (failures.length === 0) {
 		"IOS_SIMULATOR_PLACE_APP_PATH",
 		"build_ios_xcode_project.sh will try the project-only export fallback",
 		"build_status",
+		"export_with_godot_checked",
+		"export_status",
 	]);
 
 	requireContains("tools/c00/validate_smoke_log.js", [

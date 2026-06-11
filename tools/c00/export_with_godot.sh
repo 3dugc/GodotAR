@@ -63,17 +63,41 @@ fi
 
 GODOT_XR_MODE="${GODOT_EXPORT_XR_MODE:-off}"
 GODOT_ARGS=(--headless)
+if [ "${C00_GODOT_VERBOSE:-0}" = "1" ]; then
+	GODOT_ARGS+=(--verbose)
+fi
 if [ -n "$GODOT_XR_MODE" ]; then
 	GODOT_ARGS+=(--xr-mode "$GODOT_XR_MODE")
 fi
+
+EXPORT_TIMEOUT_SECONDS="${C00_GODOT_EXPORT_TIMEOUT_SECONDS:-900}"
+case "$EXPORT_TIMEOUT_SECONDS" in
+	""|*[!0-9]*)
+		echo "C00_GODOT_EXPORT_TIMEOUT_SECONDS must be a non-negative integer number of seconds." >&2
+		exit 2
+		;;
+esac
 
 mkdir -p "$(dirname "$EXPORT_PATH")"
 
 EXPORT_TARGET="$EXPORT_PATH"
 EXPORT_TMP=""
+GODOT_EXPORT_PID=""
+WATCHDOG_PID=""
+WATCHDOG_MARKER=""
 cleanup_tmp_export() {
+	if [ -n "$WATCHDOG_PID" ]; then
+		kill "$WATCHDOG_PID" 2>/dev/null || true
+		wait "$WATCHDOG_PID" 2>/dev/null || true
+	fi
+	if [ -n "$GODOT_EXPORT_PID" ] && kill -0 "$GODOT_EXPORT_PID" 2>/dev/null; then
+		kill -TERM "$GODOT_EXPORT_PID" 2>/dev/null || true
+	fi
 	if [ -n "$EXPORT_TMP" ] && [ -f "$EXPORT_TMP" ]; then
 		rm -f "$EXPORT_TMP"
+	fi
+	if [ -n "$WATCHDOG_MARKER" ] && [ -f "$WATCHDOG_MARKER" ]; then
+		rm -f "$WATCHDOG_MARKER"
 	fi
 }
 trap cleanup_tmp_export EXIT
@@ -99,13 +123,62 @@ echo "Exporting preset '$PRESET' -> $OUT_PATH"
 if [ "$EXPORT_TARGET" != "$EXPORT_PATH" ]; then
 	echo "Using atomic export target: $EXPORT_TARGET"
 fi
+if [ "$EXPORT_TIMEOUT_SECONDS" = "0" ]; then
+	echo "Godot export timeout: disabled"
+else
+	echo "Godot export timeout: ${EXPORT_TIMEOUT_SECONDS}s (set C00_GODOT_EXPORT_TIMEOUT_SECONDS=0 to disable)"
+fi
+
+run_godot_export() {
+	if [ "$EXPORT_TIMEOUT_SECONDS" = "0" ]; then
+		"$GODOT" "${GODOT_ARGS[@]}" --path "$PROJECT_ROOT" --export-debug "$PRESET" "$EXPORT_TARGET"
+		return $?
+	fi
+
+	WATCHDOG_MARKER="$EXPORT_TARGET.timeout-$$"
+	rm -f "$WATCHDOG_MARKER"
+	"$GODOT" "${GODOT_ARGS[@]}" --path "$PROJECT_ROOT" --export-debug "$PRESET" "$EXPORT_TARGET" &
+	GODOT_EXPORT_PID=$!
+	(
+		sleep "$EXPORT_TIMEOUT_SECONDS"
+		if kill -0 "$GODOT_EXPORT_PID" 2>/dev/null; then
+			printf "timeout\n" > "$WATCHDOG_MARKER"
+			echo "Godot export timed out after ${EXPORT_TIMEOUT_SECONDS}s; terminating pid ${GODOT_EXPORT_PID}." >&2
+			kill -TERM "$GODOT_EXPORT_PID" 2>/dev/null || true
+			sleep 10
+			if kill -0 "$GODOT_EXPORT_PID" 2>/dev/null; then
+				echo "Godot export did not stop after TERM; sending KILL to pid ${GODOT_EXPORT_PID}." >&2
+				kill -KILL "$GODOT_EXPORT_PID" 2>/dev/null || true
+			fi
+		fi
+	) &
+	WATCHDOG_PID=$!
+
+	wait "$GODOT_EXPORT_PID"
+	local export_status=$?
+	GODOT_EXPORT_PID=""
+	kill "$WATCHDOG_PID" 2>/dev/null || true
+	wait "$WATCHDOG_PID" 2>/dev/null || true
+	WATCHDOG_PID=""
+
+	if [ -f "$WATCHDOG_MARKER" ]; then
+		rm -f "$WATCHDOG_MARKER"
+		WATCHDOG_MARKER=""
+		return 124
+	fi
+	WATCHDOG_MARKER=""
+	return "$export_status"
+}
 
 set +e
-"$GODOT" "${GODOT_ARGS[@]}" --path "$PROJECT_ROOT" --export-debug "$PRESET" "$EXPORT_TARGET"
+run_godot_export
 export_status=$?
 set -e
 if [ "$export_status" -ne 0 ]; then
 	echo "Godot export failed with status $export_status." >&2
+	if [ "$export_status" -eq 124 ]; then
+		echo "The export watchdog timed out. Increase C00_GODOT_EXPORT_TIMEOUT_SECONDS for slow machines, or set it to 0 to disable the watchdog while debugging Godot itself." >&2
+	fi
 	exit "$export_status"
 fi
 

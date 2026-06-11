@@ -145,7 +145,8 @@ device-bundle/
   android-sdk/
     platform-tools/adb
     build-tools/<version>/apksigner
-    platforms/android-34/
+    platforms/android-<version>/
+    ndk/<version>/               # Godot 4.7 Android template 需要 NDK 29.0.14206865
   jdk/
     bin/java
     bin/keytool
@@ -347,13 +348,15 @@ export JAVA_HOME="$GODOT_JAVA_SDK_PATH"
 tools/c00/install_openjdk17.sh --archive <OpenJDK17-macos-aarch64.tar.gz>
 ```
 
-安装 Godot 4.4 默认 Android SDK 依赖：
+安装当前 C00 Godot Android export template 对应的 Android SDK 依赖：
 
 ```bash
 tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes
 ```
 
-默认安装 `platform-tools`、`platforms;android-34`、`build-tools;34.0.0`。如果设备机已经有 Android command line tools，可以省略 `--download-cmdline-tools`；如果 `sdkmanager` 不在默认 SDK 目录里，传入 `--sdkmanager /path/to/sdkmanager`。如果已有 command line tools zip，可以传入 `--cmdline-tools-zip <commandlinetools-mac-*_latest.zip>`。
+默认会根据 `GODOT_EXPORT_TEMPLATES_VERSION` / C00 默认 Godot 线选择 SDK 包。截至 2026-06-11，Godot `4.7.rc1` Android template 需要 `platform-tools`、`platforms;android-36`、`build-tools;36.1.0` 和 `ndk;29.0.14206865`；旧的 4.4 线只装 `android-34/build-tools 34.0.0` 不足以完成 4.7 导出。如果设备机已经有 Android command line tools，可以省略 `--download-cmdline-tools`；如果 `sdkmanager` 不在默认 SDK 目录里，传入 `--sdkmanager /path/to/sdkmanager`。如果已有 command line tools zip，可以传入 `--cmdline-tools-zip <commandlinetools-mac-*_latest.zip>`。
+Rokid/Android preflight 默认还会检查 Gradle wrapper、Android Gradle plugin 和 Kotlin Android plugin 是否已缓存；如果设备机允许导出时联网下载，可设置 `C00_REQUIRE_ANDROID_GRADLE_CACHE=0` 放宽该项，但阶段发布前应保留缓存证据。
+`tools/c00/install_android_build_template.sh` 会给 Godot Android template 的 `settings.gradle` / `build.gradle` 自动加入 Aliyun Maven mirror，并保留 `google()`、`mavenCentral()` 和 Gradle Plugin Portal 作为 fallback。这样在 `dl.google.com` TLS 握手不稳定的设备机上，AndroidX、OpenXR loader 和 Gradle plugin 依赖仍可解析。脚本还会清理模板默认的 `mipmap*/icon.webp` / `icon_foreground.webp`，并给 `build.gradle` 注入 `c00CleanDuplicateLauncherWebp`，确保 Gradle `merge*Resources` 前再次清理；本项目从 `assets/app_icon.svg` 生成 Android launcher PNG，如果保留模板 WebP，Gradle 会在 `mergeStandardDebugResources` 阶段报 duplicate resources。
 OpenJDK 和 Android command line tools 下载同样支持断点续传，重复运行安装命令即可。
 
 Android/Rokid 导出还需要真实 JDK。macOS 的 `/usr/bin/java` / `/usr/bin/keytool` 可能只是系统 stub；`tools/c00/preflight.sh rokid` 会用 `java -version` 和 `keytool -help` 验证它们真的可运行。项目本地 `.godot/cache/c00/jdk/Contents/Home` 会被 `preflight`、readiness report 和 Android 配置脚本自动识别。
@@ -364,7 +367,7 @@ Android/Rokid 导出还需要真实 JDK。macOS 的 `/usr/bin/java` / `/usr/bin/
 tools/c00/configure_android_export_environment.sh --install-build-template
 ```
 
-该脚本会生成默认 debug keystore 到 `.godot/cache/c00/android/debug.keystore`，并通过 Godot editor binary 写入 `export/android/android_sdk_path`、`export/android/java_sdk_path`、`export/android/debug_keystore`、`export/android/debug_keystore_user` 和 `export/android/debug_keystore_pass`。`tools/c00/export_with_godot.sh` 在导出 `.apk` / `.aab` 前会自动调用它；如果需要完全手动控制，可设置 `GODOT_CONFIGURE_ANDROID_EXPORT=0`。
+该脚本会生成默认 debug keystore 到 `.godot/cache/c00/android/debug.keystore`，并通过 Godot editor binary 写入 `export/android/android_sdk_path`、`export/android/java_sdk_path`、`export/android/debug_keystore`、`export/android/debug_keystore_user` 和 `export/android/debug_keystore_pass`。同时会生成本机 `.godot/export_credentials.cfg`，给所有 Android presets 写入 `keystore/debug`、`keystore/debug_user` 和 `keystore/debug_password`，避免 Godot 4.7 导出时因为 debug keystore 三元组不完整而拒绝构建；该文件位于 `.godot/`，不会提交进仓库。`tools/c00/export_with_godot.sh` 在导出 `.apk` / `.aab` 前会自动调用它；如果需要完全手动控制，可设置 `GODOT_CONFIGURE_ANDROID_EXPORT=0`。
 
 `tools/c00/preflight.sh`、`tools/c00/export_with_godot.sh` 和 Android/Rokid 采集脚本会自动查找：
 
@@ -376,6 +379,8 @@ tools/c00/configure_android_export_environment.sh --install-build-template
 - `GODOT_JAVA_SDK_PATH` / `JAVA_HOME` / 项目本地 `.godot/cache/c00/jdk/Contents/Home` 下的 `java` 和 `keytool`。
 
 命令行导出时，`tools/c00/export_with_godot.sh` 默认传入 `--xr-mode off`，避免开发机没有 OpenXR runtime 时阻塞导出流程。这个参数只影响构建机上的 Godot editor 进程，不会移除导出包里的 OpenXR/ARKit/ARCore 启动参数。脚本默认还会先导出到临时 artifact，只有 Godot 命令成功且产物非空时才替换正式 `.apk` / `.zip`，避免失败后误用旧包。
+
+为避免 Godot headless export 卡住后让设备周期无限等待，导出脚本默认启用 `C00_GODOT_EXPORT_TIMEOUT_SECONDS=900` watchdog。超时会终止本次 Godot 导出、删除临时 artifact，并以状态码 `124` 失败；慢机器可调大该值，调试 Godot 自身卡死时可设置 `C00_GODOT_EXPORT_TIMEOUT_SECONDS=0` 暂时关闭 watchdog。
 
 iPad/ARKit gate 前先构建插件：
 

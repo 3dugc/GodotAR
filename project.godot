@@ -13,7 +13,7 @@ platform_hint=""
 
 [memory]
 
-limits/message_queue/max_size_mb=64
+limits/message_queue/max_size_mb=512
 
 [autoload]
 

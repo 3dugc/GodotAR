@@ -2,7 +2,9 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+. "$PROJECT_ROOT/tools/c00/godot_version_defaults.sh"
 ANDROID_SDK="${GODOT_ANDROID_SDK_PATH:-${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$PROJECT_ROOT/.godot/cache/c00/android-sdk}}}"
+TEMPLATE_VERSION="$(godot_normalize_template_version "${GODOT_EXPORT_TEMPLATES_VERSION:-$C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION}")"
 SDKMANAGER="${SDKMANAGER:-}"
 CMDLINE_TOOLS_ZIP="${CMDLINE_TOOLS_ZIP:-}"
 CMDLINE_TOOLS_URL="${CMDLINE_TOOLS_URL:-https://dl.google.com/android/repository/commandlinetools-mac-13114758_latest.zip}"
@@ -32,8 +34,8 @@ Options:
   --yes                Accept Android SDK licenses from stdin.
   --dry-run            Print command without installing.
 
-Default packages match Godot 4.4 Android export expectations:
-  platform-tools platforms;android-34 build-tools;34.0.0
+Default packages match the selected C00 Godot export templates version:
+  platform-tools platforms;android-<version> build-tools;<version> [ndk;<version>]
 
 Download tuning:
   C00_CURL_RETRY=8 C00_CURL_RETRY_DELAY=15 C00_CURL_SPEED_LIMIT=1024 C00_CURL_SPEED_TIME=30 C00_CURL_MAX_TIME=900 C00_CURL_HTTP1=1 \\
@@ -158,7 +160,13 @@ done
 configure_download_urls
 
 if [[ "${#PACKAGES[@]}" -eq 0 ]]; then
-	PACKAGES=("platform-tools" "platforms;android-34" "build-tools;34.0.0")
+	compile_sdk="${C00_ANDROID_COMPILE_SDK:-$(godot_android_compile_sdk_from_template_version "$TEMPLATE_VERSION")}"
+	build_tools="${C00_ANDROID_BUILD_TOOLS_VERSION:-$(godot_android_build_tools_from_template_version "$TEMPLATE_VERSION")}"
+	ndk_version="${C00_ANDROID_NDK_VERSION:-$(godot_android_ndk_from_template_version "$TEMPLATE_VERSION")}"
+	PACKAGES=("platform-tools" "platforms;android-$compile_sdk" "build-tools;$build_tools")
+	if [[ -n "$ndk_version" ]]; then
+		PACKAGES+=("ndk;$ndk_version")
+	fi
 fi
 
 default_cmdline_tools_zip="$PROJECT_ROOT/.godot/cache/c00/downloads/commandlinetools-mac-13114758_latest.zip"

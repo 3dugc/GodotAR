@@ -1,3 +1,8 @@
+; C00: Disabled for this project-owned vendor addon snapshot.
+; Android OpenXR vendor AARs are exported through addons/godot_openxr_vendors_export.
+; Keeping this desktop/editor GDExtension active made Godot 4.7.rc1 headless
+; import/export hang on the device build machine.
+
 [configuration]
 
 entry_symbol = "plugin_library_init"

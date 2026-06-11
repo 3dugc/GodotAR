@@ -10,6 +10,7 @@ const files = {
 	configureShell: "tools/c00/configure_android_export_environment.sh",
 	configureGd: "tools/c00/configure_android_editor_settings.gd",
 	editorSettingsWriter: "tools/c00/write_godot_android_editor_settings.js",
+	exportCredentialsWriter: "tools/c00/write_godot_export_credentials.js",
 	templateInstaller: "tools/c00/install_android_build_template.sh",
 	sdkInstaller: "tools/c00/install_android_sdk_packages.sh",
 	jdkInstaller: "tools/c00/install_openjdk17.sh",
@@ -31,9 +32,13 @@ if (failures.length === 0) {
 		"GODOT_JAVA_SDK_PATH",
 		"GODOT_ANDROID_KEYSTORE_DEBUG_PATH",
 		".godot/cache/c00/jdk/Contents/Home",
+		"godot_android_compile_sdk_from_template_version",
+		"godot_android_build_tools_from_template_version",
+		"godot_android_ndk_from_template_version",
 		"KEYTOOL",
 		"-genkeypair",
 		"write_godot_android_editor_settings.js",
+		"write_godot_export_credentials.js",
 		"install_android_build_template.sh",
 	]);
 
@@ -52,23 +57,41 @@ if (failures.length === 0) {
 		"quoteGodotString",
 	]);
 
+	requireContains(files.exportCredentialsWriter, [
+		".godot",
+		"export_credentials.cfg",
+		"keystore/debug",
+		"keystore/debug_user",
+		"keystore/debug_password",
+		"parseAndroidPresetSections",
+	]);
+
 	requireContains(files.templateInstaller, [
 		"android_source.zip",
 		"android/build",
 		".build_version",
 		".gdignore",
 		"build.gradle",
+		"apply_c00_maven_mirrors",
+		"maven.aliyun.com/repository/google",
+		"clean_c00_android_launcher_icon_resources",
+		"apply_c00_launcher_icon_gradle_cleanup",
+		"c00CleanDuplicateLauncherWebp",
+		"merge\") && task.name.endsWith(\"Resources",
+		"icon_foreground.webp",
 	]);
 
 	requireContains(files.sdkInstaller, [
+		"godot_version_defaults.sh",
 		"commandlinetools-mac-13114758_latest.zip",
 		"--download-cmdline-tools",
 		"--cmdline-tools-zip",
 		"Resuming incomplete Android command line tools download",
 		".godot/cache/c00/jdk/Contents/Home",
 		"platform-tools",
-		"platforms;android-34",
-		"build-tools;34.0.0",
+		"platforms;android-$compile_sdk",
+		"build-tools;$build_tools",
+		"ndk;$ndk_version",
 		"sdkmanager",
 		"--licenses",
 		"run_sdkmanager_with_yes",
@@ -98,6 +121,11 @@ if (failures.length === 0) {
 		".godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot",
 		".godot/cache/c00/jdk/Contents/Home",
 		"platform-tools/adb",
+		"resolve_android_compile_sdk",
+		"resolve_gradle_distribution",
+		"C00_REQUIRE_ANDROID_GRADLE_CACHE",
+		"Android Gradle plugin",
+		"Kotlin Android plugin",
 		"resolve_android_debug_keystore",
 		"android/build/build.gradle",
 		"configure_android_export_environment.sh --install-build-template",
@@ -110,8 +138,12 @@ if (failures.length === 0) {
 		"GODOT_CONFIGURE_ANDROID_EXPORT",
 		"configure_android_export_environment.sh",
 		"--install-build-template",
+		"C00_GODOT_VERBOSE",
 		"C00_ATOMIC_EXPORT",
 		"EXPORT_TMP",
+		"C00_GODOT_EXPORT_TIMEOUT_SECONDS",
+		"Godot export timed out after",
+		"The export watchdog timed out",
 		"Godot export did not create a non-empty artifact",
 	]);
 
