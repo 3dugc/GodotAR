@@ -17,6 +17,8 @@ const expected = {
 const requiredExportScenes = [
 	"res://demo/boot.tscn",
 	"res://demo/00_device_smoke_test.tscn",
+	"res://demo/01_place_on_plane.tscn",
+	"res://demo/02_backend_switcher.tscn",
 	"res://demo/03_openxr_ar_capability_lab.tscn",
 	"res://demo/04_rokid_ray_place.tscn",
 	"res://demo/06_ios_arkit_place.tscn",

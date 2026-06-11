@@ -77,6 +77,13 @@ demo/01_place_on_plane.tscn
 demo/02_backend_switcher.tscn
 ```
 
+## 当前落地状态
+
+- `demo/01_place_on_plane.tscn` 已落地为 EditorSim-first 的可运行放置 demo；同一份脚本只调用 `ARSession`、`ARRaycastManager`、`ARPlaneManager`、`ARAnchorManager` 和 `XROrigin` 上层接口，并输出 `GXF_C01_PLACE` 日志。
+- `demo/02_backend_switcher.tscn` 已落地为 backend 选择/切换 demo；可在 EditorSim、OpenXR/Rokid、Android ARCore、iOS ARKit 之间切换 requested backend，并把 requested 与实际 provider/fallback 写入 `GXF_C01_BACKEND` 日志。
+- `demo/boot.gd` 已加入 `place_on_plane` / `c01_place` / `backend_switcher` / `c01_backend` 路由，导出包可通过 `--xr-scene=<alias>` 启动对应成果。
+- `tools/c00/check_c01_demo_surface.js` 和 `tools/c00/run_static_gates.js --gate all` 已覆盖 C01 demo 的场景、节点、manager、boot route、导出清单和日志标记。
+
 ## 检测计划
 
 | 用例 | 平台 | 步骤 | 通过标准 |
@@ -86,6 +93,8 @@ demo/02_backend_switcher.tscn
 | Backend switcher | Editor | 切换 backend | 状态显示正确 |
 | OpenXR 启动 | Rokid | 运行 APK | session 状态可见 |
 | ARKit availability | iPad | Xcode 运行 | provider/capability 状态可见 |
+| C01 静态保护 | 本机 | `node tools/c00/check_c01_demo_surface.js` | C01 场景、boot route、manager 和日志 surface 均通过 |
+| C01 Godot 运行 | 本机/Godot | `Godot --headless --path . --xr-mode off --quit --scene res://demo/01_place_on_plane.tscn` 与 `... --scene res://demo/02_backend_switcher.tscn` | 两个 C01 场景可一帧启动并输出 `GXF_C01_PLACE` / `GXF_C01_BACKEND` |
 
 ## 发表要求
 

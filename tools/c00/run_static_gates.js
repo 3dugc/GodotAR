@@ -49,6 +49,11 @@ const checks = [
 		required: true,
 	},
 	{
+		name: "C01 runnable demo surface",
+		command: ["node", "tools/c00/check_c01_demo_surface.js"],
+		required: true,
+	},
+	{
 		name: "Device dependency bundle surface",
 		command: ["node", "tools/c00/check_device_dependency_bundle_surface.js"],
 		required: true,
