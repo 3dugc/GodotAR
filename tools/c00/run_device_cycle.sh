@@ -84,6 +84,7 @@ RUN_PREFLIGHT="${RUN_PREFLIGHT:-1}"
 RUN_EXPORT="${RUN_EXPORT:-1}"
 RUN_COLLECT="${RUN_COLLECT:-1}"
 DRY_RUN="${DRY_RUN:-0}"
+AUTO_SELECT_READY_DEVICE="${AUTO_SELECT_READY_DEVICE:-1}"
 BUILD_ARKIT_PLUGIN="${BUILD_ARKIT_PLUGIN:-auto}"
 BUILD_IPAD_APP="${BUILD_IPAD_APP:-auto}"
 CONFIGURE_IPAD_SIGNING="${CONFIGURE_IPAD_SIGNING:-auto}"
@@ -137,6 +138,7 @@ Common environment:
   RUN_EXPORT=1
   RUN_COLLECT=1
   DRY_RUN=1                         Resolve and print actions without running Godot/Xcode/device commands.
+  AUTO_SELECT_READY_DEVICE=1        Auto-fill DEVICE/ADB_SERIAL from check_device_ready.js when not set.
 
 Evidence:
   CAPTURE_MEDIA=1                  Capture screenshot/recording where supported.
@@ -204,6 +206,133 @@ project_path() {
 		/*) printf "%s\n" "$path" ;;
 		*) printf "%s/%s\n" "$PROJECT_ROOT" "$path" ;;
 	esac
+}
+
+safe_gate_name() {
+	printf "%s" "$1" | tr -c 'A-Za-z0-9_.-' '-'
+}
+
+gate_needs_ipad_device_arg() {
+	case "$1" in
+		ipad|ipad-place) return 0 ;;
+		*) return 1 ;;
+	esac
+}
+
+gate_uses_adb_serial() {
+	case "$1" in
+		rokid|rokid-place|android-arcore) return 0 ;;
+		*) return 1 ;;
+	esac
+}
+
+readiness_gate_for_gate() {
+	case "$1" in
+		rokid-place) printf "%s" "rokid" ;;
+		ipad-place) printf "%s" "ipad" ;;
+		*) printf "%s" "$1" ;;
+	esac
+}
+
+resolve_ready_ipad_device_from_json() {
+	local json_file="$1"
+	if [[ ! -f "$json_file" ]]; then
+		return 0
+	fi
+	node -e '
+const fs = require("fs");
+const file = process.argv[1];
+const summary = JSON.parse(fs.readFileSync(file, "utf8"));
+const ipad = (Array.isArray(summary.results) ? summary.results : []).find((item) => item && item.gate === "ipad");
+const evidence = (ipad && ipad.evidence) || {};
+const selection = evidence.device_selection || {};
+const selected = evidence.device || selection.selected_device || "";
+if (selected) {
+	process.stdout.write(String(selected));
+}
+' "$json_file" 2>/dev/null || true
+}
+
+resolve_ready_android_serial_from_json() {
+	local json_file="$1"
+	local gate_name="$2"
+	if [[ ! -f "$json_file" ]]; then
+		return 0
+	fi
+	node -e '
+const fs = require("fs");
+const file = process.argv[1];
+const gate = process.argv[2];
+const summary = JSON.parse(fs.readFileSync(file, "utf8"));
+const result = (Array.isArray(summary.results) ? summary.results : []).find((item) => item && item.gate === gate);
+const selected = result && result.evidence && result.evidence.selected_device;
+const serial = selected && selected.serial ? selected.serial : "";
+if (serial) {
+	process.stdout.write(String(serial));
+}
+' "$json_file" "$gate_name" 2>/dev/null || true
+}
+
+auto_select_ready_device_if_needed() {
+	local gate="$1"
+	if [[ "$AUTO_SELECT_READY_DEVICE" == "0" ]]; then
+		return 0
+	fi
+	if gate_needs_ipad_device_arg "$gate" && [[ -n "$DEVICE" ]]; then
+		return 0
+	fi
+	if gate_uses_adb_serial "$gate" && [[ -n "${ADB_SERIAL:-}" ]]; then
+		return 0
+	fi
+	if ! gate_needs_ipad_device_arg "$gate" && ! gate_uses_adb_serial "$gate"; then
+		return 0
+	fi
+
+	local readiness_gate safe_gate out_dir stamp report json status selected
+	readiness_gate="$(readiness_gate_for_gate "$gate")"
+	safe_gate="$(safe_gate_name "$gate")"
+	out_dir="$PROJECT_ROOT/releases/phase_0_smoke/evidence"
+	stamp="$(date +%Y%m%d-%H%M%S)"
+	report="$out_dir/device-ready-${readiness_gate}-${safe_gate}-${stamp}.md"
+	json="$out_dir/device-ready-${readiness_gate}-${safe_gate}-${stamp}.json"
+
+	if [[ "$DRY_RUN" == "1" ]]; then
+		echo "DRY RUN: node tools/c00/check_device_ready.js --gate $readiness_gate --package $PACKAGE --report $report --json $json --format markdown"
+		return 0
+	fi
+
+	mkdir -p "$out_dir"
+	local readiness_args=(--gate "$readiness_gate" --package "$PACKAGE" --report "$report" --json "$json" --format markdown)
+	if gate_needs_ipad_device_arg "$gate" && [[ -n "$DEVICE" ]]; then
+		readiness_args+=(--device "$DEVICE")
+	fi
+
+	echo "Auto-selecting ready device for C00 gate '$gate'..."
+	set +e
+	node "$PROJECT_ROOT/tools/c00/check_device_ready.js" "${readiness_args[@]}"
+	status="$?"
+	set -e
+
+	if gate_needs_ipad_device_arg "$gate" && [[ -z "$DEVICE" ]]; then
+		selected="$(resolve_ready_ipad_device_from_json "$json")"
+		if [[ -n "$selected" ]]; then
+			DEVICE="$selected"
+			export DEVICE
+			echo "Using auto-discovered iPad device for gate run: $DEVICE"
+		fi
+	fi
+	if gate_uses_adb_serial "$gate" && [[ -z "${ADB_SERIAL:-}" ]]; then
+		selected="$(resolve_ready_android_serial_from_json "$json" "$readiness_gate")"
+		if [[ -n "$selected" ]]; then
+			ADB_SERIAL="$selected"
+			export ADB_SERIAL
+			echo "Using auto-discovered ADB serial for gate run: $ADB_SERIAL"
+		fi
+	fi
+	if [[ "$status" -ne 0 ]]; then
+		echo "Device readiness did not pass for '$gate'; continuing so the collector can produce diagnostics. Report: $report"
+	fi
+	return 0
 }
 
 resolve_template_version() {
@@ -692,6 +821,7 @@ run_gate() {
 		build_arkit_plugin_if_requested || return $?
 	fi
 	run_preflight "$gate" || return $?
+	auto_select_ready_device_if_needed "$gate" || return $?
 	configure_ipad_signing_if_requested "$gate" || return $?
 	run_export "$gate" || return $?
 	if [[ "$gate" == "ipad" ]]; then

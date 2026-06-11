@@ -96,7 +96,7 @@ tools/c00/wait_for_device_ready.sh --gate ipad --device "iPad M4" --timeout 300
 ```
 
 Rokid/Android readiness 要求 `adb devices -l` 至少有一个 `device` 状态的已授权设备；单个 `rokid` / `android-arcore` readiness gate 会把选中的 `selected_device.serial` 继续作为 `ADB_SERIAL` 传给安装、启动、日志和媒体采集。iPad readiness 会采集 devicectl/xctrace device profile，并要求目标 iPad 不处于 `offline` / `unavailable` 状态；目标 bundle 尚未安装只会作为等待阶段 warning，因为真正安装发生在 device gate 内。
-如果现场只有一台 iPad，`check_device_ready.js --gate all` 和 iPad readiness 可以省略 `--device`，脚本会从 `xcrun devicectl list devices` 自动选择唯一 iPad 并把选择证据写入报告；`wait_for_device_ready.sh --run-gate` 和 `run_phase1_device_lab.sh --wait-devices` 会继续把该选择传给后续 iPad gate。若出现多台 iPad，仍需显式传 `--device <name-or-uuid>`。
+如果现场只有一台 iPad，`check_device_ready.js --gate all` 和 iPad readiness 可以省略 `--device`，脚本会从 `xcrun devicectl list devices` 自动选择唯一 iPad 并把选择证据写入报告；`wait_for_device_ready.sh --run-gate`、`run_phase1_device_lab.sh --wait-devices` 和单独的 `run_device_cycle.sh ipad` / `rokid` / `android-arcore` 会继续把该选择传给后续 gate。若出现多台 iPad，仍需显式传 `--device <name-or-uuid>`；多台 Android/XR 设备同时连接时仍可显式设置 `ADB_SERIAL=<serial>`。如需关闭单 gate 的 readiness 自动选择，设置 `AUTO_SELECT_READY_DEVICE=0`。
 
 设备 ready 后也可以自动进入 spec gate：
 

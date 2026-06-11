@@ -128,6 +128,13 @@ if (failures.length === 0) {
 		"IPAD_PLACE_PRESET",
 		"IOS_SIMULATOR_PLACE_EXPORT_PATH",
 		"IOS_SIMULATOR_PLACE_APP_PATH",
+		"AUTO_SELECT_READY_DEVICE",
+		"auto_select_ready_device_if_needed",
+		"resolve_ready_ipad_device_from_json",
+		"resolve_ready_android_serial_from_json",
+		"Using auto-discovered iPad device for gate run",
+		"Using auto-discovered ADB serial for gate run",
+		"Device readiness did not pass for",
 		"build_ios_xcode_project.sh will try the project-only export fallback",
 		"build_status",
 		"export_with_godot_checked",
@@ -196,6 +203,7 @@ if (failures.length === 0) {
 		"--wait-devices",
 		"--no-recover-devices",
 		"--no-split-all-devices",
+		"AUTO_SELECT_READY_DEVICE=0",
 		"wait_for_device_ready.sh",
 	]);
 
@@ -205,6 +213,7 @@ if (failures.length === 0) {
 		"--wait-devices",
 		"--no-recover-devices",
 		"--no-split-all-devices",
+		"AUTO_SELECT_READY_DEVICE=0",
 	]);
 
 	requireContains(files.spec, [
@@ -213,6 +222,7 @@ if (failures.length === 0) {
 		"--wait-devices",
 		"AUTO_RECOVER_DEVICES",
 		"SPLIT_ALL_DEVICE_CYCLE",
+		"AUTO_SELECT_READY_DEVICE=0",
 	]);
 }
 
