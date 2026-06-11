@@ -10,6 +10,8 @@ const evidence = [];
 checkBootRoutes();
 checkPlaceOnPlaneDemo();
 checkBackendSwitcherDemo();
+checkC01Collector();
+checkC01Validator();
 
 const summary = {
 	pass: failures.length === 0,
@@ -142,6 +144,54 @@ function checkBackendSwitcherDemo() {
 	}
 	evidence.push(localEvidence);
 }
+
+
+function checkC01Collector() {
+	const file = "tools/c00/collect_c01_editor_smoke.sh";
+	const text = readFile(file);
+	const localEvidence = { file, exists: Boolean(text), checks: [] };
+	if (!text) {
+		failures.push(`Missing ${file}.`);
+		evidence.push(localEvidence);
+		return;
+	}
+	for (const needle of [
+		"res://demo/01_place_on_plane.tscn",
+		"res://demo/02_backend_switcher.tscn",
+		"--gate \"$gate\"",
+		"c01-place",
+		"c01-backend",
+		"validate_smoke_log.js",
+		"C01 EditorSim Smoke",
+	]) {
+		requireText(text, needle, `${file}: missing ${needle}.`, localEvidence);
+	}
+	evidence.push(localEvidence);
+}
+
+
+function checkC01Validator() {
+	const file = "tools/c00/validate_smoke_log.js";
+	const text = readFile(file);
+	const localEvidence = { file, exists: Boolean(text), checks: [] };
+	if (!text) {
+		failures.push(`Missing ${file}.`);
+		evidence.push(localEvidence);
+		return;
+	}
+	for (const needle of [
+		"GXF_C01_PLACE|",
+		"GXF_C01_BACKEND|",
+		"c01-place",
+		"c01-backend",
+		"validateC01PlaceEvidence",
+		"validateC01BackendEvidence",
+	]) {
+		requireText(text, needle, `${file}: missing ${needle}.`, localEvidence);
+	}
+	evidence.push(localEvidence);
+}
+
 
 function readFile(relativePath) {
 	const absolutePath = path.join(PROJECT_ROOT, relativePath);

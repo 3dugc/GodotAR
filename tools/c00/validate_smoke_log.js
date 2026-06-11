@@ -71,7 +71,7 @@ function parseArgs(argv) {
 function usage() {
 	console.error([
 		"Usage:",
-		"  node tools/c00/validate_smoke_log.js --gate <rokid|rokid-place|ipad|ipad-place|android-arcore|editor|ios-simulator|ios-simulator-place|android-emulator> --log <file> [--report <file>]",
+		"  node tools/c00/validate_smoke_log.js --gate <rokid|rokid-place|ipad|ipad-place|android-arcore|editor|c01-place|c01-backend|ios-simulator|ios-simulator-place|android-emulator> --log <file> [--report <file>]",
 		"",
 		"Options:",
 		"  --allow-openxr-without-ar-blend   Downgrade Rokid ar_product_path=false from failure to warning.",
@@ -83,6 +83,8 @@ function usage() {
 function extractSmokeEvents(text) {
 	const markers = [
 		{ marker: "GXF_SMOKE|", source: "GXF_SMOKE" },
+		{ marker: "GXF_C01_PLACE|", source: "GXF_C01_PLACE" },
+		{ marker: "GXF_C01_BACKEND|", source: "GXF_C01_BACKEND" },
 		{ marker: "GXF_ROKID_PLACE|", source: "GXF_ROKID_PLACE" },
 		{ marker: "GXF_ARKIT_PLACE|", source: "GXF_ARKIT_PLACE" },
 	];
@@ -130,7 +132,7 @@ function evaluateGate(events, gate, options) {
 	const warnings = [];
 
 	if (events.length === 0) {
-		failures.push("No GXF_SMOKE, GXF_ROKID_PLACE, or GXF_ARKIT_PLACE events found.");
+		failures.push("No GXF_SMOKE, GXF_C01_PLACE, GXF_C01_BACKEND, GXF_ROKID_PLACE, or GXF_ARKIT_PLACE events found.");
 		return { pass: false, failures, warnings, evidence: null };
 	}
 
@@ -146,7 +148,9 @@ function evaluateGate(events, gate, options) {
 			event.event === "heartbeat" ||
 			event.event === "placed" ||
 			event.event === "ready" ||
-			event.event === "availability"
+			event.event === "availability" ||
+			event.event === "backend_selected" ||
+			event.event === "planes_changed"
 		);
 	});
 
@@ -284,6 +288,14 @@ function evaluateGate(events, gate, options) {
 		}
 	}
 
+	if (gate === "c01-place") {
+		validateC01PlaceEvidence(evidence, failures);
+	}
+
+	if (gate === "c01-backend") {
+		validateC01BackendEvidence(evidence, failures);
+	}
+
 	return {
 		pass: failures.length === 0,
 		failures,
@@ -296,6 +308,18 @@ function evaluateGate(events, gate, options) {
 function selectEvidence(candidates, gate) {
 	if (candidates.length === 0) {
 		return null;
+	}
+	if (gate === "c01-place") {
+		return candidates.find((event) => event.__source === "GXF_C01_PLACE" && event.event === "session_started") ||
+			candidates.find((event) => event.__source === "GXF_C01_PLACE" && event.event === "heartbeat") ||
+			candidates.find((event) => event.__source === "GXF_C01_PLACE") ||
+			null;
+	}
+	if (gate === "c01-backend") {
+		return candidates.find((event) => event.__source === "GXF_C01_BACKEND" && event.event === "backend_selected") ||
+			candidates.find((event) => event.__source === "GXF_C01_BACKEND" && event.event === "session_started") ||
+			candidates.find((event) => event.__source === "GXF_C01_BACKEND") ||
+			null;
 	}
 	if (gate === "rokid-place") {
 		return candidates.find((event) => event.__source === "GXF_ROKID_PLACE" && event.event === "placed") ||
@@ -318,6 +342,62 @@ function isSmokeEvidence(evidence) {
 
 function requiresCameraEvidence(gate, evidence) {
 	return isSmokeEvidence(evidence) || gate === "ipad-place" || gate === "ios-simulator-place";
+}
+
+
+function validateC01PlaceEvidence(evidence, failures) {
+	if (evidence.__source !== "GXF_C01_PLACE") {
+		failures.push(`c01-place gate requires GXF_C01_PLACE evidence, observed ${evidence.__source || "unknown"}.`);
+	}
+	if (evidence.requested_backend !== "EditorSim") {
+		failures.push(`c01-place gate should request EditorSim, observed ${evidence.requested_backend || "unknown"}.`);
+	}
+	if (getCapability(evidence, "simulation") !== true) {
+		failures.push("c01-place gate requires capabilities.simulation=true.");
+	}
+	if (getCapability(evidence, "plane_detection") !== true) {
+		failures.push("c01-place gate requires capabilities.plane_detection=true.");
+	}
+	if (getCapability(evidence, "raycast") !== true) {
+		failures.push("c01-place gate requires capabilities.raycast=true.");
+	}
+	if (getCapability(evidence, "anchors") !== true) {
+		failures.push("c01-place gate requires capabilities.anchors=true.");
+	}
+	if (!evidence.planes || evidence.planes.manager !== true) {
+		failures.push("c01-place gate requires ARPlaneManager metadata with manager=true.");
+	} else if (Number(evidence.planes.count || 0) < 1) {
+		failures.push("c01-place gate requires at least one simulated plane.");
+	}
+	if (!evidence.anchors || evidence.anchors.manager !== true) {
+		failures.push("c01-place gate requires ARAnchorManager metadata with manager=true.");
+	}
+}
+
+
+function validateC01BackendEvidence(evidence, failures) {
+	if (evidence.__source !== "GXF_C01_BACKEND") {
+		failures.push(`c01-backend gate requires GXF_C01_BACKEND evidence, observed ${evidence.__source || "unknown"}.`);
+	}
+	if (evidence.requested_backend !== "EditorSim") {
+		failures.push(`c01-backend gate should start from EditorSim, observed ${evidence.requested_backend || "unknown"}.`);
+	}
+	if (getCapability(evidence, "simulation") !== true) {
+		failures.push("c01-backend gate requires capabilities.simulation=true for the runnable editor baseline.");
+	}
+	if (!Array.isArray(evidence.availability_reports) || evidence.availability_reports.length < 4) {
+		failures.push("c01-backend gate requires availability_reports for EditorSim, OpenXR/Rokid, Android ARCore, and iOS ARKit.");
+	} else {
+		const labels = evidence.availability_reports.map((report) => String(report.label || ""));
+		for (const expected of ["EditorSim", "OpenXR / Rokid", "Android ARCore", "iOS ARKit"]) {
+			if (!labels.includes(expected)) {
+				failures.push(`c01-backend availability_reports is missing ${expected}.`);
+			}
+		}
+	}
+	if (!evidence.selected_option || String(evidence.selected_option.label || "") !== "EditorSim") {
+		failures.push("c01-backend gate should report selected_option.label=EditorSim.");
+	}
 }
 
 
@@ -358,6 +438,8 @@ function backendForGate(gate) {
 		case "android-arcore":
 			return "ARCore";
 		case "editor":
+		case "c01-place":
+		case "c01-backend":
 		case "ios-simulator":
 		case "ios-simulator-place":
 		case "android-emulator":
@@ -417,6 +499,8 @@ function platformHintsForGate(gate) {
 		case "android-arcore":
 			return ["arcore", "handheld", "handheld_ar", "phone", "mobile_ar"];
 		case "ios-simulator":
+		case "c01-place":
+		case "c01-backend":
 		case "android-emulator":
 			return ["simulator", "simulation", "sim", "editor", "editorsim", "editor_sim"];
 		case "ios-simulator-place":

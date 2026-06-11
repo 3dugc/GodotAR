@@ -65,6 +65,14 @@ node tools/c00/run_static_gates.js --gate all --report releases/phase_0_smoke/ev
 
 该命令不导出、不安装、不连接设备。它汇总 Node 工具语法、shell 脚本语法、Godot project/scene 静态完整性、ARFoundation API surface、XRI API surface、Rokid/OpenXR export surface、OpenXR/Rokid provider surface、GodotARCore Android plugin surface、iPad Godot source 准备 surface、iOS plugin 配置和 ARKit Objective-C++ syntax smoke。缺少 `export_presets.cfg` 会作为 warning 记录，因为真正导出前仍需在设备机 Godot editor 里复核保存。
 
+C01 EditorSim 阶段成果可以独立采集：
+
+```bash
+tools/c00/collect_c01_editor_smoke.sh
+```
+
+该命令会用 Godot headless 运行 `demo/01_place_on_plane.tscn` 和 `demo/02_backend_switcher.tscn`，再分别用 `validate_smoke_log.js --gate c01-place` 与 `--gate c01-backend` 校验 `GXF_C01_PLACE` / `GXF_C01_BACKEND` 日志。它是上层 ARFoundation-style API 和 backend 选择器的开发期 evidence，不替代第一阶段的 Rokid/OpenXR、iPad/ARKit、Android/ARCore 真机 evidence。
+
 ## iPad 签名准备
 
 设备机真跑 `ipad` / `ipad-place` 前，`run_device_cycle.sh` 会在导出前尝试配置 iOS export preset 的 Team ID 和 bundle id。默认模式是 `CONFIGURE_IPAD_SIGNING=auto`：只要环境里有 `IPAD_TEAM_ID`、`TEAM_ID`、`DEVELOPMENT_TEAM` 或 `APPLE_TEAM_ID`，runner 就会自动调用 `node tools/c00/configure_ios_signing.js --gate <ipad-gate> --bundle-id "$PACKAGE"`；没有 Team ID 时只提示并继续，让首次 dry-run 不被阻断。

@@ -19,6 +19,8 @@ res://demo/00_device_smoke_test.tscn
 导出包同时包含每期可运行 demo。需要切到专项场景时，在启动参数追加：
 
 ```text
+--xr-scene=place_on_plane
+--xr-scene=backend_switcher
 --xr-scene=rokid_place
 --xr-scene=ios_arkit_place
 ```
@@ -56,6 +58,14 @@ node tools/c00/run_static_gates.js --gate all --report releases/phase_0_smoke/ev
 ```bash
 node tools/c00/check_godot_project_static.js
 ```
+
+C01 的 EditorSim 可运行成果可以独立采集日志和报告：
+
+```bash
+tools/c00/collect_c01_editor_smoke.sh
+```
+
+它会分别运行 `demo/01_place_on_plane.tscn` 和 `demo/02_backend_switcher.tscn`，输出 `GXF_C01_PLACE` / `GXF_C01_BACKEND`，并用 `validate_smoke_log.js --gate c01-place` 与 `--gate c01-backend` 生成报告。该结果只证明 Unity ARFoundation 风格上层 API 在 EditorSim 下可运行，不替代 Rokid/OpenXR、iPad/ARKit 或 Android/ARCore 真机 gate。
 
 如果本机 Godot 不在 PATH，可以设置：
 
