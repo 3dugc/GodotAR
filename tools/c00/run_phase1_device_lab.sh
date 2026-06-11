@@ -7,6 +7,9 @@ TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 
 BUNDLE_DIR="${BUNDLE_DIR:-}"
 ENV_FILE="${ENV_FILE:-$PROJECT_ROOT/.godot/cache/c00/device-env.sh}"
+DEFAULT_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env.sh"
+DEFAULT_LATEST_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env-latest.sh"
+DEFAULT_IOS_STABLE_FALLBACK_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env-ios-stable-fallback.sh"
 READINESS_REPORT="${READINESS_REPORT:-$PROJECT_ROOT/releases/phase_0_smoke/evidence/device-lab-readiness-${TIMESTAMP}.md}"
 STATIC_REPORT="${STATIC_REPORT:-$PROJECT_ROOT/releases/phase_0_smoke/evidence/device-lab-static-${TIMESTAMP}.md}"
 AUDIT_REPORT="${AUDIT_REPORT:-$PROJECT_ROOT/releases/phase_0_smoke/C00_COMPLETION_AUDIT.md}"
@@ -261,6 +264,46 @@ source_env_if_present() {
 	elif [[ "$RUN_IMPORT" == "0" ]]; then
 		echo "No device environment file found: $env_path"
 	fi
+}
+
+default_device_env_file_for_gate() {
+	local gate="$1"
+	case "$gate" in
+		rokid|rokid-place|android-arcore)
+			if [[ -f "$DEFAULT_LATEST_DEVICE_ENV_FILE" ]]; then
+				printf "%s" "$DEFAULT_LATEST_DEVICE_ENV_FILE"
+			else
+				printf "%s" "$DEFAULT_DEVICE_ENV_FILE"
+			fi
+			;;
+		ipad|ipad-place|ios-simulator|ios-simulator-place)
+			if [[ -f "$DEFAULT_IOS_STABLE_FALLBACK_DEVICE_ENV_FILE" ]]; then
+				printf "%s" "$DEFAULT_IOS_STABLE_FALLBACK_DEVICE_ENV_FILE"
+			elif [[ -f "$DEFAULT_LATEST_DEVICE_ENV_FILE" ]]; then
+				printf "%s" "$DEFAULT_LATEST_DEVICE_ENV_FILE"
+			else
+				printf "%s" "$DEFAULT_DEVICE_ENV_FILE"
+			fi
+			;;
+		*)
+			printf "%s" "$DEFAULT_DEVICE_ENV_FILE"
+			;;
+	esac
+}
+
+clear_split_gate_version_env() {
+	if [[ "${C00_SPLIT_GATE_INHERIT_VERSION_ENV:-0}" == "1" ]]; then
+		return
+	fi
+
+	unset GODOT_EXPORT_TEMPLATES_VERSION
+	unset GODOT_EXPORT_TEMPLATES_DIR
+	unset GODOT_BIN
+	unset GODOT_SOURCE_DIR
+	unset GODOT_SRC_DIR
+	unset GODOT_TAG
+	unset GODOT_BRANCH
+	unset GODOT_COMMIT
 }
 
 needs_ios_dependencies() {
@@ -564,6 +607,7 @@ wait_recover_for_gate() {
 
 run_single_device_cycle() {
 	local gate="$1"
+	local gate_env_file="${C00_DEVICE_ENV_FILE:-$(default_device_env_file_for_gate "$gate")}"
 	local cycle_args=("$PROJECT_ROOT/tools/c00/run_device_cycle.sh" "$gate")
 	if gate_needs_ipad_device_arg "$gate"; then
 		if [[ -n "$DEVICE" ]]; then
@@ -573,9 +617,24 @@ run_single_device_cycle() {
 	if [[ "$DRY_RUN" == "1" ]]; then
 		echo
 		echo "== Phase 1 device lab: device cycle ($gate) =="
-		INCLUDE_PLACE_DEMOS=0 RUN_PHASE_VERIFY=0 DRY_RUN=1 "${cycle_args[@]}"
+		if [[ -f "$gate_env_file" ]]; then
+			echo "DRY RUN: C00_DEVICE_ENV_FILE=$gate_env_file"
+		fi
+		(
+			clear_split_gate_version_env
+			if [[ -f "$gate_env_file" ]]; then
+				export C00_DEVICE_ENV_FILE="$gate_env_file"
+			fi
+			INCLUDE_PLACE_DEMOS=0 RUN_PHASE_VERIFY=0 DRY_RUN=1 "${cycle_args[@]}"
+		)
 	else
-		INCLUDE_PLACE_DEMOS=0 RUN_PHASE_VERIFY=0 DRY_RUN=0 "${cycle_args[@]}"
+		(
+			clear_split_gate_version_env
+			if [[ -f "$gate_env_file" ]]; then
+				export C00_DEVICE_ENV_FILE="$gate_env_file"
+			fi
+			INCLUDE_PLACE_DEMOS=0 RUN_PHASE_VERIFY=0 DRY_RUN=0 "${cycle_args[@]}"
+		)
 	fi
 }
 
@@ -584,10 +643,12 @@ run_cycle_group_after_readiness() {
 	shift
 	local group_status=0
 	local wait_status=0
-	wait_recover_for_gate "$readiness_gate" || wait_status=$?
-	if [[ "$wait_status" != "0" ]]; then
-		echo "Skipping device cycle group '$readiness_gate' because readiness did not pass."
-		return "$wait_status"
+	if [[ "$WAIT_FOR_DEVICES" == "1" ]]; then
+		wait_recover_for_gate "$readiness_gate" || wait_status=$?
+		if [[ "$wait_status" != "0" ]]; then
+			echo "Skipping device cycle group '$readiness_gate' because readiness did not pass."
+			return "$wait_status"
+		fi
 	fi
 	local gate
 	for gate in "$@"; do
@@ -717,7 +778,7 @@ main() {
 
 	if [[ "$RUN_DEVICE_CYCLE" == "1" ]]; then
 		local cycle_ready=1
-		if [[ "$GATE" == "all" && "$WAIT_FOR_DEVICES" == "1" && "$SPLIT_ALL_DEVICE_CYCLE" == "1" ]]; then
+		if [[ "$GATE" == "all" && "$SPLIT_ALL_DEVICE_CYCLE" == "1" ]]; then
 			run_split_all_device_cycles || status=$?
 		else
 			if [[ "$WAIT_FOR_DEVICES" == "1" ]]; then

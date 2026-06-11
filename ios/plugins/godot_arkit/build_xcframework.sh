@@ -73,6 +73,7 @@ for required in \
 	"$GODOT_SOURCE_DIR/core/version.h" \
 	"$GODOT_SOURCE_DIR/core/object/class_db.h" \
 	"$GODOT_SOURCE_DIR/core/config/engine.h" \
+	"$GODOT_SOURCE_DIR/core/extension/gdextension_interface.gen.h" \
 	"$GODOT_SOURCE_DIR/platform/ios"; do
 	if [[ ! -e "$required" ]]; then
 		echo "ERROR: Missing Godot header/path: $required" >&2

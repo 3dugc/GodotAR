@@ -1,6 +1,6 @@
 # C00 Phase 1 Completion Audit
 
-Generated: 2026-06-09T04:57:39.838Z
+Generated: 2026-06-11T13:19:13.380Z
 
 Result: NOT_READY
 
@@ -68,7 +68,7 @@ Command: `node tools/c00/run_static_gates.js --gate all --format json`
     {
       "name": "node --check tools/c00/check_android_apk_surface.js",
       "status": "PASS",
-... (503 more lines)
+... (545 more lines)
 ```
 
 ### ARFoundation migration API surface
@@ -262,7 +262,8 @@ Project: /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/Go
 Gate: rokid
 
 OK   node             /usr/local/bin/node
-OK   GODOT_BIN        /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot
+OK   GODOT_BIN        /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-editor-4.7.rc1/Godot.app/Contents/MacOS/Godot
+OK   Godot version    4.7.rc1
 OK   ADB_BIN          /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/android-sdk/platform-tools/adb
 
 Plugin landing zones
@@ -283,8 +284,7 @@ Export presets
     {
       "gate": "rokid",
       "section": "preset.0",
-      "name": "C00 Rokid OpenXR",
-... (42 more lines)
+... (48 more lines)
 ```
 
 ### ipad preflight
@@ -299,6 +299,7 @@ Gate: ipad
 
 OK   node             /usr/local/bin/node
 OK   GODOT_BIN        /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot
+OK   Godot version    4.6.3.stable
 OK   xcrun            /usr/bin/xcrun
 OK   xcodebuild       /usr/bin/xcodebuild
 
@@ -306,7 +307,7 @@ Plugin landing zones
 OK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/ios/plugins
 
 Native plugin artifacts
-OK   Godot source headers /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-source
+OK   Godot source headers /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-source (4.6.3.stable)
 {
   "pass": true,
   "file": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/ios/plugins/godot_arkit/GodotARKit.gdip",
@@ -319,8 +320,7 @@ OK   Godot source headers /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-co
     "binary": "GodotARKit.xcframework",
     "initialization": "init_godot_arkit",
     "deinitialization": "deinit_godot_arkit"
-  },
-... (79 more lines)
+... (80 more lines)
 ```
 
 ### android-arcore preflight
@@ -334,7 +334,8 @@ Project: /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/Go
 Gate: android-arcore
 
 OK   node             /usr/local/bin/node
-OK   GODOT_BIN        /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot
+OK   GODOT_BIN        /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-editor-4.7.rc1/Godot.app/Contents/MacOS/Godot
+OK   Godot version    4.7.rc1
 OK   ADB_BIN          /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/android-sdk/platform-tools/adb
 
 Plugin landing zones
@@ -355,8 +356,7 @@ Export presets
       "platform": "Android",
       "export_path": "builds/android_arcore/c00.apk",
       "exclude_filter": "android/build/*,builds/*,exports/*,releases/*,tools/*",
-      "export_files": "PackedStringArray(\"res://demo/boot.tscn\", \"res://demo/00_device_smoke_test.tscn\", \"res://demo/03_openxr_ar_capability_lab.tscn\", \"res://demo/04_rokid_ray_place.tscn\", \"res://demo/06_ios_arkit_place.tscn\")",
-... (32 more lines)
+... (38 more lines)
 ```
 
 ### rokid-place preflight
@@ -370,7 +370,8 @@ Project: /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/Go
 Gate: rokid-place
 
 OK   node             /usr/local/bin/node
-OK   GODOT_BIN        /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot
+OK   GODOT_BIN        /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-editor-4.7.rc1/Godot.app/Contents/MacOS/Godot
+OK   Godot version    4.7.rc1
 OK   ADB_BIN          /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/android-sdk/platform-tools/adb
 
 Plugin landing zones
@@ -391,8 +392,7 @@ Export presets
     {
       "gate": "rokid-place",
       "section": "preset.3",
-      "name": "C02 Rokid OpenXR Place",
-... (42 more lines)
+... (48 more lines)
 ```
 
 ### ipad-place preflight
@@ -407,6 +407,7 @@ Gate: ipad-place
 
 OK   node             /usr/local/bin/node
 OK   GODOT_BIN        /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-editor/Godot.app/Contents/MacOS/Godot
+OK   Godot version    4.6.3.stable
 OK   xcrun            /usr/bin/xcrun
 OK   xcodebuild       /usr/bin/xcodebuild
 
@@ -414,7 +415,7 @@ Plugin landing zones
 OK   /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/ios/plugins
 
 Native plugin artifacts
-OK   Godot source headers /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-source
+OK   Godot source headers /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/.godot/cache/c00/godot-source (4.6.3.stable)
 {
   "pass": true,
   "file": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/ios/plugins/godot_arkit/GodotARKit.gdip",
@@ -427,13 +428,12 @@ OK   Godot source headers /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-co
     "binary": "GodotARKit.xcframework",
     "initialization": "init_godot_arkit",
     "deinitialization": "deinit_godot_arkit"
-  },
-... (79 more lines)
+... (80 more lines)
 ```
 
 ### Rokid/iPad/Android phase evidence plus placement demos
 
-Command: `node tools/c00/verify_phase_evidence.js --dir /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/evidence --report /var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1780981080671.md --gate rokid --gate ipad --gate android-arcore --gate rokid-place --gate ipad-place`
+Command: `node tools/c00/verify_phase_evidence.js --dir /Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/evidence --report /var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1781183976217.md --gate rokid --gate ipad --gate android-arcore --gate rokid-place --gate ipad-place`
 
 ```text
 {
@@ -446,7 +446,7 @@ Command: `node tools/c00/verify_phase_evidence.js --dir /Users/dirui/Documents/C
     "ipad-place"
   ],
   "evidenceDir": "/Users/dirui/Documents/Codex/2026-06-08/godot-ar-ar-core-ios-ar/work/GodotAR/releases/phase_0_smoke/evidence",
-  "report": "/var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1780981080671.md",
+  "report": "/var/folders/59/j9_t4rns6dj87lz0wwm8068h0000gn/T/godotar-c00-phase-evidence-1781183976217.md",
   "failures": [
     "rokid: No GXF_SMOKE, GXF_ROKID_PLACE, or GXF_ARKIT_PLACE events found.",
     "rokid: rokid gate requires a screenshot artifact.",

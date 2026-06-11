@@ -11,11 +11,13 @@ const files = {
 	configureGd: "tools/c00/configure_android_editor_settings.gd",
 	editorSettingsWriter: "tools/c00/write_godot_android_editor_settings.js",
 	exportCredentialsWriter: "tools/c00/write_godot_export_credentials.js",
+	gradleHomePreparer: "tools/c00/prepare_gradle_user_home.sh",
 	templateInstaller: "tools/c00/install_android_build_template.sh",
 	sdkInstaller: "tools/c00/install_android_sdk_packages.sh",
 	jdkInstaller: "tools/c00/install_openjdk17.sh",
 	preflight: "tools/c00/preflight.sh",
 	exportWrapper: "tools/c00/export_with_godot.sh",
+	runDeviceCycle: "tools/c00/run_device_cycle.sh",
 	androidCollector: "tools/c00/collect_android_smoke.sh",
 	readme: "tools/c00/README_CN.md",
 };
@@ -40,6 +42,17 @@ if (failures.length === 0) {
 		"write_godot_android_editor_settings.js",
 		"write_godot_export_credentials.js",
 		"install_android_build_template.sh",
+		"C00_REQUIRE_GODOT_ANDROID_EDITOR_SETTINGS",
+		"Godot Android EditorSettings write failed",
+	]);
+
+	requireContains(files.gradleHomePreparer, [
+		"GRADLE_USER_HOME",
+		".godot/cache/c00/gradle",
+		"C00_HOST_GRADLE_USER_HOME",
+		"wrapper/dists",
+		"caches/modules-2",
+		"godot_android_gradle_distribution_from_template_version",
 	]);
 
 	requireContains(files.configureGd, [
@@ -137,6 +150,8 @@ if (failures.length === 0) {
 		"is_android_export",
 		"GODOT_CONFIGURE_ANDROID_EXPORT",
 		"configure_android_export_environment.sh",
+		"prepare_gradle_user_home.sh",
+		"GRADLE_USER_HOME",
 		"--install-build-template",
 		"C00_GODOT_VERBOSE",
 		"C00_ATOMIC_EXPORT",
@@ -145,6 +160,13 @@ if (failures.length === 0) {
 		"Godot export timed out after",
 		"The export watchdog timed out",
 		"Godot export did not create a non-empty artifact",
+	]);
+
+	requireContains(files.runDeviceCycle, [
+		"prepare_android_gradle_home_if_needed",
+		"prepare_gradle_user_home.sh",
+		"GRADLE_USER_HOME",
+		".godot/cache/c00/gradle",
 	]);
 
 	requireContains(files.androidCollector, [

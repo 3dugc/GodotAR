@@ -55,6 +55,9 @@ case "$EXPORT_PATH" in
 esac
 
 if [ "$is_android_export" = "1" ] && [ "${GODOT_CONFIGURE_ANDROID_EXPORT:-auto}" != "0" ]; then
+	export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$PROJECT_ROOT/.godot/cache/c00/gradle}"
+	echo "Preparing project-local Gradle user home: $GRADLE_USER_HOME"
+	"$PROJECT_ROOT/tools/c00/prepare_gradle_user_home.sh"
 	echo "Configuring Android export environment before Godot export..."
 	"$PROJECT_ROOT/tools/c00/configure_android_export_environment.sh" \
 		--godot "$GODOT" \
@@ -85,6 +88,113 @@ EXPORT_TMP=""
 GODOT_EXPORT_PID=""
 WATCHDOG_PID=""
 WATCHDOG_MARKER=""
+
+project_only_stem_for_zip() {
+	local path="$1"
+	case "$path" in
+		*.zip) printf "%s" "${path%.zip}" ;;
+		*) return 1 ;;
+	esac
+}
+
+cleanup_project_only_export_stem() {
+	local stem="$1"
+	if [ -z "$stem" ]; then
+		return
+	fi
+	rm -rf "$stem" "$stem.xcodeproj" "$stem.xcframework"
+	rm -f "$stem.pck"
+}
+
+has_project_only_ios_export() {
+	local path="$1"
+	local stem
+	if ! stem="$(project_only_stem_for_zip "$path")"; then
+		return 1
+	fi
+	[ -d "$stem" ] && [ -d "$stem.xcodeproj" ]
+}
+
+rewrite_project_only_export_name() {
+	local stem="$1"
+	local old_name="$2"
+	local new_name="$3"
+	if [ "$old_name" = "$new_name" ]; then
+		return
+	fi
+
+	if [ -f "$stem/$old_name-Info.plist" ]; then
+		mv -f "$stem/$old_name-Info.plist" "$stem/$new_name-Info.plist"
+	fi
+	if [ -f "$stem/$old_name.entitlements" ]; then
+		mv -f "$stem/$old_name.entitlements" "$stem/$new_name.entitlements"
+	fi
+	if [ -f "$stem.xcodeproj/xcshareddata/xcschemes/$old_name.xcscheme" ]; then
+		mv -f "$stem.xcodeproj/xcshareddata/xcschemes/$old_name.xcscheme" "$stem.xcodeproj/xcshareddata/xcschemes/$new_name.xcscheme"
+	fi
+
+	node - "$stem" "$old_name" "$new_name" <<'NODE'
+const fs = require("fs");
+const path = require("path");
+
+const [stem, oldName, newName] = process.argv.slice(2);
+const roots = [stem, `${stem}.xcodeproj`];
+
+for (const root of roots) {
+	for (const file of walk(root)) {
+		const before = fs.readFileSync(file);
+		if (before.includes(0)) {
+			continue;
+		}
+		const text = before.toString("utf8");
+		if (!text.includes(oldName)) {
+			continue;
+		}
+		fs.writeFileSync(file, text.split(oldName).join(newName), "utf8");
+	}
+}
+
+function walk(root) {
+	const files = [];
+	if (!fs.existsSync(root)) {
+		return files;
+	}
+	const stack = [root];
+	while (stack.length) {
+		const current = stack.pop();
+		for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+			const absolute = path.join(current, entry.name);
+			if (entry.isDirectory()) {
+				stack.push(absolute);
+			} else if (entry.isFile()) {
+				files.push(absolute);
+			}
+		}
+	}
+	return files;
+}
+NODE
+}
+
+finalize_project_only_ios_export() {
+	local source_stem="$1"
+	local dest_stem="$2"
+	local suffix source_path
+
+	if [ "$source_stem" = "$dest_stem" ]; then
+		return
+	fi
+
+	cleanup_project_only_export_stem "$dest_stem"
+	for suffix in "" ".pck" ".xcodeproj" ".xcframework"; do
+		source_path="$source_stem$suffix"
+		if [ -e "$source_path" ]; then
+			mv -f "$source_path" "$dest_stem$suffix"
+		fi
+	done
+	rewrite_project_only_export_name "$dest_stem" "$(basename "$source_stem")" "$(basename "$dest_stem")"
+}
+
 cleanup_tmp_export() {
 	if [ -n "$WATCHDOG_PID" ]; then
 		kill "$WATCHDOG_PID" 2>/dev/null || true
@@ -95,6 +205,11 @@ cleanup_tmp_export() {
 	fi
 	if [ -n "$EXPORT_TMP" ] && [ -f "$EXPORT_TMP" ]; then
 		rm -f "$EXPORT_TMP"
+	fi
+	if [ -n "$EXPORT_TMP" ]; then
+		if tmp_project_stem="$(project_only_stem_for_zip "$EXPORT_TMP")"; then
+			cleanup_project_only_export_stem "$tmp_project_stem"
+		fi
 	fi
 	if [ -n "$WATCHDOG_MARKER" ] && [ -f "$WATCHDOG_MARKER" ]; then
 		rm -f "$WATCHDOG_MARKER"
@@ -116,6 +231,9 @@ if [ "${C00_ATOMIC_EXPORT:-1}" != "0" ]; then
 			;;
 	esac
 	rm -f "$EXPORT_TMP"
+	if tmp_project_stem="$(project_only_stem_for_zip "$EXPORT_TMP")"; then
+		cleanup_project_only_export_stem "$tmp_project_stem"
+	fi
 	EXPORT_TARGET="$EXPORT_TMP"
 fi
 
@@ -182,11 +300,16 @@ if [ "$export_status" -ne 0 ]; then
 	exit "$export_status"
 fi
 
-if [ ! -s "$EXPORT_TARGET" ]; then
-	echo "Godot export did not create a non-empty artifact: $EXPORT_TARGET" >&2
+if [ -s "$EXPORT_TARGET" ]; then
+	if [ "$EXPORT_TARGET" != "$EXPORT_PATH" ]; then
+		mv -f "$EXPORT_TARGET" "$EXPORT_PATH"
+	fi
+elif has_project_only_ios_export "$EXPORT_TARGET"; then
+	source_project_stem="$(project_only_stem_for_zip "$EXPORT_TARGET")"
+	dest_project_stem="$(project_only_stem_for_zip "$EXPORT_PATH")"
+	finalize_project_only_ios_export "$source_project_stem" "$dest_project_stem"
+	echo "Godot export created iOS Xcode project: $dest_project_stem.xcodeproj"
+else
+	echo "Godot export did not create a non-empty artifact or iOS project-only export: $EXPORT_TARGET" >&2
 	exit 1
-fi
-
-if [ "$EXPORT_TARGET" != "$EXPORT_PATH" ]; then
-	mv -f "$EXPORT_TARGET" "$EXPORT_PATH"
 fi

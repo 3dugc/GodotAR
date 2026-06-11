@@ -228,6 +228,7 @@ is_valid_godot_source() {
 	[[ -f "$dir/core/version.h" \
 		&& -f "$dir/core/object/class_db.h" \
 		&& -f "$dir/core/config/engine.h" \
+		&& -f "$dir/core/extension/gdextension_interface.gen.h" \
 		&& -d "$dir/platform/ios" ]]
 }
 
@@ -370,7 +371,7 @@ if [[ -n "$godot_source" ]]; then
 			add_row MISS "Godot source headers" "$godot_source is $actual_source_version, expected $expected_source_version. Run tools/c00/prepare_godot_source.sh --tag $(godot_tag_from_template_version "$expected_source_version") --force."
 		fi
 	else
-		add_row MISS "Godot source headers" "$godot_source is missing core/version.h, core/object/class_db.h, core/config/engine.h, or platform/ios."
+		add_row MISS "Godot source headers" "$godot_source is missing core/version.h, core/object/class_db.h, core/config/engine.h, core/extension/gdextension_interface.gen.h, or platform/ios."
 	fi
 else
 	add_row WARN "Godot source headers" "Run tools/c00/prepare_godot_source.sh --tag <godot-tag>, then set GODOT_SOURCE_DIR before building GodotARKit.xcframework."

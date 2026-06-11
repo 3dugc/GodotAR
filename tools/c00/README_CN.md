@@ -174,6 +174,8 @@ tools/c00/import_device_dependency_bundle.sh \
 
 `tools/c00/preflight.sh`、`tools/c00/bootstrap_device_machine.sh`、`tools/c00/run_device_cycle.sh` 和 `tools/c00/run_phase1_device_lab.sh` 独立运行时会自动读取 `.godot/cache/c00/device-env.sh`。显式传入的 `GODOT_BIN`、`GODOT_EXPORT_TEMPLATES_VERSION`、SDK/JDK/source 路径等变量优先于 device-env 里的旧值；需要换路径时设置 `C00_DEVICE_ENV_FILE=/path/to/device-env.sh`；需要临时忽略该文件时设置 `C00_AUTO_SOURCE_DEVICE_ENV=0`。
 
+当最新 Godot editor/templates 已可用但 iOS source tag 尚未公开时，不要把所有 gate 都降到稳定版。设备机可以同时保留两个本地 lane 文件：`.godot/cache/c00/device-env-latest.sh` 给 `rokid`、`rokid-place`、`android-arcore` 使用最新 Godot 线；`.godot/cache/c00/device-env-ios-stable-fallback.sh` 给 `ipad`、`ipad-place` 和 iOS Simulator gate 使用 source-compatible 稳定 fallback。`preflight.sh` 和 `run_device_cycle.sh` 会按 gate 自动优先选择这两个文件；没有对应 lane 文件时才回退到 `.godot/cache/c00/device-env.sh`。显式 `C00_DEVICE_ENV_FILE=...` 仍然优先。
+
 导入后立即跑三条预检：
 
 ```bash
@@ -228,7 +230,7 @@ ONLINE_DEPS=templates tools/c00/run_phase1_device_lab.sh --online-deps-only --ga
 - 写出并读取 `.godot/cache/c00/device-env.sh`。
 - 生成 device readiness report。
 - 跑 C00 static gates。
-- 调用 `tools/c00/run_device_cycle.sh all` 执行 iPad/ARKit、iPad C04 placement、Rokid/OpenXR、Rokid C02 placement、Android/ARCore。
+- 按 gate 分组调用 `tools/c00/run_device_cycle.sh` 子进程，执行 iPad/ARKit、iPad C04 placement、Rokid/OpenXR、Rokid C02 placement、Android/ARCore；这样每个 gate 都能读取自己的 latest / iOS fallback lane。
 - 调用 `tools/c00/audit_phase1_completion.js --include-place-demos` 生成最终完成审计。
 
 `run_phase1_device_lab.sh` 默认要求 C02/C04 placement demo gate。临时只想调基础 smoke 时可以加 `--no-place-demos`，但这不能证明第一阶段完整完成。
@@ -294,7 +296,7 @@ tools/c00/install_godot_editor.sh \
 tools/c00/install_godot_export_templates.sh --download --latest
 ```
 
-截至 2026-06-10，`--latest` 指向 Godot `4.7-rc1` / export templates `4.7.rc1`；如果设备机必须先走稳定版，可以使用：
+截至 2026-06-11，`--latest` 指向 Godot `4.7-rc1` / export templates `4.7.rc1`；如果设备机必须先走稳定版，可以使用：
 
 ```bash
 tools/c00/install_godot_editor.sh --download --latest-stable
@@ -355,7 +357,7 @@ tools/c00/install_android_sdk_packages.sh --download-cmdline-tools --yes
 ```
 
 默认会根据 `GODOT_EXPORT_TEMPLATES_VERSION` / C00 默认 Godot 线选择 SDK 包。截至 2026-06-11，Godot `4.7.rc1` Android template 需要 `platform-tools`、`platforms;android-36`、`build-tools;36.1.0` 和 `ndk;29.0.14206865`；旧的 4.4 线只装 `android-34/build-tools 34.0.0` 不足以完成 4.7 导出。如果设备机已经有 Android command line tools，可以省略 `--download-cmdline-tools`；如果 `sdkmanager` 不在默认 SDK 目录里，传入 `--sdkmanager /path/to/sdkmanager`。如果已有 command line tools zip，可以传入 `--cmdline-tools-zip <commandlinetools-mac-*_latest.zip>`。
-Rokid/Android preflight 默认还会检查 Gradle wrapper、Android Gradle plugin 和 Kotlin Android plugin 是否已缓存；如果设备机允许导出时联网下载，可设置 `C00_REQUIRE_ANDROID_GRADLE_CACHE=0` 放宽该项，但阶段发布前应保留缓存证据。
+Rokid/Android preflight 默认还会检查 Gradle wrapper、Android Gradle plugin 和 Kotlin Android plugin 是否已缓存；如果设备机允许导出时联网下载，可设置 `C00_REQUIRE_ANDROID_GRADLE_CACHE=0` 放宽该项，但阶段发布前应保留缓存证据。C00 默认把 Android/Rokid 导出的 `GRADLE_USER_HOME` 设为项目本地 `.godot/cache/c00/gradle`，并通过 `tools/c00/prepare_gradle_user_home.sh` 从已有 `~/.gradle` 复制 wrapper distribution 和 `caches/modules-2`。这样 Codex 沙箱、CI 和设备机不需要写用户级 `~/.gradle` 锁文件；如果你已经有一个可写且预热好的 Gradle home，可以显式设置 `GRADLE_USER_HOME=/path/to/gradle-home`。
 `tools/c00/install_android_build_template.sh` 会给 Godot Android template 的 `settings.gradle` / `build.gradle` 自动加入 Aliyun Maven mirror，并保留 `google()`、`mavenCentral()` 和 Gradle Plugin Portal 作为 fallback。这样在 `dl.google.com` TLS 握手不稳定的设备机上，AndroidX、OpenXR loader 和 Gradle plugin 依赖仍可解析。脚本还会清理模板默认的 `mipmap*/icon.webp` / `icon_foreground.webp`，并给 `build.gradle` 注入 `c00CleanDuplicateLauncherWebp`，确保 Gradle `merge*Resources` 前再次清理；本项目从 `assets/app_icon.svg` 生成 Android launcher PNG，如果保留模板 WebP，Gradle 会在 `mergeStandardDebugResources` 阶段报 duplicate resources。
 OpenJDK 和 Android command line tools 下载同样支持断点续传，重复运行安装命令即可。
 
@@ -368,6 +370,7 @@ tools/c00/configure_android_export_environment.sh --install-build-template
 ```
 
 该脚本会生成默认 debug keystore 到 `.godot/cache/c00/android/debug.keystore`，并通过 Godot editor binary 写入 `export/android/android_sdk_path`、`export/android/java_sdk_path`、`export/android/debug_keystore`、`export/android/debug_keystore_user` 和 `export/android/debug_keystore_pass`。同时会生成本机 `.godot/export_credentials.cfg`，给所有 Android presets 写入 `keystore/debug`、`keystore/debug_user` 和 `keystore/debug_password`，避免 Godot 4.7 导出时因为 debug keystore 三元组不完整而拒绝构建；该文件位于 `.godot/`，不会提交进仓库。`tools/c00/export_with_godot.sh` 在导出 `.apk` / `.aab` 前会自动调用它；如果需要完全手动控制，可设置 `GODOT_CONFIGURE_ANDROID_EXPORT=0`。
+在 Codex 沙箱或部分 CI 中，用户级 Godot EditorSettings 可能因为 `~/Library/Application Support/Godot` 不可写而失败；此时脚本会把这一步降级为 warning，继续写入 `.godot/export_credentials.cfg` 并尝试导出。设备机如果要求 EditorSettings 必须新写成功，可以设置 `C00_REQUIRE_GODOT_ANDROID_EDITOR_SETTINGS=1` 让该步骤恢复为 fatal。
 
 `tools/c00/preflight.sh`、`tools/c00/export_with_godot.sh` 和 Android/Rokid 采集脚本会自动查找：
 
@@ -396,7 +399,9 @@ tools/c00/prepare_godot_source.sh --tag <godot-tag>
 GODOT_TAG=4.7-rc1 DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh ipad
 ```
 
-如果 `4.7-rc1` source tag 还没有出现在 Godot 官方 GitHub 仓库，不要把 `4.6.3-stable` source headers 混进 `4.7.rc1` export templates。要么等待 tag 同步，要么把 editor、templates、source headers 一起切到 `--latest-stable`。`C00_ALLOW_PREBUILT_ARKIT=1` 只能用于明确测试已有 `GodotARKit.xcframework`，不能作为第一阶段完成证据。
+截至 2026-06-11，Godot 官方 GitHub 仓库仍未公开 `4.7-rc1` source tag。不要把 `4.6.3-stable` source headers 混进 `4.7.rc1` export templates。要么等待 tag 同步，要么把 iPad/ARKit 的 editor、templates、source headers 一起切到 `--latest-stable`，同时让 Rokid/OpenXR 和 Android/ARCore 继续使用 `device-env-latest.sh` 的 4.7 lane。`C00_ALLOW_PREBUILT_ARKIT=1` 只能用于明确测试已有 `GodotARKit.xcframework`，不能作为第一阶段完成证据。
+
+iOS 导出在 Godot 4.6/4.7 上可能表现为 “Project Files Only”：命令目标是 `builds/ipad/c00.zip`，实际产物是 `builds/ipad/c00.xcodeproj`、`builds/ipad/c00/`、`builds/ipad/c00.xcframework` 和 `builds/ipad/c00.pck`。`tools/c00/export_with_godot.sh` 会识别这种 project-only 形态，并在导出后由 `tools/c00/check_ios_export_project.js` 验证 `GodotARKit.xcframework`、`ARKit.framework`、`Metal.framework`、`NSCameraUsageDescription` 和 `UIRequiredDeviceCapabilities`。
 
 静态检查 source 准备链路：
 
@@ -565,7 +570,7 @@ DEVICE=<ipad-uuid-or-name> \
 tools/c00/run_device_cycle.sh all
 ```
 
-`all` 模式会按 iPad、iPad placement、Rokid、Rokid placement、Android ARCore 顺序执行。默认即使某个 gate 失败也会继续跑后续 gate，最后自动执行 `verify_phase_evidence.js` 生成 C00 总报告。设置 `INCLUDE_EDITOR_SIM=1` 可在设备 gate 前先跑本地 EditorSim gate；设置 `INCLUDE_IOS_SIMULATOR=1` 可额外跑 iOS Simulator 辅助 gate。
+`all` 模式会按 iPad、iPad placement、Rokid、Rokid placement、Android ARCore 顺序执行，并为每个 gate 重新启动子进程。默认即使某个 gate 失败也会继续跑后续 gate，最后自动执行 `verify_phase_evidence.js` 生成 C00 总报告。子进程默认会清掉父进程里的 Godot 版本变量，再读取 gate 对应的 lane 文件；如确实要让所有 gate 继承同一套版本环境，可设置 `C00_SPLIT_GATE_INHERIT_VERSION_ENV=1`。设置 `INCLUDE_EDITOR_SIM=1` 可在设备 gate 前先跑本地 EditorSim gate；设置 `INCLUDE_IOS_SIMULATOR=1` 可额外跑 iOS Simulator 辅助 gate。
 
 常用开关：
 

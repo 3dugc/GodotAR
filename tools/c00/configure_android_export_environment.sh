@@ -15,6 +15,7 @@ ANDROID_BUILD_TOOLS_VERSION="${C00_ANDROID_BUILD_TOOLS_VERSION:-$(godot_android_
 ANDROID_NDK_VERSION="${C00_ANDROID_NDK_VERSION:-$(godot_android_ndk_from_template_version "$TEMPLATE_VERSION")}"
 INSTALL_BUILD_TEMPLATE=0
 CONFIGURE_GODOT_SETTINGS=1
+REQUIRE_GODOT_SETTINGS="${C00_REQUIRE_GODOT_ANDROID_EDITOR_SETTINGS:-0}"
 DRY_RUN=0
 
 usage() {
@@ -35,6 +36,9 @@ Options:
 
 This script prepares the local machine for Godot Android Gradle exports used by
 Rokid/OpenXR and Android/ARCore C00 gates.
+By default, a sandbox/CI permission failure while writing Godot EditorSettings is
+reported as a warning because .godot/export_credentials.cfg is written separately.
+Set C00_REQUIRE_GODOT_ANDROID_EDITOR_SETTINGS=1 to make that write mandatory.
 EOF
 }
 
@@ -232,13 +236,24 @@ if [[ "$CONFIGURE_GODOT_SETTINGS" == "1" ]]; then
 		echo "DRY RUN: would write Godot Android EditorSettings for $GODOT"
 	else
 		echo "Writing Godot Android EditorSettings..."
+		set +e
 		GODOT_ANDROID_SDK_PATH="$ANDROID_SDK" \
-		GODOT_JAVA_SDK_PATH="$JAVA_SDK" \
-		GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$DEBUG_KEYSTORE" \
-		GODOT_ANDROID_KEYSTORE_DEBUG_USER="$DEBUG_KEYSTORE_USER" \
-		GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="$DEBUG_KEYSTORE_PASS" \
-		GODOT_EXPORT_TEMPLATES_VERSION="${GODOT_EXPORT_TEMPLATES_VERSION:-$C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION}" \
-			node "$PROJECT_ROOT/tools/c00/write_godot_android_editor_settings.js" || status=1
+			GODOT_JAVA_SDK_PATH="$JAVA_SDK" \
+			GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$DEBUG_KEYSTORE" \
+			GODOT_ANDROID_KEYSTORE_DEBUG_USER="$DEBUG_KEYSTORE_USER" \
+			GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="$DEBUG_KEYSTORE_PASS" \
+			GODOT_EXPORT_TEMPLATES_VERSION="${GODOT_EXPORT_TEMPLATES_VERSION:-$C00_GODOT_DEFAULT_EXPORT_TEMPLATES_VERSION}" \
+				node "$PROJECT_ROOT/tools/c00/write_godot_android_editor_settings.js"
+		editor_settings_status=$?
+		set -e
+		if [[ "$editor_settings_status" -ne 0 ]]; then
+			if [[ "$REQUIRE_GODOT_SETTINGS" == "1" ]]; then
+				status=1
+			else
+				echo "WARN Godot Android EditorSettings write failed with status $editor_settings_status; continuing because this environment may not allow writing the user-level Godot config." >&2
+				echo "     Set C00_REQUIRE_GODOT_ANDROID_EDITOR_SETTINGS=1 to make this fatal on device machines that require fresh EditorSettings." >&2
+			fi
+		fi
 		GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$DEBUG_KEYSTORE" \
 		GODOT_ANDROID_KEYSTORE_DEBUG_USER="$DEBUG_KEYSTORE_USER" \
 		GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="$DEBUG_KEYSTORE_PASS" \

@@ -7,9 +7,51 @@ GATE="${1:-}"
 DEVICE="${2:-${DEVICE:-}}"
 DEFAULT_GODOT_SOURCE_DIR="$PROJECT_ROOT/.godot/cache/c00/godot-source"
 DEFAULT_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env.sh"
+DEFAULT_LATEST_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env-latest.sh"
+DEFAULT_IOS_STABLE_FALLBACK_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env-ios-stable-fallback.sh"
+
+default_device_env_file_for_gate() {
+	local gate="${1:-$GATE}"
+	case "$gate" in
+		rokid|rokid-place|android-arcore)
+			if [[ -f "$DEFAULT_LATEST_DEVICE_ENV_FILE" ]]; then
+				printf "%s" "$DEFAULT_LATEST_DEVICE_ENV_FILE"
+			else
+				printf "%s" "$DEFAULT_DEVICE_ENV_FILE"
+			fi
+			;;
+		ipad|ipad-place|ios-simulator|ios-simulator-place)
+			if [[ -f "$DEFAULT_IOS_STABLE_FALLBACK_DEVICE_ENV_FILE" ]]; then
+				printf "%s" "$DEFAULT_IOS_STABLE_FALLBACK_DEVICE_ENV_FILE"
+			elif [[ -f "$DEFAULT_LATEST_DEVICE_ENV_FILE" ]]; then
+				printf "%s" "$DEFAULT_LATEST_DEVICE_ENV_FILE"
+			else
+				printf "%s" "$DEFAULT_DEVICE_ENV_FILE"
+			fi
+			;;
+		*)
+			printf "%s" "$DEFAULT_DEVICE_ENV_FILE"
+			;;
+	esac
+}
+
+clear_split_gate_version_env() {
+	if [[ "${C00_SPLIT_GATE_INHERIT_VERSION_ENV:-0}" == "1" ]]; then
+		return
+	fi
+
+	unset GODOT_EXPORT_TEMPLATES_VERSION
+	unset GODOT_EXPORT_TEMPLATES_DIR
+	unset GODOT_BIN
+	unset GODOT_SOURCE_DIR
+	unset GODOT_SRC_DIR
+	unset GODOT_TAG
+	unset GODOT_BRANCH
+	unset GODOT_COMMIT
+}
 
 source_device_env_if_present() {
-	local env_file="${C00_DEVICE_ENV_FILE:-$DEFAULT_DEVICE_ENV_FILE}"
+	local env_file="${C00_DEVICE_ENV_FILE:-$(default_device_env_file_for_gate)}"
 	if [[ "${C00_AUTO_SOURCE_DEVICE_ENV:-1}" == "1" && -f "$env_file" ]]; then
 		local preserved=()
 		local had_templates_version="${GODOT_EXPORT_TEMPLATES_VERSION+x}"
@@ -179,6 +221,7 @@ is_valid_godot_source() {
 	[[ -f "$dir/core/version.h" \
 		&& -f "$dir/core/object/class_db.h" \
 		&& -f "$dir/core/config/engine.h" \
+		&& -f "$dir/core/extension/gdextension_interface.gen.h" \
 		&& -d "$dir/platform/ios" ]]
 }
 
@@ -340,6 +383,24 @@ configure_ipad_signing_if_requested() {
 		--bundle-id "$PACKAGE"
 }
 
+prepare_android_gradle_home_if_needed() {
+	local gate="$1"
+	case "$gate" in
+		rokid|rokid-place|android-arcore)
+			;;
+		*)
+			return
+			;;
+	esac
+
+	export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$PROJECT_ROOT/.godot/cache/c00/gradle}"
+	if [[ "$DRY_RUN" == "1" ]]; then
+		echo "DRY RUN: GRADLE_USER_HOME=$GRADLE_USER_HOME tools/c00/prepare_gradle_user_home.sh"
+		return
+	fi
+	"$PROJECT_ROOT/tools/c00/prepare_gradle_user_home.sh"
+}
+
 build_ipad_app_if_requested() {
 	if [[ "$BUILD_IPAD_APP" == "0" ]]; then
 		return
@@ -423,6 +484,7 @@ run_preflight() {
 	if [[ "$RUN_PREFLIGHT" == "0" ]]; then
 		return
 	fi
+	prepare_android_gradle_home_if_needed "$gate"
 	if [[ "$DRY_RUN" == "1" ]]; then
 		echo "DRY RUN: tools/c00/preflight.sh $gate"
 		return
@@ -494,6 +556,7 @@ run_export() {
 				return
 			fi
 			export_with_godot_checked "$IPAD_PRESET" "$IPAD_EXPORT_PATH" || return $?
+			node "$PROJECT_ROOT/tools/c00/check_ios_export_project.js" --input "$(project_path "$IPAD_EXPORT_PATH")"
 			;;
 		ipad-place)
 			if [[ -n "${APP_PATH:-}" ]]; then
@@ -501,6 +564,7 @@ run_export() {
 				return
 			fi
 			export_with_godot_checked "$IPAD_PLACE_PRESET" "$IPAD_PLACE_EXPORT_PATH" || return $?
+			node "$PROJECT_ROOT/tools/c00/check_ios_export_project.js" --input "$(project_path "$IPAD_PLACE_EXPORT_PATH")"
 			;;
 		ios-simulator)
 			if [[ -n "${APP_PATH:-}" ]]; then
@@ -508,6 +572,7 @@ run_export() {
 				return
 			fi
 			export_with_godot_checked "$IPAD_PRESET" "$IOS_SIMULATOR_EXPORT_PATH" || return $?
+			node "$PROJECT_ROOT/tools/c00/check_ios_export_project.js" --input "$(project_path "$IOS_SIMULATOR_EXPORT_PATH")"
 			;;
 		ios-simulator-place)
 			if [[ -n "${APP_PATH:-}" ]]; then
@@ -515,6 +580,7 @@ run_export() {
 				return
 			fi
 			export_with_godot_checked "$IPAD_PLACE_PRESET" "$IOS_SIMULATOR_PLACE_EXPORT_PATH" || return $?
+			node "$PROJECT_ROOT/tools/c00/check_ios_export_project.js" --input "$(project_path "$IOS_SIMULATOR_PLACE_EXPORT_PATH")"
 			;;
 		editor)
 			echo "EditorSim gate does not require export."
@@ -665,8 +731,18 @@ run_gate() {
 
 run_gate_for_all() {
 	local gate="$1"
+	local gate_env_file="${C00_DEVICE_ENV_FILE:-$(default_device_env_file_for_gate "$gate")}"
 	set +e
-	run_gate "$gate"
+	if [[ "$DRY_RUN" == "1" && -f "$gate_env_file" ]]; then
+		echo "DRY RUN: C00_DEVICE_ENV_FILE=$gate_env_file"
+	fi
+	(
+		clear_split_gate_version_env
+		if [[ -f "$gate_env_file" ]]; then
+			export C00_DEVICE_ENV_FILE="$gate_env_file"
+		fi
+		INCLUDE_PLACE_DEMOS=0 RUN_PHASE_VERIFY=0 "$PROJECT_ROOT/tools/c00/run_device_cycle.sh" "$gate"
+	)
 	local status="$?"
 	set -e
 

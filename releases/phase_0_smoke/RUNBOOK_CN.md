@@ -80,6 +80,8 @@ tools/c00/configure_android_export_environment.sh --install-build-template
 慢网络下可给所有在线依赖安装器加同一组 curl 调优变量，例如 `C00_CURL_RETRY=8 C00_CURL_RETRY_DELAY=15 C00_CURL_SPEED_LIMIT=1024 C00_CURL_SPEED_TIME=30 C00_CURL_MAX_TIME=900 C00_CURL_HTTP1=1`。`C00_CURL_MAX_TIME` 只限制单次下载尝试；`C00_CURL_RETRY_ALL_ERRORS` 默认启用，覆盖 HTTP/2 stream cancel 等错误；保留 `.godot/cache/c00/downloads` 里的 partial 文件后重跑同一命令会继续下载。
 导入后生成的 `.godot/cache/c00/device-env.sh` 会被 `preflight.sh`、`bootstrap_device_machine.sh`、`run_device_cycle.sh` 和 `run_phase1_device_lab.sh` 自动读取；显式传入的 `GODOT_BIN`、`GODOT_EXPORT_TEMPLATES_VERSION`、SDK/JDK/source 路径等变量优先于 device-env 里的旧值。需要换路径时设置 `C00_DEVICE_ENV_FILE=/path/to/device-env.sh`，需要临时忽略时设置 `C00_AUTO_SOURCE_DEVICE_ENV=0`。
 
+如果 iPad/ARKit 因最新 Godot source tag 尚未公开而必须走稳定 fallback，不要让 Rokid/OpenXR 和 Android/ARCore 跟着降级。可在设备机保留 `.godot/cache/c00/device-env-latest.sh` 和 `.godot/cache/c00/device-env-ios-stable-fallback.sh` 两个本地 lane 文件；`preflight.sh` / `run_device_cycle.sh` 会让 `rokid`、`rokid-place`、`android-arcore` 优先读取 latest lane，让 `ipad`、`ipad-place` 和 iOS Simulator gate 优先读取 iOS stable fallback lane。显式 `C00_DEVICE_ENV_FILE=...` 仍然优先于自动选择。
+
 Android/Rokid 导出前必须运行 `tools/c00/configure_android_export_environment.sh --install-build-template` 或让 `tools/c00/export_with_godot.sh` 自动调用它。该步骤会写入本机 Godot Android EditorSettings，并生成 `.godot/export_credentials.cfg`，给 Android presets 提供完整 debug keystore/user/password；该文件在 `.godot/` 下，不提交到仓库。
 
 iPad/ARKit 真机构建需要与 iOS export template 版本匹配的 Godot source headers。设备机没有现成 source tree 时，先用 helper 准备：
@@ -88,7 +90,7 @@ iPad/ARKit 真机构建需要与 iOS export template 版本匹配的 Godot sourc
 tools/c00/prepare_godot_source.sh --tag <godot-tag>
 ```
 
-例如 Godot 版本为 `4.7.rc1.official` 时，tag 通常是 `4.7-rc1`；稳定版 `4.6.3.stable.official` 对应 `4.6.3-stable`。脚本会先确认远端 source tag 可用，再替换默认 source 目录；如果最新 editor/templates 已发布但 source tag 暂未同步，不要混用旧 source headers，等待 tag 或把 editor/templates/source 全部切到 `--latest-stable`。脚本会输出 `GODOT_SOURCE_DIR=... ios/plugins/godot_arkit/build_xcframework.sh`，后续 iPad gate 使用同一个 `GODOT_SOURCE_DIR`。
+例如 Godot 版本为 `4.7.rc1.official` 时，tag 通常是 `4.7-rc1`；稳定版 `4.6.3.stable.official` 对应 `4.6.3-stable`。脚本会先确认远端 source tag 可用，再替换默认 source 目录；截至 2026-06-11，Godot 官方 GitHub 仓库仍未公开 `4.7-rc1` source tag，所以 iPad/ARKit fallback 必须让 editor、templates、source headers 全部使用 `--latest-stable`。Rokid/OpenXR 和 Android/ARCore 可以继续使用 `device-env-latest.sh` 的 4.7 lane。脚本会输出 `GODOT_SOURCE_DIR=... ios/plugins/godot_arkit/build_xcframework.sh`，后续 iPad gate 使用同一个 `GODOT_SOURCE_DIR`。
 默认 iPad preflight 会在缺少匹配 source headers 时失败；`C00_ALLOW_PREBUILT_ARKIT=1` 只能用于显式验证已有 `GodotARKit.xcframework`，不能作为第一阶段完成证据。
 `run_device_cycle.sh` 会自动识别 `.godot/cache/c00/godot-source`；如果该目录还不存在，也可以直接在 iPad gate 上设置 `GODOT_TAG=<godot-tag>` 让 runner 先准备 source headers。
 
@@ -176,7 +178,7 @@ ONLINE_DEPS=templates tools/c00/run_phase1_device_lab.sh --online-deps-only --ga
 
 `ONLINE_DEPS` 可用 `auto` / `all`，或逗号、空格分隔的 `templates,jdk,android-sdk,android-export`；命令行也可以传 `--online-deps-list templates,jdk`。
 
-这个 wrapper 会按 spec 顺序串起离线依赖导入或在线依赖续传、readiness report、静态 gate、`run_device_cycle.sh all` 和 completion audit。默认会同时运行 `ipad-place` 与 `rokid-place`，并在 completion audit 中要求 C02/C04 placement 证据；如果某台设备失败，仍会继续生成后续报告，最后以 `NOT_READY` 退出。临时只调基础 smoke 时可加 `--no-place-demos`，但不能作为第一阶段完整通过。
+这个 wrapper 会按 spec 顺序串起离线依赖导入或在线依赖续传、readiness report、静态 gate、按 gate 分组的 `run_device_cycle.sh` 子进程和 completion audit。默认会同时运行 `ipad-place` 与 `rokid-place`，并在 completion audit 中要求 C02/C04 placement 证据；如果某台设备失败，仍会继续生成后续报告，最后以 `NOT_READY` 退出。按 gate 分组可以让 Rokid/Android 使用 latest lane，让 iPad 使用 ARKit stable fallback lane。临时只调基础 smoke 时可加 `--no-place-demos`，但不能作为第一阶段完整通过。
 
 第一次接设备机时先演练：
 
@@ -227,10 +229,9 @@ DEVICE=<ipad-uuid-or-name> \
 tools/c00/run_device_cycle.sh ipad
 ```
 
-`all` 会按 iPad/ARKit、iPad C04 placement、Rokid/OpenXR、Rokid C02 placement、Android/ARCore 顺序执行；如需临时跳过 Android ARCore，设置 `INCLUDE_ANDROID_ARCORE=0`。如需临时跳过 placement 专项 demo gate，设置 `INCLUDE_PLACE_DEMOS=0`，但这只适合调试，不能作为第一阶段完整通过。
+`all` 会按 iPad/ARKit、iPad C04 placement、Rokid/OpenXR、Rokid C02 placement、Android/ARCore 顺序执行；每个子 gate 会重新启动 runner、清掉父进程中的 Godot 版本变量，并读取对应 device-env lane。如需临时跳过 Android ARCore，设置 `INCLUDE_ANDROID_ARCORE=0`。如需临时跳过 placement 专项 demo gate，设置 `INCLUDE_PLACE_DEMOS=0`，但这只适合调试，不能作为第一阶段完整通过。
 
 ```bash
-GODOT_SOURCE_DIR=/path/to/godot \
 DEVICE=<ipad-uuid-or-name> \
 tools/c00/run_device_cycle.sh all
 ```

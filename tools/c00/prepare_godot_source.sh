@@ -190,7 +190,7 @@ ensure_generated_version_header() {
 		return 1
 	fi
 
-	if [[ -f "$header" ]]; then
+	if [[ -f "$header" ]] && grep -q "GODOT_VERSION_MAJOR" "$header"; then
 		return 0
 	fi
 
@@ -220,17 +220,51 @@ ensure_generated_version_header() {
 #ifndef VERSION_GENERATED_GEN_H
 #define VERSION_GENERATED_GEN_H
 
-#define VERSION_SHORT_NAME "$short_name"
-#define VERSION_NAME "$name"
-#define VERSION_MAJOR $major
-#define VERSION_MINOR $minor
-#define VERSION_PATCH $patch
-#define VERSION_STATUS "$status"
-#define VERSION_BUILD "$build"
-#define VERSION_MODULE_CONFIG "$module_config"
-#define VERSION_WEBSITE "$website"
-#define VERSION_DOCS_BRANCH "$docs"
-#define VERSION_DOCS_URL "$docs_url"
+#define GODOT_VERSION_SHORT_NAME "$short_name"
+#define GODOT_VERSION_NAME "$name"
+#define GODOT_VERSION_MAJOR $major
+#define GODOT_VERSION_MINOR $minor
+#define GODOT_VERSION_PATCH $patch
+#define GODOT_VERSION_STATUS "$status"
+#define GODOT_VERSION_BUILD "$build"
+#define GODOT_VERSION_MODULE_CONFIG "$module_config"
+#define GODOT_VERSION_WEBSITE "$website"
+#define GODOT_VERSION_DOCS_BRANCH "$docs"
+#define GODOT_VERSION_DOCS_URL "$docs_url"
+
+#ifndef VERSION_SHORT_NAME
+#define VERSION_SHORT_NAME GODOT_VERSION_SHORT_NAME
+#endif
+#ifndef VERSION_NAME
+#define VERSION_NAME GODOT_VERSION_NAME
+#endif
+#ifndef VERSION_MAJOR
+#define VERSION_MAJOR GODOT_VERSION_MAJOR
+#endif
+#ifndef VERSION_MINOR
+#define VERSION_MINOR GODOT_VERSION_MINOR
+#endif
+#ifndef VERSION_PATCH
+#define VERSION_PATCH GODOT_VERSION_PATCH
+#endif
+#ifndef VERSION_STATUS
+#define VERSION_STATUS GODOT_VERSION_STATUS
+#endif
+#ifndef VERSION_BUILD
+#define VERSION_BUILD GODOT_VERSION_BUILD
+#endif
+#ifndef VERSION_MODULE_CONFIG
+#define VERSION_MODULE_CONFIG GODOT_VERSION_MODULE_CONFIG
+#endif
+#ifndef VERSION_WEBSITE
+#define VERSION_WEBSITE GODOT_VERSION_WEBSITE
+#endif
+#ifndef VERSION_DOCS_BRANCH
+#define VERSION_DOCS_BRANCH GODOT_VERSION_DOCS_BRANCH
+#endif
+#ifndef VERSION_DOCS_URL
+#define VERSION_DOCS_URL GODOT_VERSION_DOCS_URL
+#endif
 
 #endif // VERSION_GENERATED_GEN_H
 EOF
@@ -275,11 +309,31 @@ ensure_gdvirtual_header() {
 	)
 }
 
+ensure_gdextension_interface_header() {
+	local dir="$1"
+	local header="$dir/core/extension/gdextension_interface.gen.h"
+
+	if [[ -f "$header" ]]; then
+		return 0
+	fi
+
+	if ! command -v python3 >/dev/null 2>&1; then
+		echo "ERROR: python3 is required to generate $header" >&2
+		return 2
+	fi
+
+	(
+		cd "$dir"
+		python3 -c 'import sys; sys.path.insert(0, "."); sys.path.insert(0, "core/extension"); import make_interface_header; make_interface_header.run(["core/extension/gdextension_interface.gen.h"], ["core/extension/gdextension_interface.json"], None)'
+	)
+}
+
 ensure_generated_headers() {
 	local dir="$1"
 	ensure_generated_version_header "$dir"
 	ensure_disabled_classes_header "$dir"
 	ensure_gdvirtual_header "$dir"
+	ensure_gdextension_interface_header "$dir"
 }
 
 find_godot_binary() {

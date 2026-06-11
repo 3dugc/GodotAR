@@ -6,11 +6,37 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GATE="${1:-all}"
 DEFAULT_GODOT_SOURCE_DIR="$PROJECT_ROOT/.godot/cache/c00/godot-source"
 DEFAULT_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env.sh"
+DEFAULT_LATEST_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env-latest.sh"
+DEFAULT_IOS_STABLE_FALLBACK_DEVICE_ENV_FILE="$PROJECT_ROOT/.godot/cache/c00/device-env-ios-stable-fallback.sh"
 
 status=0
 
+default_device_env_file_for_gate() {
+	case "$GATE" in
+		rokid|rokid-place|android-arcore)
+			if [ -f "$DEFAULT_LATEST_DEVICE_ENV_FILE" ]; then
+				printf "%s" "$DEFAULT_LATEST_DEVICE_ENV_FILE"
+			else
+				printf "%s" "$DEFAULT_DEVICE_ENV_FILE"
+			fi
+			;;
+		ipad|ipad-place|ios-simulator|ios-simulator-place)
+			if [ -f "$DEFAULT_IOS_STABLE_FALLBACK_DEVICE_ENV_FILE" ]; then
+				printf "%s" "$DEFAULT_IOS_STABLE_FALLBACK_DEVICE_ENV_FILE"
+			elif [ -f "$DEFAULT_LATEST_DEVICE_ENV_FILE" ]; then
+				printf "%s" "$DEFAULT_LATEST_DEVICE_ENV_FILE"
+			else
+				printf "%s" "$DEFAULT_DEVICE_ENV_FILE"
+			fi
+			;;
+		*)
+			printf "%s" "$DEFAULT_DEVICE_ENV_FILE"
+			;;
+	esac
+}
+
 source_device_env_if_present() {
-	local env_file="${C00_DEVICE_ENV_FILE:-$DEFAULT_DEVICE_ENV_FILE}"
+	local env_file="${C00_DEVICE_ENV_FILE:-$(default_device_env_file_for_gate)}"
 	if [ "${C00_AUTO_SOURCE_DEVICE_ENV:-1}" = "1" ] && [ -f "$env_file" ]; then
 		local preserved=()
 		local had_templates_version="${GODOT_EXPORT_TEMPLATES_VERSION+x}"
@@ -216,6 +242,7 @@ is_valid_godot_source() {
 	[ -f "$dir/core/version.h" ] \
 		&& [ -f "$dir/core/object/class_db.h" ] \
 		&& [ -f "$dir/core/config/engine.h" ] \
+		&& [ -f "$dir/core/extension/gdextension_interface.gen.h" ] \
 		&& [ -d "$dir/platform/ios" ]
 }
 
@@ -452,7 +479,7 @@ if needs_ios_plugin_artifacts; then
 			fi
 		else
 			printf "MISS Godot source headers %s\n" "$godot_source"
-			printf "     Missing core/version.h, core/object/class_db.h, core/config/engine.h, or platform/ios.\n"
+			printf "     Missing core/version.h, core/object/class_db.h, core/config/engine.h, core/extension/gdextension_interface.gen.h, or platform/ios.\n"
 			status=1
 		fi
 	else
