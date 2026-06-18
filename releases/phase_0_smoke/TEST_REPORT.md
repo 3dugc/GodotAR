@@ -17,7 +17,7 @@ Default route: `res://demo/00_device_smoke_test.tscn`
 | iOS Simulator C04 placement dev gate | EditorSim | Scene validation pass; simulator app install blocked by Godot template arch | `releases/phase_0_smoke/evidence/editor-20260609-115342.log`, `releases/phase_0_smoke/evidence/ios-simulator-place-20260610-141627.md` |
 | Rokid C02 placement dev gate | EditorSim | Pass / not a real device pass | `releases/phase_0_smoke/evidence/editor-20260609-114733.log` validated with `--gate rokid-place --allow-editor-sim-backend` |
 | Rokid AR gate | OpenXR | Pending device run | Screenshot/log |
-| iPad AR gate | ARKit | Pending device run | Screenshot/log |
+| iOS AR gate (iPad / iPhone) | ARKit | Pending device run | Screenshot/log |
 | Android ARCore availability | ARCore | Pending device run | Screenshot/log |
 | Plugin boundary | No engine patch | Pass by implementation | Addon/provider only |
 
@@ -28,6 +28,7 @@ Codex implementation status:
 - `C02 Rokid OpenXR Place` and `C04 iPad ARKit Place` export presets, device-cycle gates, manual evidence import support, and validators were added for `GXF_ROKID_PLACE` / `GXF_ARKIT_PLACE` placed/raycast/anchor evidence.
 - Runtime status panel created.
 - Runtime status panel now shows ARKit tracking state/reason when the native ARKit provider reports them.
+- iOS/ARKit device tooling now supports both iPad and iPhone while keeping the historical `ipad` / `ipad-place` gate names for compatibility; iPhone runs auto-launch with `--xr-platform=iphone`.
 - Runtime status panel now shows OpenXR AR tier/fallback when the OpenXR provider reports them.
 - `GXF_SMOKE` structured logs created.
 - `GXF_SMOKE` now includes runtime metadata: Godot version info, XR-related command-line args, rendering method, OpenXR/XR shader settings, and viewport XR state.

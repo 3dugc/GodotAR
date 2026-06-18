@@ -20,16 +20,16 @@ const reportPath = args.report ? path.resolve(String(args.report)) : "";
 const jsonPath = args.json ? path.resolve(String(args.json)) : "";
 const format = String(args.format || (reportPath ? "markdown" : "json")).toLowerCase();
 
-const supportedGates = ["rokid", "ipad", "android-arcore", "all"];
+const supportedGates = ["rokid", "ipad", "ios", "iphone", "android-arcore", "all"];
 if (!supportedGates.includes(gate)) {
 	usage();
 	process.exit(2);
 }
 
-const gates = gate === "all" ? ["rokid", "ipad", "android-arcore"] : [gate];
+const gates = gate === "all" ? ["rokid", "ipad", "android-arcore"] : [normalizeGate(gate)];
 const results = gates.map((item) => {
 	if (item === "ipad") {
-		return checkIpadReady();
+		return checkIosArkitReady();
 	}
 	return checkAndroidReady(item);
 });
@@ -109,10 +109,18 @@ function checkAndroidReady(gateName) {
 }
 
 
-function checkIpadReady() {
+function normalizeGate(value) {
+	if (value === "ios" || value === "iphone") {
+		return "ipad";
+	}
+	return value;
+}
+
+
+function checkIosArkitReady() {
 	const failures = [];
 	const warnings = [];
-	const resolvedDevice = resolveIpadDevice(requestedDevice);
+	const resolvedDevice = resolveIosArkitDevice(requestedDevice);
 	for (const warning of resolvedDevice.warnings || []) {
 		warnings.push(warning);
 	}
@@ -120,7 +128,7 @@ function checkIpadReady() {
 		return {
 			gate: "ipad",
 			pass: false,
-			failures: [resolvedDevice.failure || "iPad device name or identifier is required. Pass --device <name-or-uuid> or set DEVICE."],
+			failures: [resolvedDevice.failure || "iOS ARKit device name or identifier is required. Pass --device <name-or-uuid> or set DEVICE."],
 			warnings,
 			next_actions: resolvedDevice.next_actions || [],
 			evidence: {
@@ -130,17 +138,18 @@ function checkIpadReady() {
 	}
 	const device = resolvedDevice.device;
 
-	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "godotar-ipad-ready-"));
-	const profileJsonPath = path.join(tempDir, "ipad-device.json");
+	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "godotar-ios-ready-"));
+	const profileJsonPath = path.join(tempDir, "ios-device.json");
 	const collect = run("node", [
 		path.join(PROJECT_ROOT, "tools/c00/collect_ios_device_profile.js"),
 		"--device", device,
 		"--bundle", packageName,
+		"--gate", "ipad",
 		"--timeout", String(args["device-timeout"] || process.env.DEVICECTL_TIMEOUT || "5"),
 		"--json", profileJsonPath,
 	]);
 	if (!collect.ok) {
-		failures.push(`iPad device profile collection failed: ${collect.stderr || collect.stdout || "unknown error"}`);
+		failures.push(`iOS ARKit device profile collection failed: ${collect.stderr || collect.stdout || "unknown error"}`);
 	}
 
 	let profile = {};
@@ -149,7 +158,7 @@ function checkIpadReady() {
 			profile = JSON.parse(fs.readFileSync(profileJsonPath, "utf8"));
 		}
 	} catch (error) {
-		failures.push(`iPad readiness profile JSON could not be parsed: ${String(error.message || error)}`);
+		failures.push(`iOS ARKit readiness profile JSON could not be parsed: ${String(error.message || error)}`);
 	}
 
 	const analyze = run("node", [
@@ -164,7 +173,7 @@ function checkIpadReady() {
 			failures.push(failure);
 		}
 		if (arrayOfStrings(analysis.failures).length === 0) {
-			failures.push(`iPad device profile analysis failed: ${analyze.stderr || analyze.stdout || "unknown error"}`);
+			failures.push(`iOS ARKit device profile analysis failed: ${analyze.stderr || analyze.stdout || "unknown error"}`);
 		}
 	}
 	for (const warning of arrayOfStrings(analysis.warnings)) {
@@ -176,7 +185,7 @@ function checkIpadReady() {
 		pass: failures.length === 0,
 		failures,
 		warnings,
-		next_actions: ipadReadinessNextActions({ device, profile, analysis, hostPermissionBlocked }),
+			next_actions: ipadReadinessNextActions({ device, profile, analysis, hostPermissionBlocked }),
 		evidence: {
 			device,
 			device_selection: {
@@ -193,7 +202,7 @@ function checkIpadReady() {
 }
 
 
-function resolveIpadDevice(explicitDevice) {
+function resolveIosArkitDevice(explicitDevice) {
 	if (explicitDevice) {
 		return {
 			device: explicitDevice,
@@ -203,12 +212,12 @@ function resolveIpadDevice(explicitDevice) {
 			evidence: {},
 		};
 	}
-	const discovery = discoverIpadDevices();
+	const discovery = discoverIosArkitDevices();
 	if (discovery.host_permission_blocked) {
 		return {
 			device: "",
 			source: "auto-devicectl",
-			failure: "iPad device name or identifier is required, and automatic iPad discovery was blocked by host permissions.",
+			failure: "iOS ARKit device name or identifier is required, and automatic iPad/iPhone discovery was blocked by host permissions.",
 			warnings: [],
 			next_actions: [
 				"Run the readiness command from a normal macOS terminal or an approved unsandboxed Codex command so devicectl can access CoreDevice services.",
@@ -221,60 +230,67 @@ function resolveIpadDevice(explicitDevice) {
 		return {
 			device: "",
 			source: "auto-devicectl",
-			failure: "iPad device name or identifier is required, and automatic iPad discovery failed.",
+			failure: "iOS ARKit device name or identifier is required, and automatic iPad/iPhone discovery failed.",
 			warnings: discovery.command ? [`devicectl list devices failed during auto-discovery: ${discovery.command.stderr || discovery.command.stdout || discovery.command.error || "unknown error"}`] : [],
 			next_actions: [
-				"Pass --device <name-or-uuid> or set DEVICE to the iPad name/identifier printed by `xcrun devicectl list devices`.",
-				"Reconnect and unlock the iPad, trust this Mac, then retry readiness.",
+				"Pass --device <name-or-uuid> or set DEVICE to the iPad/iPhone name or identifier printed by `xcrun devicectl list devices`.",
+				"Reconnect and unlock the iOS device, trust this Mac, then retry readiness.",
 			],
 			evidence: discovery,
 		};
 	}
-	if (discovery.ipads.length === 1) {
+	if (discovery.ios_arkit_devices.length === 1) {
+		const selected = discovery.ios_arkit_devices[0];
 		return {
-			device: discovery.ipads[0].name || discovery.ipads[0].identifier,
+			device: selected.name || selected.identifier,
 			source: "auto-devicectl",
-			warnings: [`Auto-selected iPad device '${discovery.ipads[0].name || discovery.ipads[0].identifier}' from devicectl list devices.`],
+			warnings: [`Auto-selected iOS ARKit device '${selected.name || selected.identifier}' from devicectl list devices.`],
 			next_actions: [],
 			evidence: discovery,
 		};
 	}
-	if (discovery.ipads.length > 1) {
+	if (discovery.ios_arkit_devices.length > 1) {
 		return {
 			device: "",
 			source: "auto-devicectl",
-			failure: "Multiple iPad devices were visible; pass --device <name-or-uuid> so the ARKit gate uses the intended device.",
+			failure: "Multiple iPad/iPhone devices were visible; pass --device <name-or-uuid> so the ARKit gate uses the intended device.",
 			warnings: [],
-			next_actions: discovery.ipads.map((item) => `Candidate: ${item.name || "unnamed"} (${item.identifier || "no identifier"}) state=${item.state || "unknown"}`),
+			next_actions: discovery.ios_arkit_devices.map((item) => `Candidate: ${item.name || "unnamed"} (${item.identifier || "no identifier"}) state=${item.state || "unknown"} model=${item.model || "unknown"}`),
 			evidence: discovery,
 		};
 	}
 	return {
 		device: "",
 		source: "auto-devicectl",
-		failure: "No iPad device was visible to devicectl auto-discovery. Pass --device once the iPad appears, or reconnect/unlock/trust the iPad.",
+		failure: "No iPad or iPhone device was visible to devicectl auto-discovery. Pass --device once the device appears, or reconnect/unlock/trust the device.",
 		warnings: [],
 		next_actions: [
-			"Connect the iPad over USB-C, unlock it, keep the screen awake, and accept any Trust This Computer prompt.",
-			"Run `xcrun devicectl list devices` and confirm the iPad appears before rerunning readiness.",
+			"Connect the iPad or iPhone over USB-C, unlock it, keep the screen awake, and accept any Trust This Computer prompt.",
+			"Run `xcrun devicectl list devices` and confirm the iOS device appears before rerunning readiness.",
 		],
 		evidence: discovery,
 	};
 }
 
 
-function discoverIpadDevices() {
+function discoverIosArkitDevices() {
 	const command = run("xcrun", ["devicectl", "list", "devices"]);
 	const text = [command.stdout, command.stderr].filter(Boolean).join("\n");
 	const devices = parseDevicectlDeviceTable(command.stdout);
 	const ipads = devices.filter((item) => /ipad/i.test([item.name, item.model].join(" ")));
+	const iphones = devices.filter((item) => /iphone/i.test([item.name, item.model].join(" ")));
+	const iosArkitDevices = devices.filter((item) => /ipad|iphone/i.test([item.name, item.model].join(" ")));
 	return {
 		command: commandSummary(command),
 		host_permission_blocked: isDefiniteIpadHostPermissionBlocked(text),
 		device_count: devices.length,
 		ipad_count: ipads.length,
+		iphone_count: iphones.length,
+		ios_arkit_device_count: iosArkitDevices.length,
 		devices,
 		ipads,
+		iphones,
+		ios_arkit_devices: iosArkitDevices,
 	};
 }
 
@@ -423,16 +439,16 @@ function ipadReadinessNextActions(context) {
 	const availability = String(evidence.device_availability || "").toLowerCase();
 
 	if (context.hostPermissionBlocked) {
-		actions.push("Run the iPad readiness command from a normal macOS terminal or an approved unsandboxed Codex command so devicectl, CoreDevice, and xctrace can access user caches and XPC services.");
-		actions.push("After the host permission check passes, reconnect and unlock the iPad, trust this Mac, then rerun readiness with the same --device value.");
+		actions.push("Run the iOS ARKit readiness command from a normal macOS terminal or an approved unsandboxed Codex command so devicectl, CoreDevice, and xctrace can access user caches and XPC services.");
+		actions.push("After the host permission check passes, reconnect and unlock the iOS device, trust this Mac, then rerun readiness with the same --device value.");
 		return actions;
 	}
 	if (!profile.selected_device) {
-		actions.push(`Connect the iPad, unlock it, trust this Mac, then confirm it appears in \`xcrun devicectl list devices\` using the same --device value: ${context.device}.`);
+		actions.push(`Connect the iPad/iPhone, unlock it, trust this Mac, then confirm it appears in \`xcrun devicectl list devices\` using the same --device value: ${context.device}.`);
 		return actions;
 	}
 	if (availability === "offline" || availability === "unavailable") {
-		actions.push("Unlock the iPad, keep the screen awake, reconnect USB-C, and accept any Trust This Computer prompt.");
+		actions.push("Unlock the iPad/iPhone, keep the screen awake, reconnect USB-C, and accept any Trust This Computer prompt.");
 		actions.push("Open Xcode Devices and Simulators once so CoreDevice can finish pairing and developer services setup.");
 	}
 	if (ipadDeviceProperty(selectedDevice, "ddiServicesAvailable") === false) {
@@ -440,13 +456,13 @@ function ipadReadinessNextActions(context) {
 	}
 	const developerModeStatus = ipadDeviceProperty(selectedDevice, "developerModeStatus");
 	if (developerModeStatus && String(developerModeStatus).toLowerCase() !== "enabled") {
-		actions.push("Enable Developer Mode on the iPad and reboot when iPadOS asks for it.");
+		actions.push("Enable Developer Mode on the iOS device and reboot when prompted.");
 	}
 	if (evidence.lock_state === "locked") {
-		actions.push("Unlock the iPad before running the ARKit gate.");
+		actions.push("Unlock the iOS device before running the ARKit gate.");
 	}
 	if (evidence.target_bundle_installed === false) {
-		actions.push("This is expected before the install step; once the device is available, run the iPad gate so it can install the .app.");
+		actions.push("This is expected before the install step; once the device is available, run the iOS ARKit gate so it can install the .app.");
 	}
 	if (actions.length === 0 && analysis.pass !== true) {
 		actions.push("Retry readiness from a normal terminal and inspect the devicectl/xctrace stderr in the evidence block.");
@@ -575,13 +591,13 @@ function buildDdiServicesAction(profile, selectedDevice) {
 	const deviceVersion = ipadDeviceProperty(selectedDevice, "osVersionNumber") || ipadDeviceProperty(selectedDevice, "osVersion") || ipadDeviceProperty(selectedDevice, "productVersion") || "";
 	const xcodeVersion = host.xcode || "unknown";
 	const iphoneosSdk = host.iphoneos_sdk_version || "unknown";
-	const deviceArg = shellQuote(profile.device || ipadDeviceProperty(selectedDevice, "identifier") || ipadDeviceProperty(selectedDevice, "name") || "iPad");
-	let action = `Xcode reports ddiServicesAvailable=false for iPadOS ${deviceVersion || "unknown"}; host Xcode=${xcodeVersion}, iphoneos SDK=${iphoneosSdk}. Open Xcode Devices and Simulators, install/update matching iPadOS device support, then reconnect the iPad. To force CoreDevice to mount/update DDI from terminal, run \`xcrun devicectl device info ddiServices --device ${deviceArg} --auto-mount-ddis\` after the iPad is unlocked and trusted.`;
+	const deviceArg = shellQuote(profile.device || ipadDeviceProperty(selectedDevice, "identifier") || ipadDeviceProperty(selectedDevice, "name") || "iOS device");
+	let action = `Xcode reports ddiServicesAvailable=false for iOS/iPadOS ${deviceVersion || "unknown"}; host Xcode=${xcodeVersion}, iphoneos SDK=${iphoneosSdk}. Open Xcode Devices and Simulators, install/update matching iOS device support, then reconnect the device. To force CoreDevice to mount/update DDI from terminal, run \`xcrun devicectl device info ddiServices --device ${deviceArg} --auto-mount-ddis\` after the device is unlocked and trusted.`;
 	const sdkHint = compareMajorMinor(deviceVersion, iphoneosSdk);
 	if (sdkHint === "device-newer") {
-		action += " The iPadOS version appears newer than the host iphoneos SDK, so install a newer Xcode/Xcode beta or update the host SDK line.";
+		action += " The device OS version appears newer than the host iphoneos SDK, so install a newer Xcode/Xcode beta or update the host SDK line.";
 	} else if (sdkHint === "sdk-newer") {
-		action += " The host SDK line appears newer than the iPadOS version; if pairing still fails, update the iPad or reinstall device support for the exact iPadOS line.";
+		action += " The host SDK line appears newer than the device OS version; if pairing still fails, update the device or reinstall device support for the exact OS line.";
 	}
 	return action;
 }

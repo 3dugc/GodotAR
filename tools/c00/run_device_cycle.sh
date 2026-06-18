@@ -118,7 +118,7 @@ SIMULATOR_DEVICE="${SIMULATOR_DEVICE:-booted}"
 usage() {
 	cat <<EOF
 Usage:
-  tools/c00/run_device_cycle.sh <editor|ios-simulator|ios-simulator-place|rokid|rokid-place|ipad|ipad-place|android-arcore|all> [ipad-device]
+  tools/c00/run_device_cycle.sh <editor|ios-simulator|ios-simulator-place|rokid|rokid-place|ipad|ipad-place|android-arcore|all> [ios-device]
 
 Examples:
   tools/c00/run_device_cycle.sh editor
@@ -126,9 +126,9 @@ Examples:
   APP_PATH=builds/ios_simulator/GodotXRFoundation-C04.app tools/c00/run_device_cycle.sh ios-simulator-place
   tools/c00/run_device_cycle.sh rokid
   tools/c00/run_device_cycle.sh rokid-place
-  GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh ipad
-  GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ipad-uuid-or-name> tools/c00/run_device_cycle.sh ipad-place
-  APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/run_device_cycle.sh ipad <ipad-device>
+  GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ios-device-uuid-or-name> tools/c00/run_device_cycle.sh ipad
+  GODOT_SOURCE_DIR=/path/to/godot DEVICE=<ios-device-uuid-or-name> tools/c00/run_device_cycle.sh ipad-place
+  APP_PATH=builds/ipad/GodotXRFoundation.app tools/c00/run_device_cycle.sh ipad <ios-device>
 
 Common environment:
   GODOT_BIN=/path/to/Godot
@@ -144,10 +144,10 @@ Evidence:
   CAPTURE_MEDIA=1                  Capture screenshot/recording where supported.
   VIDEO_SECONDS=15                 Android/Rokid screen recording length.
   ANDROID_FORCE_STOP=1             Force-stop Android/Rokid app before launch so APK _cl_ args are re-read.
-  MANUAL_MEDIA_PATH=/path/file     iPad fallback screenshot or recording when automatic capture is unavailable.
+  MANUAL_MEDIA_PATH=/path/file     iOS fallback screenshot or recording when automatic capture is unavailable.
   ALLOW_MISSING_MEDIA=1            Keep collecting/reporting even when media evidence is missing.
 
-iPad / ARKit:
+iOS / ARKit:
   GODOT_SOURCE_DIR=/path/to/godot     Build GodotARKit.xcframework before export.
   GODOT_TAG=$C00_GODOT_LATEST_TAG             Optional source tag for automatic source preparation.
   AUTO_PREPARE_GODOT_SOURCE=auto|1|0 Default auto: prepare only when GODOT_TAG/BRANCH/COMMIT is set.
@@ -157,6 +157,7 @@ iPad / ARKit:
                                       TEAM_ID, DEVELOPMENT_TEAM, and APPLE_TEAM_ID also work.
   BUILD_IPAD_APP=auto|1|0            Build exported Xcode project into .app when APP_PATH is empty.
   IPAD_APP_PATH="$IPAD_APP_PATH"
+  IOS_XR_PLATFORM=ipad|iphone|ios    Optional runtime platform hint. Auto-detected from DEVICE when unset.
   IOS_SIMULATOR_EXPORT_PATH="$IOS_SIMULATOR_EXPORT_PATH"
   IOS_SIMULATOR_APP_PATH="$IOS_SIMULATOR_APP_PATH"
   IOS_SIMULATOR_PLACE_EXPORT_PATH="$IOS_SIMULATOR_PLACE_EXPORT_PATH"
@@ -232,6 +233,46 @@ readiness_gate_for_gate() {
 		ipad-place) printf "%s" "ipad" ;;
 		*) printf "%s" "$1" ;;
 	esac
+}
+
+resolve_ios_xr_platform_for_device() {
+	local wanted="${1:-}"
+	if [[ "$wanted" =~ [iI][pP]hone ]]; then
+		printf "%s" "iphone"
+		return
+	fi
+	if [[ "$wanted" =~ [iI][pP]ad ]]; then
+		printf "%s" "ipad"
+		return
+	fi
+	if command -v xcrun >/dev/null 2>&1 && command -v node >/dev/null 2>&1 && [[ -n "$wanted" ]]; then
+		local resolved
+		resolved="$(xcrun xctrace list devices 2>/dev/null | node -e '
+const wanted = String(process.argv[1] || "").trim();
+const lines = require("fs").readFileSync(0, "utf8").split(/\r?\n/);
+for (const line of lines) {
+	const match = line.match(/^(.+?)\s+\(([^()]*)\)\s+\(([0-9A-Fa-f-]+)\)\s*$/);
+	if (!match) continue;
+	const name = match[1].trim();
+	const id = match[3].trim();
+	if (wanted !== name && wanted !== id) continue;
+	if (/iphone/i.test(name)) {
+		process.stdout.write("iphone");
+	} else if (/ipad/i.test(name)) {
+		process.stdout.write("ipad");
+	} else {
+		process.stdout.write("ios");
+	}
+	process.exit(0);
+}
+process.exit(1);
+' "$wanted" || true)"
+		if [[ -n "$resolved" ]]; then
+			printf "%s" "$resolved"
+			return
+		fi
+	fi
+	printf "%s" "${IOS_XR_PLATFORM:-ipad}"
 }
 
 resolve_ready_ipad_device_from_json() {
@@ -743,10 +784,14 @@ run_collect() {
 				echo "DRY RUN: APK_PATH=${APK_PATH:-$(project_path "$ANDROID_ARCORE_APK_PATH")} tools/c00/collect_android_smoke.sh android-arcore $PACKAGE $DURATION"
 				;;
 			ipad)
-				echo "DRY RUN: APP_PATH=${APP_PATH:-$IPAD_APP_PATH} tools/c00/collect_ios_smoke.sh ${DEVICE:-<ipad-device>} $PACKAGE $DURATION"
+				local ios_xr_platform
+				ios_xr_platform="${IOS_XR_PLATFORM:-$(resolve_ios_xr_platform_for_device "${DEVICE:-}")}"
+				echo "DRY RUN: IOS_XR_PLATFORM=$ios_xr_platform APP_PATH=${APP_PATH:-$IPAD_APP_PATH} tools/c00/collect_ios_smoke.sh ${DEVICE:-<ios-device>} $PACKAGE $DURATION"
 				;;
 			ipad-place)
-				echo "DRY RUN: IOS_GATE=ipad-place IOS_XR_SCENE=ios_arkit_place APP_PATH=${APP_PATH:-$IPAD_PLACE_APP_PATH} tools/c00/collect_ios_smoke.sh ${DEVICE:-<ipad-device>} $PACKAGE $DURATION"
+				local ios_xr_platform
+				ios_xr_platform="${IOS_XR_PLATFORM:-$(resolve_ios_xr_platform_for_device "${DEVICE:-}")}"
+				echo "DRY RUN: IOS_GATE=ipad-place IOS_XR_PLATFORM=$ios_xr_platform IOS_XR_SCENE=ios_arkit_place APP_PATH=${APP_PATH:-$IPAD_PLACE_APP_PATH} tools/c00/collect_ios_smoke.sh ${DEVICE:-<ios-device>} $PACKAGE $DURATION"
 				;;
 		esac
 		return
@@ -785,23 +830,27 @@ run_collect() {
 			;;
 		ipad)
 			if [[ -z "$DEVICE" ]]; then
-				echo "iPad device is required for collection. Run: xcrun devicectl list devices" >&2
+				echo "iOS ARKit device is required for collection. Run: xcrun devicectl list devices" >&2
 				exit 2
 			fi
 			if [[ -z "${APP_PATH:-}" ]]; then
 				echo "APP_PATH is empty; assuming $PACKAGE is already installed on $DEVICE."
 			fi
-			"$PROJECT_ROOT/tools/c00/collect_ios_smoke.sh" "$DEVICE" "$PACKAGE" "$DURATION"
+			local ios_xr_platform
+			ios_xr_platform="${IOS_XR_PLATFORM:-$(resolve_ios_xr_platform_for_device "$DEVICE")}"
+			IOS_XR_PLATFORM="$ios_xr_platform" "$PROJECT_ROOT/tools/c00/collect_ios_smoke.sh" "$DEVICE" "$PACKAGE" "$DURATION"
 			;;
 		ipad-place)
 			if [[ -z "$DEVICE" ]]; then
-				echo "iPad device is required for placement collection. Run: xcrun devicectl list devices" >&2
+				echo "iOS ARKit device is required for placement collection. Run: xcrun devicectl list devices" >&2
 				exit 2
 			fi
 			if [[ -z "${APP_PATH:-}" ]]; then
 				echo "APP_PATH is empty; assuming $PACKAGE placement build is already installed on $DEVICE."
 			fi
-			IOS_GATE=ipad-place IOS_XR_SCENE=ios_arkit_place "$PROJECT_ROOT/tools/c00/collect_ios_smoke.sh" "$DEVICE" "$PACKAGE" "$DURATION"
+			local ios_xr_platform
+			ios_xr_platform="${IOS_XR_PLATFORM:-$(resolve_ios_xr_platform_for_device "$DEVICE")}"
+			IOS_GATE=ipad-place IOS_XR_PLATFORM="$ios_xr_platform" IOS_XR_SCENE=ios_arkit_place "$PROJECT_ROOT/tools/c00/collect_ios_smoke.sh" "$DEVICE" "$PACKAGE" "$DURATION"
 			;;
 	esac
 }

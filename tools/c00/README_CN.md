@@ -71,15 +71,23 @@ C01 EditorSim 阶段成果可以独立采集：
 tools/c00/collect_c01_editor_smoke.sh
 ```
 
-该命令会用 Godot headless 运行 `demo/01_place_on_plane.tscn` 和 `demo/02_backend_switcher.tscn`，再分别用 `validate_smoke_log.js --gate c01-place` 与 `--gate c01-backend` 校验 `GXF_C01_PLACE` / `GXF_C01_BACKEND` 日志。它是上层 ARFoundation-style API 和 backend 选择器的开发期 evidence，不替代第一阶段的 Rokid/OpenXR、iPad/ARKit、Android/ARCore 真机 evidence。
+该命令会用 Godot headless 运行 `demo/01_place_on_plane.tscn` 和 `demo/02_backend_switcher.tscn`，再分别用 `validate_smoke_log.js --gate c01-place` 与 `--gate c01-backend` 校验 `GXF_C01_PLACE` / `GXF_C01_BACKEND` 日志。它是上层 ARFoundation-style API 和 backend 选择器的开发期 evidence，不替代第一阶段的 Rokid/OpenXR、iOS/ARKit、Android/ARCore 真机 evidence。
 
-## iPad 签名准备
+## iOS / ARKit 签名准备
 
-设备机真跑 `ipad` / `ipad-place` 前，`run_device_cycle.sh` 会在导出前尝试配置 iOS export preset 的 Team ID 和 bundle id。默认模式是 `CONFIGURE_IPAD_SIGNING=auto`：只要环境里有 `IPAD_TEAM_ID`、`TEAM_ID`、`DEVELOPMENT_TEAM` 或 `APPLE_TEAM_ID`，runner 就会自动调用 `node tools/c00/configure_ios_signing.js --gate <ipad-gate> --bundle-id "$PACKAGE"`；没有 Team ID 时只提示并继续，让首次 dry-run 不被阻断。
+设备机真跑 `ipad` / `ipad-place` 前，`run_device_cycle.sh` 会在导出前尝试配置 iOS export preset 的 Team ID 和 bundle id。这里的 `ipad` / `ipad-place` 是历史 gate 名，实际支持 iPad 和 iPhone 两类 ARKit 真机；显式传 iPhone 名或 UDID 时 runner 会自动用 `--xr-platform=iphone` 启动。默认模式是 `CONFIGURE_IPAD_SIGNING=auto`：只要环境里有 `IPAD_TEAM_ID`、`TEAM_ID`、`DEVELOPMENT_TEAM` 或 `APPLE_TEAM_ID`，runner 就会自动调用 `node tools/c00/configure_ios_signing.js --gate <ipad-gate> --bundle-id "$PACKAGE"`；没有 Team ID 时只提示并继续，让首次 dry-run 不被阻断。
 
 ```bash
 IPAD_TEAM_ID=<10-char-team-id> \
 DEVICE="iPad M4" \
+tools/c00/run_device_cycle.sh ipad
+```
+
+iPhone 也走同一条 ARKit gate：
+
+```bash
+IPAD_TEAM_ID=<10-char-team-id> \
+DEVICE="邸锐的iPhone" \
 tools/c00/run_device_cycle.sh ipad
 ```
 
@@ -93,7 +101,7 @@ CONFIGURE_IPAD_SIGNING=1 tools/c00/run_device_cycle.sh ipad "iPad M4"
 
 ## 等待设备就绪
 
-连接 Rokid 或 iPad 后，可以先让脚本持续等待 transport ready：
+连接 Rokid、iPad 或 iPhone 后，可以先让脚本持续等待 transport ready：
 
 ```bash
 tools/c00/wait_for_device_ready.sh --gate rokid --timeout 300
@@ -103,8 +111,8 @@ tools/c00/wait_for_device_ready.sh --gate rokid --timeout 300
 tools/c00/wait_for_device_ready.sh --gate ipad --device "iPad M4" --timeout 300
 ```
 
-Rokid/Android readiness 要求 `adb devices -l` 至少有一个 `device` 状态的已授权设备；单个 `rokid` / `android-arcore` readiness gate 会把选中的 `selected_device.serial` 继续作为 `ADB_SERIAL` 传给安装、启动、日志和媒体采集。iPad readiness 会采集 devicectl/xctrace device profile，并要求目标 iPad 不处于 `offline` / `unavailable` 状态；目标 bundle 尚未安装只会作为等待阶段 warning，因为真正安装发生在 device gate 内。
-如果现场只有一台 iPad，`check_device_ready.js --gate all` 和 iPad readiness 可以省略 `--device`，脚本会从 `xcrun devicectl list devices` 自动选择唯一 iPad 并把选择证据写入报告；`wait_for_device_ready.sh --run-gate`、`run_phase1_device_lab.sh --wait-devices` 和单独的 `run_device_cycle.sh ipad` / `rokid` / `android-arcore` 会继续把该选择传给后续 gate。若出现多台 iPad，仍需显式传 `--device <name-or-uuid>`；多台 Android/XR 设备同时连接时仍可显式设置 `ADB_SERIAL=<serial>`。如需关闭单 gate 的 readiness 自动选择，设置 `AUTO_SELECT_READY_DEVICE=0`。
+Rokid/Android readiness 要求 `adb devices -l` 至少有一个 `device` 状态的已授权设备；单个 `rokid` / `android-arcore` readiness gate 会把选中的 `selected_device.serial` 继续作为 `ADB_SERIAL` 传给安装、启动、日志和媒体采集。iOS/ARKit readiness 会采集 devicectl/xctrace device profile，并要求目标 iPad/iPhone 不处于 `offline` / `unavailable` 状态；目标 bundle 尚未安装只会作为等待阶段 warning，因为真正安装发生在 device gate 内。
+如果现场只有一台 iPad 或 iPhone，`check_device_ready.js --gate all` 和 iOS/ARKit readiness 可以省略 `--device`，脚本会从 `xcrun devicectl list devices` 自动选择唯一 iOS ARKit 设备并把选择证据写入报告；`wait_for_device_ready.sh --run-gate`、`run_phase1_device_lab.sh --wait-devices` 和单独的 `run_device_cycle.sh ipad` / `rokid` / `android-arcore` 会继续把该选择传给后续 gate。若出现多台 iPad/iPhone，仍需显式传 `--device <name-or-uuid>`；多台 Android/XR 设备同时连接时仍可显式设置 `ADB_SERIAL=<serial>`。如需关闭单 gate 的 readiness 自动选择，设置 `AUTO_SELECT_READY_DEVICE=0`。
 
 设备 ready 后也可以自动进入 spec gate：
 
@@ -119,12 +127,12 @@ releases/phase_0_smoke/evidence/device-ready-<gate>-<timestamp>.md
 releases/phase_0_smoke/evidence/device-ready-<gate>-<timestamp>.json
 ```
 
-readiness 和 device profile 报告包含 `Next Actions` / `next_actions`，会针对 ADB 无设备、Rokid 未授权、iPad `offline` / `unavailable`、`ddiServicesAvailable=false`、目标 app 尚未安装等状态给出现场恢复步骤。iPad 报告还会记录 host Xcode 版本、build、`iphoneos` / `iphonesimulator` SDK 版本，以及只读 `DDI services` probe；当 `ddiServicesAvailable=false` 时，先按报告里的 iPadOS 与 Xcode/SDK 组合处理设备支持包或系统版本不匹配问题，必要时在设备已解锁/信任后运行 `xcrun devicectl device info ddiServices --device <device> --auto-mount-ddis` 触发 CoreDevice 挂载/更新 DDI。
-若 iPad 已解锁/信任但仍卡在 DDI，可运行 `node tools/c00/recover_ios_ddi_services.js`。现场只有一台 iPad 时它会从 `xcrun devicectl list devices` 自动选择；多台 iPad 时再传 `--device "iPad M4"`。它会归档 DDI auto-mount 前后的 readiness、`devicectl` JSON/log、device selection 和下一步恢复动作；加 `--run-gate` 时，只有恢复后 readiness 通过才会继续跑 iPad gate。
+readiness 和 device profile 报告包含 `Next Actions` / `next_actions`，会针对 ADB 无设备、Rokid 未授权、iOS 设备 `offline` / `unavailable`、`ddiServicesAvailable=false`、目标 app 尚未安装等状态给出现场恢复步骤。iOS 报告还会记录 host Xcode 版本、build、`iphoneos` / `iphonesimulator` SDK 版本，以及只读 `DDI services` probe；当 `ddiServicesAvailable=false` 时，先按报告里的 iOS/iPadOS 与 Xcode/SDK 组合处理设备支持包或系统版本不匹配问题，必要时在设备已解锁/信任后运行 `xcrun devicectl device info ddiServices --device <device> --auto-mount-ddis` 触发 CoreDevice 挂载/更新 DDI。
+若 iPad/iPhone 已解锁/信任但仍卡在 DDI，可运行 `node tools/c00/recover_ios_ddi_services.js`。现场只有一台 iOS ARKit 设备时它会从 `xcrun devicectl list devices` 自动选择；多台 iPad/iPhone 时再传 `--device "iPad M4"` 或 `--device "邸锐的iPhone"`。它会归档 DDI auto-mount 前后的 readiness、`devicectl` JSON/log、device selection 和下一步恢复动作；加 `--run-gate` 时，只有恢复后 readiness 通过才会继续跑 `ipad` gate。
 Rokid/Android 报告会记录 ADB 版本、Android SDK 环境、JAVA_HOME、PATH 中是否有 `adb`，并在 macOS 上尝试列出 USB 中疑似 Android/XR 的设备；如果 USB 能看到设备但 ADB 没有 transport，优先检查 USB debugging、RSA 授权和 USB 模式。多台 Android/XR 设备同时连接时，仍建议显式设置 `ADB_SERIAL=<serial>`，确保 Rokid/OpenXR 和 Android/ARCore 分别跑到预期设备；`run_phase1_device_lab.sh --gate all --wait-devices` 的 split-all 模式会按 Rokid 组和 Android ARCore 组分别传播 readiness 选中的 serial，运行完每组后恢复原始 `ADB_SERIAL`。
 若 Rokid/Android 设备已连接但 ADB transport 没有进入 `device`，可运行 `node tools/c00/recover_android_adb_transport.js --gate rokid` 或 `--gate android-arcore`。它会保存恢复前后 readiness，执行 `adb kill-server` / `adb start-server` / `adb devices -l` 并归档 stdout/stderr；加 `--run-gate` 时，只有恢复后 readiness 通过才会继续跑对应 device gate。
 如果在 Codex 沙盒、CI 沙盒或其它受限终端里运行，ADB 可能因为不能绑定本地 server socket 报 `Operation not permitted`，`devicectl` / `xctrace` 也可能因为 CoreDevice XPC 或 Instruments cache 权限失败。报告会用 `host_permission_blocked:true` 标出这类主机权限阻塞；此时先在普通 macOS 终端或已批准的 unsandboxed 命令里重跑 readiness，再判断是否真的缺设备。
-如果 `devicectl` 能列出目标 iPad 但状态是 `unavailable`，且后续命令报 `CoreDeviceService was unable to locate a device matching the requested device identifier`，这应按 iPad 离线/不可用处理，而不是按主机权限阻塞处理；优先解锁、信任、重连并打开 Xcode Devices and Simulators。
+如果 `devicectl` 能列出目标 iPad/iPhone 但状态是 `unavailable`，且后续命令报 `CoreDeviceService was unable to locate a device matching the requested device identifier`，这应按 iOS 设备离线/不可用处理，而不是按主机权限阻塞处理；优先解锁、信任、重连并打开 Xcode Devices and Simulators。
 
 ## Device Lab Handoff
 

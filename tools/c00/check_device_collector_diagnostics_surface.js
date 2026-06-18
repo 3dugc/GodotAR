@@ -61,7 +61,7 @@ const checks = [
 			["collector status accumulator", /COLLECT_STATUS=0/],
 			["smoke status capture", /SMOKE_STATUS="\$\?"/],
 			["evidence status capture", /EVIDENCE_STATUS="\$\?"/],
-			["continues after iPad install failure", /iPad app install failed with exit \$INSTALL_STATUS; continuing to device profile and smoke diagnostics/],
+			["continues after iOS install failure", /iOS app install failed with exit \$INSTALL_STATUS; continuing to device profile and smoke diagnostics/],
 			["continues after smoke failure", /continuing to evidence\/profile report assembly/],
 			["continues after media failure", /appending device diagnostics before exit/],
 			["profile appended after validators", /cat "\$PROFILE_PATH" >> "\$REPORT_PATH"/],

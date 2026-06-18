@@ -84,14 +84,14 @@ function resolveRecoveryDevice(explicitDevice) {
 		};
 	}
 
-	const discovery = discoverIpadDevices();
+	const discovery = discoverIosArkitDevices();
 	if (discovery.host_permission_blocked) {
 		return {
 			device: "",
 			source: "auto-devicectl",
 			requested_device: "",
 			warnings: [],
-			failure: "Automatic iPad discovery was blocked by host permissions.",
+			failure: "Automatic iPad/iPhone discovery was blocked by host permissions.",
 			next_actions: [
 				"Run this recovery command from a normal macOS terminal or an approved unsandboxed Codex command so devicectl can access CoreDevice services.",
 				"Or pass --device <name-or-uuid> explicitly if you want to bypass auto-discovery.",
@@ -105,34 +105,34 @@ function resolveRecoveryDevice(explicitDevice) {
 			source: "auto-devicectl",
 			requested_device: "",
 			warnings: discovery.command ? [`devicectl list devices failed during auto-discovery: ${discovery.command.stderr || discovery.command.stdout || discovery.command.error || "unknown error"}`] : [],
-			failure: "Automatic iPad discovery failed.",
+			failure: "Automatic iPad/iPhone discovery failed.",
 			next_actions: [
-				"Pass --device <name-or-uuid> or set DEVICE to the iPad name/identifier printed by `xcrun devicectl list devices`.",
-				"Reconnect and unlock the iPad, trust this Mac, then retry DDI recovery.",
+				"Pass --device <name-or-uuid> or set DEVICE to the iPad/iPhone name or identifier printed by `xcrun devicectl list devices`.",
+				"Reconnect and unlock the iOS device, trust this Mac, then retry DDI recovery.",
 			],
 			evidence: discovery,
 		};
 	}
-	if (discovery.ipads.length === 1) {
-		const selected = discovery.ipads[0].name || discovery.ipads[0].identifier;
+	if (discovery.ios_arkit_devices.length === 1) {
+		const selected = discovery.ios_arkit_devices[0].name || discovery.ios_arkit_devices[0].identifier;
 		return {
 			device: selected,
 			source: "auto-devicectl",
 			requested_device: "",
-			warnings: [`Auto-selected iPad device '${selected}' from devicectl list devices.`],
+			warnings: [`Auto-selected iOS ARKit device '${selected}' from devicectl list devices.`],
 			failure: "",
 			next_actions: [],
 			evidence: discovery,
 		};
 	}
-	if (discovery.ipads.length > 1) {
+	if (discovery.ios_arkit_devices.length > 1) {
 		return {
 			device: "",
 			source: "auto-devicectl",
 			requested_device: "",
 			warnings: [],
-			failure: "Multiple iPad devices were visible; pass --device <name-or-uuid> so DDI recovery uses the intended device.",
-			next_actions: discovery.ipads.map((item) => `Candidate: ${item.name || "unnamed"} (${item.identifier || "no identifier"}) state=${item.state || "unknown"}`),
+			failure: "Multiple iPad/iPhone devices were visible; pass --device <name-or-uuid> so DDI recovery uses the intended device.",
+			next_actions: discovery.ios_arkit_devices.map((item) => `Candidate: ${item.name || "unnamed"} (${item.identifier || "no identifier"}) state=${item.state || "unknown"} model=${item.model || "unknown"}`),
 			evidence: discovery,
 		};
 	}
@@ -141,28 +141,34 @@ function resolveRecoveryDevice(explicitDevice) {
 		source: "auto-devicectl",
 		requested_device: "",
 		warnings: [],
-		failure: "No iPad device was visible to devicectl auto-discovery.",
+		failure: "No iPad or iPhone device was visible to devicectl auto-discovery.",
 		next_actions: [
-			"Connect the iPad over USB-C, unlock it, keep the screen awake, and accept any Trust This Computer prompt.",
-			"Run `xcrun devicectl list devices` and confirm the iPad appears before rerunning DDI recovery.",
+			"Connect the iPad or iPhone over USB-C, unlock it, keep the screen awake, and accept any Trust This Computer prompt.",
+			"Run `xcrun devicectl list devices` and confirm the iOS device appears before rerunning DDI recovery.",
 		],
 		evidence: discovery,
 	};
 }
 
 
-function discoverIpadDevices() {
+function discoverIosArkitDevices() {
 	const command = run("xcrun", ["devicectl", "list", "devices"]);
 	const text = [command.stdout, command.stderr, command.error].filter(Boolean).join("\n");
 	const devices = parseDevicectlDeviceTable(command.stdout);
 	const ipads = devices.filter((item) => /ipad/i.test([item.name, item.model].join(" ")));
+	const iphones = devices.filter((item) => /iphone/i.test([item.name, item.model].join(" ")));
+	const iosArkitDevices = devices.filter((item) => /ipad|iphone/i.test([item.name, item.model].join(" ")));
 	return {
 		command,
 		host_permission_blocked: isDefiniteIpadHostPermissionBlocked(text),
 		device_count: devices.length,
 		ipad_count: ipads.length,
+		iphone_count: iphones.length,
+		ios_arkit_device_count: iosArkitDevices.length,
 		devices,
 		ipads,
+		iphones,
+		ios_arkit_devices: iosArkitDevices,
 	};
 }
 
@@ -291,9 +297,9 @@ function recoveryNextActions(context) {
 	}
 	if (context.after && context.after.status === 0) {
 		if (context.gate && context.gate.status !== 0) {
-			actions.push("iPad readiness passed after DDI recovery, but the iPad gate failed. Inspect the gate stdout/stderr in the recovery JSON, then rerun `tools/c00/run_device_cycle.sh ipad <device>`.");
+			actions.push("iOS ARKit readiness passed after DDI recovery, but the ARKit gate failed. Inspect the gate stdout/stderr in the recovery JSON, then rerun `tools/c00/run_device_cycle.sh ipad <device>`.");
 		} else if (!context.gate) {
-			actions.push("iPad readiness passed after DDI recovery. Run `tools/c00/run_device_cycle.sh ipad <device>` or rerun this command with `--run-gate`.");
+			actions.push("iOS ARKit readiness passed after DDI recovery. Run `tools/c00/run_device_cycle.sh ipad <device>` or rerun this command with `--run-gate`.");
 		}
 		return actions;
 	}
@@ -303,12 +309,12 @@ function recoveryNextActions(context) {
 		context.ddi && context.ddi.error,
 	].join("\n");
 	if (/unable to locate a device|unavailable|offline/i.test(ddiText)) {
-		actions.push("The DDI auto-mount command could not locate the iPad. Unlock the iPad, keep the screen awake, reconnect USB-C, accept Trust This Computer, then open Xcode Devices and Simulators once.");
-		actions.push("After the iPad no longer appears as unavailable/offline, rerun this recovery command.");
+		actions.push("The DDI auto-mount command could not locate the iOS device. Unlock it, keep the screen awake, reconnect USB-C, accept Trust This Computer, then open Xcode Devices and Simulators once.");
+		actions.push("After the device no longer appears as unavailable/offline, rerun this recovery command.");
 	} else if (/permission|Operation not permitted|XPCError|connection was invalidated/i.test(ddiText)) {
 		actions.push("Run this recovery command from a normal macOS terminal or approved unsandboxed Codex command so CoreDevice can access XPC services and user caches.");
 	} else {
-		actions.push("Inspect the DDI auto-mount JSON/log and the after-readiness report, then reconnect/unlock/trust the iPad before retrying.");
+		actions.push("Inspect the DDI auto-mount JSON/log and the after-readiness report, then reconnect/unlock/trust the iOS device before retrying.");
 	}
 	return actions;
 }
@@ -335,7 +341,7 @@ function summarizeJson(filePath) {
 
 function renderMarkdown(summary) {
 	const lines = [];
-	lines.push("# C00 iPad DDI Recovery");
+	lines.push("# C00 iOS ARKit DDI Recovery");
 	lines.push("");
 	lines.push(`Generated: ${summary.generated_at}`);
 	lines.push("");
@@ -377,7 +383,7 @@ function renderMarkdown(summary) {
 	pushCommand(lines, "DDI auto-mount", summary.ddi);
 	pushCommand(lines, "After readiness", summary.after);
 	if (summary.gate) {
-		pushCommand(lines, "iPad gate", summary.gate);
+		pushCommand(lines, "iOS ARKit gate", summary.gate);
 	}
 	lines.push("## Next Actions");
 	lines.push("");
@@ -430,11 +436,11 @@ function parseArgs(argv) {
 function usage() {
 	console.error([
 		"Usage:",
-		"  node tools/c00/recover_ios_ddi_services.js [--device <ipad-name-or-uuid>] [--package <bundle-id>] [--timeout <seconds>] [--dir <evidence-dir>] [--report <file>] [--json <file>] [--run-gate]",
+		"  node tools/c00/recover_ios_ddi_services.js [--device <ios-device-name-or-uuid>] [--package <bundle-id>] [--timeout <seconds>] [--dir <evidence-dir>] [--report <file>] [--json <file>] [--run-gate]",
 		"",
-		"Runs iPad readiness, attempts `devicectl device info ddiServices --auto-mount-ddis`,",
+		"Runs iOS ARKit readiness, attempts `devicectl device info ddiServices --auto-mount-ddis`,",
 		"then runs readiness again and preserves all evidence paths. If --device is omitted,",
-		"the tool auto-selects a single visible iPad from `xcrun devicectl list devices`.",
+		"the tool auto-selects a single visible iPad or iPhone from `xcrun devicectl list devices`.",
 	].join("\n"));
 }
 

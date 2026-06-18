@@ -153,12 +153,16 @@ for (const item of gates) {
 		if (!preset.raw.includes("GodotARKit")) {
 			failures.push(`Preset "${requirement.name}" must enable the GodotARKit iOS plugin so the ARKit singleton is exported.`);
 		}
+		const targetedDeviceFamily = getPresetOption(preset, "application/targeted_device_family").trim();
+		if (targetedDeviceFamily !== "2") {
+			failures.push(`Preset "${requirement.name}" must set application/targeted_device_family=2 so the ARKit build supports both iPhone and iPad.`);
+		}
 		const teamId = getPresetOption(preset, "application/app_store_team_id").trim();
 		if (!teamId) {
 			failures.push(`Preset "${requirement.name}" must set application/app_store_team_id. Use a real Apple Developer Team ID on device machines; ABCDE12345 is only a starter placeholder.`);
 		}
 		if (teamId === "ABCDE12345") {
-			warnings.push(`Preset "${requirement.name}" still uses placeholder application/app_store_team_id=ABCDE12345; replace it with a real Apple Developer Team ID before installing to iPad.`);
+			warnings.push(`Preset "${requirement.name}" still uses placeholder application/app_store_team_id=ABCDE12345; replace it with a real Apple Developer Team ID before installing to an iOS device.`);
 		}
 		const iconPath = getPresetOption(preset, "icons/icon_1024x1024").trim();
 		if (!iconPath) {
@@ -185,6 +189,7 @@ for (const item of gates) {
 		extra_args: getPresetOption(preset, "command_line/extra_args"),
 		openxr_vendors: (item === "rokid" || item === "rokid-place") ? Object.fromEntries(openXrVendorOptions.map((option) => [option, isTruthyOption(preset, option)])) : undefined,
 		app_store_team_id: (item === "ipad" || item === "ipad-place") ? getPresetOption(preset, "application/app_store_team_id") : undefined,
+		targeted_device_family: (item === "ipad" || item === "ipad-place") ? getPresetOption(preset, "application/targeted_device_family") : undefined,
 		icon_1024x1024: (item === "ipad" || item === "ipad-place") ? getPresetOption(preset, "icons/icon_1024x1024") : undefined,
 	});
 }

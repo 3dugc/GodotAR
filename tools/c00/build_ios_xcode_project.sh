@@ -16,6 +16,7 @@ ALLOW_PROVISIONING_UPDATES="${ALLOW_PROVISIONING_UPDATES:-1}"
 TEAM_ID="${TEAM_ID:-${DEVELOPMENT_TEAM:-${IPAD_TEAM_ID:-${APPLE_TEAM_ID:-}}}}"
 BUNDLE_ID="${BUNDLE_ID:-${PACKAGE:-org.godotengine.godotxrfoundation}}"
 CODE_SIGN_STYLE="${CODE_SIGN_STYLE:-Automatic}"
+CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY-Apple Development}"
 CODE_SIGNING_ALLOWED="${CODE_SIGNING_ALLOWED:-}"
 IOS_BUILD_PLATFORM="${IOS_BUILD_PLATFORM:-ios}"
 IOS_DESTINATION="${IOS_DESTINATION:-}"
@@ -37,9 +38,10 @@ Environment:
   IPAD_TEAM_ID / APPLE_TEAM_ID   Optional aliases for device-machine iPad signing.
   BUNDLE_ID / PACKAGE            Optional bundle id override.
   CODE_SIGN_STYLE                Default: Automatic.
+  CODE_SIGN_IDENTITY             Default: Apple Development; set empty to use the exported project value.
   CODE_SIGNING_ALLOWED           Optional xcodebuild override, useful as NO for Simulator.
   IOS_BUILD_PLATFORM             ios | simulator. Default: ios.
-  IOS_DESTINATION                Optional full xcodebuild destination override.
+  IOS_DESTINATION                Optional full xcodebuild destination override. DEVICE may be an iPad/iPhone name or UDID.
   IOS_SIMULATOR_ARCHS            auto | arm64 | x86_64 | "arm64 x86_64". Default: auto.
   ALLOW_PROVISIONING_UPDATES     Pass -allowProvisioningUpdates when 1. Default: 1.
 
@@ -208,6 +210,28 @@ case "$IOS_BUILD_PLATFORM" in
 		;;
 esac
 
+resolve_xcode_device_id() {
+	local wanted="$1"
+	if ! command -v xcrun >/dev/null 2>&1 || ! command -v node >/dev/null 2>&1; then
+		return 1
+	fi
+	xcrun xctrace list devices 2>/dev/null | node -e '
+const wanted = String(process.argv[1] || "").trim();
+const lines = require("fs").readFileSync(0, "utf8").split(/\r?\n/);
+for (const line of lines) {
+	const match = line.match(/^(.+?)\s+\(([^()]*)\)\s+\(([0-9A-Fa-f-]+)\)\s*$/);
+	if (!match) continue;
+	const name = match[1].trim();
+	const id = match[3].trim();
+	if (wanted === name || wanted === id) {
+		process.stdout.write(id);
+		process.exit(0);
+	}
+}
+process.exit(1);
+' "$wanted"
+}
+
 if [[ -n "$IOS_DESTINATION" ]]; then
 	DESTINATION="$IOS_DESTINATION"
 elif [[ "$IOS_BUILD_PLATFORM" == "simulator" ]]; then
@@ -216,7 +240,13 @@ else
 	DESTINATION="generic/platform=iOS"
 fi
 if [[ "$IOS_BUILD_PLATFORM" == "ios" && -n "$DEVICE" ]]; then
-	DESTINATION="platform=iOS,id=$DEVICE"
+	if resolved_device_id="$(resolve_xcode_device_id "$DEVICE")" && [[ -n "$resolved_device_id" ]]; then
+		DESTINATION="platform=iOS,id=$resolved_device_id"
+	elif [[ "$DEVICE" =~ ^[0-9A-Fa-f]{8,}(-[0-9A-Fa-f]+)*$ ]]; then
+		DESTINATION="platform=iOS,id=$DEVICE"
+	else
+		DESTINATION="platform=iOS,name=$DEVICE"
+	fi
 fi
 
 XCODE_ARGS=(
@@ -316,6 +346,9 @@ if [[ -n "$BUNDLE_ID" ]]; then
 fi
 if [[ -n "$CODE_SIGN_STYLE" ]]; then
 	BUILD_SETTINGS+=("CODE_SIGN_STYLE=$CODE_SIGN_STYLE")
+fi
+if [[ -n "$CODE_SIGN_IDENTITY" ]]; then
+	BUILD_SETTINGS+=("CODE_SIGN_IDENTITY=$CODE_SIGN_IDENTITY")
 fi
 if [[ -n "$CODE_SIGNING_ALLOWED" ]]; then
 	BUILD_SETTINGS+=("CODE_SIGNING_ALLOWED=$CODE_SIGNING_ALLOWED")

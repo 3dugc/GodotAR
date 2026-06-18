@@ -43,25 +43,26 @@ if [ -n "$APP_PATH" ]; then
 	set -e
 	if [ "$INSTALL_STATUS" -ne 0 ]; then
 		COLLECT_STATUS="$INSTALL_STATUS"
-		echo "iPad app install failed with exit $INSTALL_STATUS; continuing to device profile and smoke diagnostics." >&2
+		echo "iOS app install failed with exit $INSTALL_STATUS; continuing to device profile and smoke diagnostics." >&2
 	fi
 fi
 
-echo "Collecting iPad device profile -> $PROFILE_PATH"
+echo "Collecting iOS device profile -> $PROFILE_PATH"
 if ! node "$PROJECT_ROOT/tools/c00/collect_ios_device_profile.js" \
 	--device "$DEVICE" \
 	--bundle "$BUNDLE_ID" \
+	--gate "$IOS_GATE" \
 	--report "$PROFILE_PATH" \
 	--json "$PROFILE_JSON_PATH"; then
-	echo "iPad device profile collection failed; continuing to smoke collection."
+	echo "iOS device profile collection failed; continuing to smoke collection."
 fi
 
 if [ -f "$PROFILE_JSON_PATH" ]; then
-	echo "Analyzing iPad device profile -> $PROFILE_ANALYSIS_PATH"
+	echo "Analyzing iOS device profile -> $PROFILE_ANALYSIS_PATH"
 	if ! node "$PROJECT_ROOT/tools/c00/analyze_ios_device_profile.js" \
 		--json "$PROFILE_JSON_PATH" \
 		--report "$PROFILE_ANALYSIS_PATH"; then
-		echo "iPad device profile analysis reported failures; final gate still depends on smoke log validation."
+		echo "iOS device profile analysis reported failures; final gate still depends on smoke log validation."
 	fi
 fi
 
@@ -112,7 +113,7 @@ if [ "$CAPTURE_MEDIA" != "0" ]; then
 fi
 
 echo "devicectl launch status: $LAUNCH_STATUS"
-echo "Validating iPad gate"
+echo "Validating iOS ARKit gate"
 set +e
 node "$PROJECT_ROOT/tools/c00/validate_smoke_log.js" \
 	--gate "$IOS_GATE" \

@@ -14,6 +14,7 @@ if (args.help || args.h) {
 
 const device = String(args.device || process.env.DEVICE || "");
 const bundleId = String(args.bundle || args.package || process.env.BUNDLE_ID || process.env.PACKAGE || "org.godotengine.godotxrfoundation");
+const gate = String(args.gate || process.env.IOS_GATE || "ipad");
 const reportPath = args.report ? path.resolve(String(args.report)) : "";
 const jsonPath = args.json ? path.resolve(String(args.json)) : "";
 const appendReportPath = args["append-report"] ? path.resolve(String(args["append-report"])) : "";
@@ -73,6 +74,7 @@ function usage() {
 		"  node tools/c00/collect_ios_device_profile.js --device <uuid|name> --bundle <id> [--report <file>] [--json <file>] [--append-report <file>]",
 		"",
 		"Options:",
+		"  --gate <name>       Evidence gate label. Default: ipad.",
 		"  --devicectl <path>  devicectl executable. Default: xcrun devicectl.",
 		"  --timeout <seconds> devicectl command timeout. Default: 20.",
 	].join("\n"));
@@ -105,7 +107,7 @@ function collectProfile() {
 	const warnings = collectWarnings(commands, selectedDevice, targetApp);
 
 	return {
-		gate: "ipad",
+		gate,
 		device,
 		bundle_id: bundleId,
 		generated_at: generatedAt,

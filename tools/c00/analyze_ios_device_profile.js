@@ -27,7 +27,7 @@ try {
 		gate: "ipad",
 		profile: profilePath,
 		pass: false,
-		failures: [`iPad device profile JSON is not readable or parseable: ${String(error.message || error)}`],
+		failures: [`iOS ARKit device profile JSON is not readable or parseable: ${String(error.message || error)}`],
 		warnings: [],
 		evidence: {},
 	};
@@ -84,29 +84,29 @@ function analyzeProfile(profile) {
 	const availability = detectDeviceAvailability(profile);
 	const hostPermissionBlocked = isHostPermissionBlocked(profile);
 
-	if (profile.gate && String(profile.gate).toLowerCase() !== "ipad") {
-		warnings.push(`Profile was collected for gate "${profile.gate}", but analyzed as "ipad".`);
+	if (profile.gate && !["ipad", "ipad-place", "ios", "iphone"].includes(String(profile.gate).toLowerCase())) {
+		warnings.push(`Profile was collected for gate "${profile.gate}", but analyzed as an iOS ARKit device profile.`);
 	}
 	if (hostPermissionBlocked) {
-		failures.push("Host permission blocked iPad device profile collection; devicectl, CoreDevice, or xctrace could not access required host services from this environment.");
+		failures.push("Host permission blocked iOS ARKit device profile collection; devicectl, CoreDevice, or xctrace could not access required host services from this environment.");
 	}
 	if (!selectedDevice && !hostPermissionBlocked) {
-		failures.push(`No selected iPad device was found in devicectl output for ${profile.device || "unknown device"}.`);
+		failures.push(`No selected iOS ARKit device was found in devicectl output for ${profile.device || "unknown device"}.`);
 	}
 	if ((availability === "offline" || availability === "unavailable") && !hostPermissionBlocked) {
-		failures.push(`iPad appears ${availability}; connect, unlock, and trust the device before running the ARKit gate.`);
+		failures.push(`iOS ARKit device appears ${availability}; connect, unlock, and trust the device before running the ARKit gate.`);
 	}
 	if (!targetApp) {
 		recordMissingTarget(`Target bundle was not installed when profile was collected: ${profile.bundle_id || "unknown bundle"}.`);
 	}
 	if (displays.length === 0) {
-		warnings.push("No iPad display summary was found in devicectl output.");
+		warnings.push("No iOS display summary was found in devicectl output.");
 	}
 	if (!commands.lock_state || commands.lock_state.ok !== true) {
 		warnings.push("devicectl lockState command did not complete successfully; confirm the iPad is unlocked before launch.");
 	}
 	if (lockState === "locked") {
-		failures.push("iPad appears to be locked; unlock the device before running the ARKit gate.");
+		failures.push("iOS ARKit device appears to be locked; unlock the device before running the ARKit gate.");
 	}
 
 	for (const warning of arrayOfStrings(profile.warnings)) {
@@ -150,16 +150,16 @@ function iosNextActions(context) {
 	const availability = String(context.availability || "").toLowerCase();
 
 	if (context.hostPermissionBlocked) {
-		actions.push("Run the iPad profile collector from a normal macOS terminal or an approved unsandboxed Codex command so devicectl, CoreDevice, and xctrace can access user caches and XPC services.");
-		actions.push("After host permissions are clear, reconnect and unlock the iPad, trust this Mac, and rerun readiness with the same --device value.");
+		actions.push("Run the iOS profile collector from a normal macOS terminal or an approved unsandboxed Codex command so devicectl, CoreDevice, and xctrace can access user caches and XPC services.");
+		actions.push("After host permissions are clear, reconnect and unlock the iOS device, trust this Mac, and rerun readiness with the same --device value.");
 		return actions;
 	}
 	if (!context.selectedDevice) {
-		actions.push(`Connect and unlock the iPad, trust this Mac, then confirm it appears in \`xcrun devicectl list devices\` as ${profile.device || "the requested device"}.`);
+		actions.push(`Connect and unlock the iPad/iPhone, trust this Mac, then confirm it appears in \`xcrun devicectl list devices\` as ${profile.device || "the requested device"}.`);
 		return actions;
 	}
 	if (availability === "offline" || availability === "unavailable") {
-		actions.push("Reconnect the iPad over USB-C, unlock it, keep the screen awake, and accept any Trust This Computer prompt.");
+		actions.push("Reconnect the iPad/iPhone over USB-C, unlock it, keep the screen awake, and accept any Trust This Computer prompt.");
 		actions.push("Open Xcode Devices and Simulators once to let CoreDevice finish pairing and developer service setup.");
 	}
 	if (deviceProperty(selectedDevice, "ddiServicesAvailable") === false) {
@@ -167,10 +167,10 @@ function iosNextActions(context) {
 	}
 	const developerModeStatus = deviceProperty(selectedDevice, "developerModeStatus");
 	if (developerModeStatus && String(developerModeStatus).toLowerCase() !== "enabled") {
-		actions.push("Enable Developer Mode on the iPad and reboot when prompted.");
+		actions.push("Enable Developer Mode on the iOS device and reboot when prompted.");
 	}
 	if (context.lockState === "locked") {
-		actions.push("Unlock the iPad before running the ARKit gate.");
+		actions.push("Unlock the iOS device before running the ARKit gate.");
 	}
 	if (!context.targetApp) {
 		actions.push("The target app is not installed yet; this is okay before the gate, but the iPad must become available so the runner can install the .app.");
@@ -188,12 +188,12 @@ function buildDdiServicesAction(profile, selectedDevice) {
 	const xcodeVersion = host.xcode || "unknown";
 	const iphoneosSdk = host.iphoneos_sdk_version || "unknown";
 	const sdkHint = compareMajorMinor(deviceVersion, iphoneosSdk);
-	const deviceArg = shellQuote(profile.device || deviceProperty(selectedDevice, "identifier") || deviceProperty(selectedDevice, "name") || "iPad");
-	let action = `Xcode reports ddiServicesAvailable=false for iPadOS ${deviceVersion || "unknown"}; host Xcode=${xcodeVersion}, iphoneos SDK=${iphoneosSdk}. Open Xcode Devices and Simulators, install/update matching iPadOS device support, then reconnect the iPad. To force CoreDevice to mount/update DDI from terminal, run \`xcrun devicectl device info ddiServices --device ${deviceArg} --auto-mount-ddis\` after the iPad is unlocked and trusted.`;
+	const deviceArg = shellQuote(profile.device || deviceProperty(selectedDevice, "identifier") || deviceProperty(selectedDevice, "name") || "iOS device");
+	let action = `Xcode reports ddiServicesAvailable=false for iOS/iPadOS ${deviceVersion || "unknown"}; host Xcode=${xcodeVersion}, iphoneos SDK=${iphoneosSdk}. Open Xcode Devices and Simulators, install/update matching iOS device support, then reconnect the device. To force CoreDevice to mount/update DDI from terminal, run \`xcrun devicectl device info ddiServices --device ${deviceArg} --auto-mount-ddis\` after the device is unlocked and trusted.`;
 	if (sdkHint === "device-newer") {
-		action += " The iPadOS version appears newer than the host iphoneos SDK, so install a newer Xcode/Xcode beta or update the host SDK line.";
+		action += " The device OS version appears newer than the host iphoneos SDK, so install a newer Xcode/Xcode beta or update the host SDK line.";
 	} else if (sdkHint === "sdk-newer") {
-		action += " The host SDK line appears newer than the iPadOS version; if pairing still fails, update the iPad or reinstall device support for the exact iPadOS line.";
+		action += " The host SDK line appears newer than the device OS version; if pairing still fails, update the device or reinstall device support for the exact OS line.";
 	}
 	return action;
 }

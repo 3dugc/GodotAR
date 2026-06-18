@@ -14,12 +14,12 @@ const checks = [
 	{
 		file: "tools/c00/analyze_ios_device_profile.js",
 		requirements: [
-			["selected iPad device failure", /No selected iPad device was found/],
-			["offline iPad failure", /iPad appears \$\{availability\}/],
+			["selected iOS ARKit device failure", /No selected iOS ARKit device was found/],
+			["offline iOS ARKit failure", /iOS ARKit device appears \$\{availability\}/],
 			["target bundle install failure", /Target bundle was not installed/],
-			["lock state failure", /iPad appears to be locked/],
+			["lock state failure", /iOS ARKit device appears to be locked/],
 			["allow missing target option", /allow-missing-target/],
-			["DDI services host toolchain action", /ddiServicesAvailable=false for iPadOS.*host Xcode=.*iphoneos SDK=/],
+			["DDI services host toolchain action", /ddiServicesAvailable=false for iOS\/iPadOS.*host Xcode=.*iphoneos SDK=/],
 			["DDI services auto-mount action", /device info ddiServices --device .*--auto-mount-ddis/],
 			["nested CoreDevice property helper", /function\s+deviceProperty\s*\(/],
 			["nested CoreDevice deviceProperties support", /deviceProperties/],
@@ -45,11 +45,11 @@ const checks = [
 			["profile analysis path", /PROFILE_ANALYSIS_PATH=/],
 			["install status capture", /INSTALL_STATUS="\$\?"/],
 			["continue after install failure", /continuing to device profile and smoke diagnostics/],
-			["iPad profile analyzer invocation", /analyze_ios_device_profile\.js/],
-			["append iPad profile analysis", /Device profile analysis:/],
+			["iOS profile analyzer invocation", /analyze_ios_device_profile\.js/],
+			["append iOS profile analysis", /Device profile analysis:/],
 		],
 		order: [
-			["install before profile collection", /Installing app bundle:/, /Collecting iPad device profile/],
+			["install before profile collection", /Installing app bundle:/, /Collecting iOS device profile/],
 		],
 	},
 	{
@@ -67,7 +67,7 @@ const checks = [
 		file: "tools/c00/check_device_ready.js",
 		requirements: [
 			["readiness host summary", /host:\s*profile\.host\s*\|\|\s*summarizeIpadHost/],
-			["readiness DDI action", /ddiServicesAvailable=false for iPadOS.*host Xcode=.*iphoneos SDK=/],
+			["readiness DDI action", /ddiServicesAvailable=false for iOS\/iPadOS.*host Xcode=.*iphoneos SDK=/],
 			["readiness DDI services summary", /ddi_services:\s*profile\.ddi_services\s*\|\|\s*commandSummary/],
 			["readiness DDI auto-mount action", /device info ddiServices --device .*--auto-mount-ddis/],
 			["readiness nested CoreDevice property helper", /function\s+ipadDeviceProperty\s*\(/],
