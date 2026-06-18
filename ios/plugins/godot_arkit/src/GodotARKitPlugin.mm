@@ -156,11 +156,31 @@ static Dictionary camera_frame_from_native(NSDictionary *p_native) {
 	frame["timestamp_msec"] = [p_native[@"timestamp_msec"] doubleValue];
 	frame["tracking_state"] = ns_string_to_godot(p_native[@"tracking_state"]);
 	frame["tracking_reason"] = ns_string_to_godot(p_native[@"tracking_reason"]);
+	frame["has_camera_transform"] = [p_native[@"has_camera_transform"] boolValue];
+	frame["camera_transform"] = transform_from_array(p_native[@"camera_transform"], Vector3());
+	frame["camera_transform_matrix"] = double_array_from_native(p_native[@"camera_transform"] ?: @[]);
 	frame["has_intrinsics"] = [p_native[@"has_intrinsics"] boolValue];
 	frame["intrinsics"] = intrinsics_from_native(p_native[@"intrinsics"]);
 	frame["has_light_estimate"] = [p_native[@"has_light_estimate"] boolValue];
 	frame["light_estimation"] = light_estimation_from_native(p_native[@"light_estimation"]);
+	frame["camera_background"] = [p_native[@"camera_background"] boolValue];
+	frame["camera_background_mode"] = ns_string_to_godot(p_native[@"camera_background_mode"]);
+	frame["camera_background_reason"] = ns_string_to_godot(p_native[@"camera_background_reason"]);
 	return frame;
+}
+
+static Dictionary camera_background_state_from_native(NSDictionary *p_native) {
+	Dictionary state;
+	if (p_native == nil) {
+		state["available"] = false;
+		state["mode"] = String("not_installed");
+		return state;
+	}
+	state["available"] = [p_native[@"available"] boolValue];
+	state["mode"] = ns_string_to_godot(p_native[@"mode"]);
+	state["reason"] = ns_string_to_godot(p_native[@"reason"]);
+	state["attempts"] = (int64_t)[p_native[@"attempts"] integerValue];
+	return state;
 }
 
 GodotARKitPlugin *GodotARKitPlugin::get_singleton() {
@@ -180,6 +200,7 @@ void GodotARKitPlugin::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_capabilities"), &GodotARKitPlugin::get_capabilities);
 	ClassDB::bind_method(D_METHOD("try_get_intrinsics"), &GodotARKitPlugin::try_get_intrinsics);
 	ClassDB::bind_method(D_METHOD("get_camera_frame"), &GodotARKitPlugin::get_camera_frame);
+	ClassDB::bind_method(D_METHOD("get_camera_background_state"), &GodotARKitPlugin::get_camera_background_state);
 	ClassDB::bind_method(D_METHOD("get_light_estimation"), &GodotARKitPlugin::get_light_estimation);
 	ClassDB::bind_method(D_METHOD("hit_test", "origin", "direction", "max_distance"), &GodotARKitPlugin::hit_test);
 	ClassDB::bind_method(D_METHOD("create_anchor", "transform", "attached_trackable"), &GodotARKitPlugin::create_anchor, DEFVAL(Variant()));
@@ -251,8 +272,8 @@ Dictionary GodotARKitPlugin::get_capabilities() {
 	Dictionary capabilities;
 	capabilities["session"] = supported;
 	capabilities["tracking"] = supported;
-	capabilities["camera_background"] = supported;
-	capabilities["passthrough"] = supported;
+	capabilities["camera_background"] = false;
+	capabilities["passthrough"] = false;
 	capabilities["raycast"] = supported;
 	capabilities["plane_detection"] = supported;
 	capabilities["anchors"] = supported;
@@ -273,6 +294,13 @@ Dictionary GodotARKitPlugin::get_capabilities() {
 		capabilities["arkit_tracking_reason"] = ns_string_to_godot(native_capabilities[@"arkit_tracking_reason"]);
 		capabilities["arkit_camera_frame_available"] = [native_capabilities[@"arkit_camera_frame_available"] boolValue];
 		capabilities["arkit_camera_intrinsics"] = [native_capabilities[@"arkit_camera_intrinsics"] boolValue];
+		capabilities["arkit_camera_pose"] = [native_capabilities[@"arkit_camera_pose"] boolValue];
+		capabilities["arkit_camera_background_rendering"] = [native_capabilities[@"arkit_camera_background_rendering"] boolValue];
+		capabilities["arkit_camera_background_mode"] = ns_string_to_godot(native_capabilities[@"arkit_camera_background_mode"]);
+		capabilities["arkit_camera_background_reason"] = ns_string_to_godot(native_capabilities[@"arkit_camera_background_reason"]);
+		capabilities["arkit_camera_background_attempts"] = (int64_t)[native_capabilities[@"arkit_camera_background_attempts"] integerValue];
+		capabilities["camera_background"] = [native_capabilities[@"camera_background"] boolValue];
+		capabilities["passthrough"] = [native_capabilities[@"passthrough"] boolValue];
 	}
 
 	return capabilities;
@@ -292,6 +320,14 @@ Dictionary GodotARKitPlugin::get_camera_frame() {
 		return camera_frame_from_native(nil);
 	}
 	return camera_frame_from_native([arkit_session cameraFrame]);
+}
+
+Dictionary GodotARKitPlugin::get_camera_background_state() {
+	GodotARKitSession *arkit_session = get_session(session);
+	if (arkit_session == nil) {
+		return camera_background_state_from_native(nil);
+	}
+	return camera_background_state_from_native([arkit_session cameraBackgroundState]);
 }
 
 Dictionary GodotARKitPlugin::get_light_estimation() {

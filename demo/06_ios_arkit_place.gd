@@ -25,6 +25,11 @@ var _last_place_reason := ""
 var _last_log_msec := 0
 var _last_status_msec := 0
 var _frame_event_count := 0
+var _native_pose_calibrated := false
+var _native_pose_origin_inverse := Transform3D.IDENTITY
+var _native_pose_start_transform := Transform3D.IDENTITY
+var _native_pose_applied := false
+var _native_ar_visuals_configured := false
 
 
 func _ready() -> void:
@@ -43,6 +48,7 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	_apply_native_ar_runtime()
 	_update_center_hit()
 	if _place_input_pressed():
 		_place_at_current_hit("input_select")
@@ -189,7 +195,9 @@ func _update_status_panel() -> void:
 		"Session: %s  ARSession: %s" % [String(XRFoundation.get_session_state_name()), String(XRFoundation.get_ar_session_state_name())],
 		"Tracking: %s  Reason: %s" % [String(XRFoundation.get_tracking_state_name()), String(XRFoundation.get_not_tracking_reason_name())],
 		"ARKit: %s  Reason: %s" % [String(capabilities.get("arkit_tracking_state", "unknown")), String(capabilities.get("arkit_tracking_reason", "unknown"))],
-		"Camera: bg %s  frame %s  intrinsics %s" % [_yes_no(bool(camera.get("camera_background", false))), _yes_no(bool(camera.get("native_frame_available", false))), _yes_no(bool(camera.get("has_intrinsics", false)))],
+		"Camera: bg %s  frame %s  pose %s" % [_yes_no(bool(camera.get("camera_background", false))), _yes_no(bool(camera.get("native_frame_available", false))), _yes_no(_native_pose_applied)],
+		"Intrinsics: %s  BG: %s  Try: %d" % [_yes_no(bool(camera.get("has_intrinsics", false))), String(capabilities.get("arkit_camera_background_mode", "unknown")), int(capabilities.get("arkit_camera_background_attempts", 0))],
+		"BG reason: %s" % String(capabilities.get("arkit_camera_background_reason", "unknown")),
 		"Planes: %d  Center hit: %s" % [int(planes.get("count", 0)), _yes_no(bool(_last_hit.get("hit", false)))],
 		"Anchors: %d  Placed: %d" % [int(anchors.get("count", 0)), _placed_count],
 		"Last place: %s" % ("none" if _last_place_reason == "" else _last_place_reason),
@@ -245,11 +253,68 @@ func _camera_metadata() -> Dictionary:
 		"frame_event_count": _frame_event_count,
 		"native_frame_available": bool(latest.get("native_frame_available", false)),
 		"native_intrinsics_available": camera_manager.native_intrinsics_available,
+		"native_camera_pose_applied": _native_pose_applied,
+		"native_camera_has_transform": bool(_native_frame_from_latest(latest).get("has_camera_transform", false)),
+		"native_camera_transform_matrix": _native_frame_from_latest(latest).get("camera_transform_matrix", []),
 		"has_intrinsics": has_intrinsics,
 		"intrinsics_source": String(intrinsics.get("source", "")),
 		"current_light_estimation": int(camera_manager.currentLightEstimation),
 		"light_estimation": latest.get("light_estimation", {}),
 	}
+
+
+func _apply_native_ar_runtime() -> void:
+	if camera_manager == null or xr_camera == null:
+		return
+	camera_manager.update_camera_state()
+	var latest: Dictionary = camera_manager.GetLatestFrame()
+	var native_frame := _native_frame_from_latest(latest)
+	var capabilities := XRFoundation.get_capabilities()
+	if _should_configure_native_ar_visuals(native_frame, capabilities):
+		_configure_native_ar_visuals()
+	_apply_native_camera_pose(native_frame)
+
+
+func _should_configure_native_ar_visuals(native_frame: Dictionary, capabilities: Dictionary) -> bool:
+	return bool(native_frame.get("camera_background", false)) \
+		or bool(capabilities.get("arkit_camera_background_rendering", false)) \
+		or bool(capabilities.get("arkit_running", false)) \
+		or String(capabilities.get("runtime", "")) == "ARKit" \
+		or String(XRFoundation.get_provider_name()).to_lower().contains("arkit")
+
+
+func _configure_native_ar_visuals() -> void:
+	if _native_ar_visuals_configured:
+		return
+	var viewport := get_viewport()
+	if viewport:
+		viewport.transparent_bg = true
+	RenderingServer.set_default_clear_color(Color(0.0, 0.0, 0.0, 0.0))
+	var environment_node := get_node_or_null("WorldEnvironment")
+	if environment_node:
+		environment_node.set("environment", null)
+	_native_ar_visuals_configured = true
+
+
+func _apply_native_camera_pose(native_frame: Dictionary) -> void:
+	if not bool(native_frame.get("has_camera_transform", false)):
+		return
+	var raw_transform: Variant = native_frame.get("camera_transform")
+	if not (raw_transform is Transform3D):
+		return
+	var arkit_transform: Transform3D = raw_transform
+	if not _native_pose_calibrated:
+		_native_pose_origin_inverse = arkit_transform.affine_inverse()
+		_native_pose_start_transform = xr_camera.transform
+		_native_pose_calibrated = true
+	var relative_transform := _native_pose_origin_inverse * arkit_transform
+	xr_camera.transform = _native_pose_start_transform * relative_transform
+	_native_pose_applied = true
+
+
+func _native_frame_from_latest(latest: Dictionary) -> Dictionary:
+	var native_frame: Variant = latest.get("native_frame", {})
+	return native_frame if native_frame is Dictionary else {}
 
 
 func _plane_metadata() -> Dictionary:
@@ -331,6 +396,7 @@ func _runtime_metadata() -> Dictionary:
 		"xr_shaders_enabled": bool(ProjectSettings.get_setting("xr/shaders/enabled", false)),
 		"viewport_use_xr": viewport.use_xr if viewport else false,
 		"viewport_transparent_bg": viewport.transparent_bg if viewport else false,
+		"native_pose_applied": _native_pose_applied,
 	}
 
 

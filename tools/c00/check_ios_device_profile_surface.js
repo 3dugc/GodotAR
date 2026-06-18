@@ -18,6 +18,8 @@ const checks = [
 			["offline iOS ARKit failure", /iOS ARKit device appears \$\{availability\}/],
 			["target bundle install failure", /Target bundle was not installed/],
 			["lock state failure", /iOS ARKit device appears to be locked/],
+			["backlight off failure", /display backlight is off/],
+			["backlight evidence", /display_backlight_state/],
 			["allow missing target option", /allow-missing-target/],
 			["DDI services host toolchain action", /ddiServicesAvailable=false for iOS\/iPadOS.*host Xcode=.*iphoneos SDK=/],
 			["DDI services auto-mount action", /device info ddiServices --device .*--auto-mount-ddis/],
@@ -47,6 +49,7 @@ const checks = [
 			["continue after install failure", /continuing to device profile and smoke diagnostics/],
 			["iOS profile analyzer invocation", /analyze_ios_device_profile\.js/],
 			["append iOS profile analysis", /Device profile analysis:/],
+			["locked launch diagnostic", /launch was denied because the device is locked or asleep/],
 		],
 		order: [
 			["install before profile collection", /Installing app bundle:/, /Collecting iOS device profile/],

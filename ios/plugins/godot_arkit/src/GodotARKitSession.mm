@@ -1,14 +1,21 @@
 #import "GodotARKitSession.h"
 
 #import <ARKit/ARKit.h>
+#import <SceneKit/SceneKit.h>
+#import <UIKit/UIKit.h>
 
 @interface GodotARKitSession () <ARSessionDelegate>
 @end
 
 @implementation GodotARKitSession {
 	ARSession *_session;
+	ARSCNView *_backgroundView;
+	ARWorldTrackingConfiguration *_configuration;
 	NSMutableDictionary<NSUUID *, ARPlaneAnchor *> *_planeAnchors;
 	BOOL _running;
+	BOOL _cameraBackgroundInstalled;
+	NSInteger _cameraBackgroundInstallAttempts;
+	NSString *_cameraBackgroundInstallReason;
 	NSInteger _trackingStatus;
 	NSString *_trackingStateName;
 	NSString *_trackingStateReason;
@@ -64,13 +71,42 @@ static NSDictionary *intrinsicsDictionaryFromCamera(ARCamera *camera) {
 	};
 }
 
+static UIWindow *activeWindow() {
+	if (@available(iOS 13.0, *)) {
+		for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+			if (scene.activationState != UISceneActivationStateForegroundActive || ![scene isKindOfClass:UIWindowScene.class]) {
+				continue;
+			}
+			UIWindowScene *windowScene = (UIWindowScene *)scene;
+			for (UIWindow *window in windowScene.windows) {
+				if (window.isKeyWindow) {
+					return window;
+				}
+			}
+			if (windowScene.windows.count > 0) {
+				return windowScene.windows.firstObject;
+			}
+		}
+	}
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+	return UIApplication.sharedApplication.keyWindow;
+#pragma clang diagnostic pop
+}
+
 - (instancetype)init {
 	self = [super init];
 	if (self) {
 		_session = [ARSession new];
 		_session.delegate = self;
+		_backgroundView = nil;
+		_configuration = nil;
 		_planeAnchors = [NSMutableDictionary new];
 		_running = NO;
+		_cameraBackgroundInstalled = NO;
+		_cameraBackgroundInstallAttempts = 0;
+		_cameraBackgroundInstallReason = @"not_started";
 		_trackingStatus = 0;
 		_trackingStateName = @"not_available";
 		_trackingStateReason = @"not_running";
@@ -89,17 +125,18 @@ static NSDictionary *intrinsicsDictionaryFromCamera(ARCamera *camera) {
 	return _running;
 }
 
+- (BOOL)isCameraBackgroundRendering {
+	return _cameraBackgroundInstalled && _backgroundView != nil && _backgroundView.superview != nil && !_backgroundView.hidden;
+}
+
 - (BOOL)start {
 	if (![self isSupported]) {
 		return NO;
 	}
 
-	ARWorldTrackingConfiguration *configuration = [ARWorldTrackingConfiguration new];
-	if (@available(iOS 11.3, *)) {
-		configuration.planeDetection = ARPlaneDetectionHorizontal | ARPlaneDetectionVertical;
-	}
-	configuration.lightEstimationEnabled = YES;
-	[_session runWithConfiguration:configuration];
+	_configuration = [self makeWorldTrackingConfiguration];
+	[self installCameraBackgroundViewIfNeeded];
+	[self runCurrentConfiguration];
 	_running = YES;
 	[self updateTrackingFromFrame:_session.currentFrame];
 	return YES;
@@ -107,6 +144,10 @@ static NSDictionary *intrinsicsDictionaryFromCamera(ARCamera *camera) {
 
 - (BOOL)stop {
 	[_session pause];
+	if (_backgroundView != nil) {
+		_backgroundView.hidden = YES;
+	}
+	_cameraBackgroundInstallReason = @"stopped";
 	[_planeAnchors removeAllObjects];
 	_running = NO;
 	_trackingStatus = 0;
@@ -128,13 +169,15 @@ static NSDictionary *intrinsicsDictionaryFromCamera(ARCamera *camera) {
 }
 
 - (NSDictionary *)capabilities {
+	[self ensureCameraBackgroundViewForRunningSession];
 	BOOL supported = [self isSupported];
 	ARFrame *frame = _session.currentFrame;
+	BOOL cameraBackground = [self isCameraBackgroundRendering];
 	return @{
 		@"session": @(supported),
 		@"tracking": @(_trackingStatus == 2),
-		@"camera_background": @(supported),
-		@"passthrough": @(supported),
+		@"camera_background": @(cameraBackground),
+		@"passthrough": @(cameraBackground),
 		@"raycast": @(supported),
 		@"plane_detection": @(supported),
 		@"anchors": @(supported),
@@ -148,6 +191,11 @@ static NSDictionary *intrinsicsDictionaryFromCamera(ARCamera *camera) {
 		@"arkit_tracking_reason": [self trackingStateReason],
 		@"arkit_camera_frame_available": @(frame != nil),
 		@"arkit_camera_intrinsics": @(frame != nil && frame.camera != nil),
+		@"arkit_camera_pose": @(frame != nil && frame.camera != nil),
+		@"arkit_camera_background_rendering": @(cameraBackground),
+		@"arkit_camera_background_mode": cameraBackground ? @"native_arscnview_underlay" : @"not_installed",
+		@"arkit_camera_background_reason": _cameraBackgroundInstallReason ?: @"unknown",
+		@"arkit_camera_background_attempts": @(_cameraBackgroundInstallAttempts),
 	};
 }
 
@@ -183,6 +231,7 @@ static NSDictionary *intrinsicsDictionaryFromCamera(ARCamera *camera) {
 }
 
 - (NSDictionary *)cameraFrame {
+	[self ensureCameraBackgroundViewForRunningSession];
 	ARFrame *frame = _session.currentFrame;
 	if (!_running || frame == nil) {
 		return @{
@@ -194,6 +243,7 @@ static NSDictionary *intrinsicsDictionaryFromCamera(ARCamera *camera) {
 
 	NSDictionary *intrinsics = [self cameraIntrinsics];
 	NSDictionary *lightEstimate = [self lightEstimate];
+	NSArray *cameraTransform = frame.camera != nil ? matrixArrayFromTransform(frame.camera.transform) : @[];
 	return @{
 		@"available": @YES,
 		@"runtime": @"ARKit",
@@ -201,11 +251,110 @@ static NSDictionary *intrinsicsDictionaryFromCamera(ARCamera *camera) {
 		@"timestamp_msec": @(frame.timestamp * 1000.0),
 		@"tracking_state": [self trackingStateName],
 		@"tracking_reason": [self trackingStateReason],
+		@"has_camera_transform": @(frame.camera != nil),
+		@"camera_transform": cameraTransform,
 		@"has_intrinsics": @([intrinsics[@"success"] boolValue]),
 		@"intrinsics": intrinsics,
 		@"has_light_estimate": @([lightEstimate[@"available"] boolValue]),
 		@"light_estimation": lightEstimate,
+		@"camera_background": @([self isCameraBackgroundRendering]),
+		@"camera_background_mode": [self isCameraBackgroundRendering] ? @"native_arscnview_underlay" : @"not_installed",
+		@"camera_background_reason": _cameraBackgroundInstallReason ?: @"unknown",
 	};
+}
+
+- (NSDictionary *)cameraBackgroundState {
+	return @{
+		@"available": @([self isCameraBackgroundRendering]),
+		@"mode": [self isCameraBackgroundRendering] ? @"native_arscnview_underlay" : @"not_installed",
+		@"reason": _cameraBackgroundInstallReason ?: @"unknown",
+		@"attempts": @(_cameraBackgroundInstallAttempts),
+	};
+}
+
+- (ARWorldTrackingConfiguration *)makeWorldTrackingConfiguration {
+	ARWorldTrackingConfiguration *configuration = [ARWorldTrackingConfiguration new];
+	if (@available(iOS 11.3, *)) {
+		configuration.planeDetection = ARPlaneDetectionHorizontal | ARPlaneDetectionVertical;
+	}
+	configuration.lightEstimationEnabled = YES;
+	return configuration;
+}
+
+- (void)runCurrentConfiguration {
+	if (_configuration == nil) {
+		_configuration = [self makeWorldTrackingConfiguration];
+	}
+	[_session runWithConfiguration:_configuration];
+}
+
+- (void)ensureCameraBackgroundViewForRunningSession {
+	if (!_running || [self isCameraBackgroundRendering]) {
+		return;
+	}
+
+	ARSession *previousSession = _session;
+	[self installCameraBackgroundViewIfNeeded];
+	if ([self isCameraBackgroundRendering] && _session != previousSession) {
+		[_planeAnchors removeAllObjects];
+		[self runCurrentConfiguration];
+	}
+}
+
+- (void)installCameraBackgroundViewIfNeeded {
+	if ([self isCameraBackgroundRendering]) {
+		_backgroundView.hidden = NO;
+		return;
+	}
+
+	dispatch_block_t installBlock = ^{
+		self->_cameraBackgroundInstallAttempts += 1;
+		UIWindow *window = activeWindow();
+		if (window == nil) {
+			self->_cameraBackgroundInstallReason = @"window_unavailable";
+			self->_cameraBackgroundInstalled = NO;
+			return;
+		}
+		UIView *godotView = window.rootViewController.view ?: window;
+		UIView *container = godotView.superview ?: window;
+		if (godotView == nil || container == nil) {
+			self->_cameraBackgroundInstallReason = @"godot_view_unavailable";
+			self->_cameraBackgroundInstalled = NO;
+			return;
+		}
+
+		if (self->_backgroundView == nil) {
+			self->_backgroundView = [[ARSCNView alloc] initWithFrame:godotView.frame];
+			self->_backgroundView.userInteractionEnabled = NO;
+			self->_backgroundView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+			self->_backgroundView.backgroundColor = UIColor.clearColor;
+			self->_backgroundView.scene = [SCNScene scene];
+			self->_backgroundView.automaticallyUpdatesLighting = YES;
+		}
+
+		self->_backgroundView.hidden = NO;
+		if (self->_backgroundView.superview != container) {
+			[self->_backgroundView removeFromSuperview];
+			[container insertSubview:self->_backgroundView belowSubview:godotView];
+		}
+		self->_backgroundView.frame = godotView.frame;
+
+		godotView.opaque = NO;
+		godotView.backgroundColor = UIColor.clearColor;
+		godotView.layer.opaque = NO;
+		window.backgroundColor = UIColor.clearColor;
+
+		self->_session = self->_backgroundView.session;
+		self->_session.delegate = self;
+		self->_cameraBackgroundInstalled = YES;
+		self->_cameraBackgroundInstallReason = @"installed";
+	};
+
+	if (NSThread.isMainThread) {
+		installBlock();
+	} else {
+		dispatch_sync(dispatch_get_main_queue(), installBlock);
+	}
 }
 
 - (NSArray<NSDictionary *> *)hitTestFromOrigin:(simd_float3)origin direction:(simd_float3)direction maxDistance:(double)maxDistance {

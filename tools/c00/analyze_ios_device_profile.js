@@ -81,6 +81,7 @@ function analyzeProfile(profile) {
 	const displays = Array.isArray(profile.display_summary) ? profile.display_summary : [];
 	const commands = profile.commands || {};
 	const lockState = detectLockState(commands.lock_state);
+	const displayBacklightState = detectDisplayBacklightState(commands.displays);
 	const availability = detectDeviceAvailability(profile);
 	const hostPermissionBlocked = isHostPermissionBlocked(profile);
 
@@ -108,6 +109,9 @@ function analyzeProfile(profile) {
 	if (lockState === "locked") {
 		failures.push("iOS ARKit device appears to be locked; unlock the device before running the ARKit gate.");
 	}
+	if (displayBacklightState === "off") {
+		failures.push("iOS ARKit device display backlight is off; wake and unlock the device before launching the ARKit gate.");
+	}
 
 	for (const warning of arrayOfStrings(profile.warnings)) {
 		warnings.push(`collector: ${warning}`);
@@ -119,7 +123,7 @@ function analyzeProfile(profile) {
 		pass: failures.length === 0,
 		failures,
 		warnings,
-		next_actions: iosNextActions({ profile, selectedDevice, targetApp, availability, lockState, hostPermissionBlocked }),
+		next_actions: iosNextActions({ profile, selectedDevice, targetApp, availability, lockState, displayBacklightState, hostPermissionBlocked }),
 		evidence: {
 			device: summarizeDevice(selectedDevice),
 			host_permission_blocked: hostPermissionBlocked,
@@ -127,6 +131,7 @@ function analyzeProfile(profile) {
 			target_bundle_installed: Boolean(targetApp),
 			target_bundle: profile.bundle_id || "",
 			lock_state: lockState || "unknown",
+			display_backlight_state: displayBacklightState || "unknown",
 			displays,
 			ddi_services: summarizeDdiServices(profile.ddi_services || {}, commands.ddi_services),
 			host: summarizeHost(profile.host || {}, profile.commands || {}),
@@ -171,6 +176,9 @@ function iosNextActions(context) {
 	}
 	if (context.lockState === "locked") {
 		actions.push("Unlock the iOS device before running the ARKit gate.");
+	}
+	if (context.displayBacklightState === "off") {
+		actions.push("Wake the iOS device, unlock it, keep the screen on, and rerun the ARKit gate immediately; iOS denies devicectl launch while the device is locked or asleep.");
 	}
 	if (!context.targetApp) {
 		actions.push("The target app is not installed yet; this is okay before the gate, but the iPad must become available so the runner can install the .app.");
@@ -368,6 +376,47 @@ function detectLockState(commandResult) {
 		return "locked";
 	}
 	return "";
+}
+
+
+function detectDisplayBacklightState(commandResult) {
+	if (!commandResult || typeof commandResult !== "object") {
+		return "";
+	}
+	const value = findValueByKey(commandResult.json, "backlightState");
+	if (value !== undefined && value !== null && value !== "") {
+		return String(value).toLowerCase();
+	}
+	const text = [
+		JSON.stringify(commandResult.json || {}),
+		commandResult.stdout || "",
+		commandResult.stderr || "",
+		commandResult.log || "",
+	].join("\n").toLowerCase();
+	if (/backlight(?:state)?["'\s:=]+off|backlight\s+is\s+off/.test(text)) {
+		return "off";
+	}
+	if (/backlight(?:state)?["'\s:=]+on|backlight\s+is\s+on/.test(text)) {
+		return "on";
+	}
+	return "";
+}
+
+
+function findValueByKey(value, key) {
+	if (!value || typeof value !== "object") {
+		return undefined;
+	}
+	if (!Array.isArray(value) && Object.prototype.hasOwnProperty.call(value, key)) {
+		return value[key];
+	}
+	for (const item of Object.values(value)) {
+		const found = findValueByKey(item, key);
+		if (found !== undefined) {
+			return found;
+		}
+	}
+	return undefined;
 }
 
 

@@ -7,7 +7,7 @@ deinitialization="deinit_godot_arkit"
 [dependencies]
 linked=[]
 embedded=[]
-system=["Foundation.framework", "UIKit.framework", "ARKit.framework", "CoreMotion.framework", "Metal.framework"]
+system=["Foundation.framework", "UIKit.framework", "ARKit.framework", "SceneKit.framework", "CoreMotion.framework", "Metal.framework"]
 capabilities=["arkit", "metal"]
 files=[]
 linker_flags=["-ObjC"]

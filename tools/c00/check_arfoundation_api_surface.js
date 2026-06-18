@@ -165,6 +165,11 @@ const checks = [
 			["origin smoke metadata helper", /func\s+_origin_metadata\s*\(\)\s*->\s*Dictionary/],
 			["origin payload", /"origin"\s*:\s*_origin_metadata\(\)/],
 			["XROrigin smoke node reference", /@onready\s+var\s+xr_origin\s*:\s*Node\s*=\s*\$XROrigin/],
+			["native AR pose application", /func\s+_apply_native_camera_pose\s*\(/],
+			["native camera transform evidence", /native_camera_transform_matrix/],
+			["transparent AR viewport", /viewport\.transparent_bg\s*=\s*true/],
+			["transparent AR clear color", /RenderingServer\.set_default_clear_color\(Color\(0\.0,\s*0\.0,\s*0\.0,\s*0\.0\)\)/],
+			["native camera background diagnostics", /arkit_camera_background_reason/],
 		],
 	},
 	{

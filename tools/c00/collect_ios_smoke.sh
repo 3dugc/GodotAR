@@ -83,6 +83,10 @@ xcrun devicectl \
 LAUNCH_STATUS="$?"
 set -e
 
+if grep -Eqi "Locked|could not be unlocked|device was not.*unlocked" "$LOG_PATH"; then
+	echo "iOS app launch was denied because the device is locked or asleep; unlock it, keep the screen awake, and rerun this gate." >&2
+fi
+
 if ! grep -Eq "GXF_SMOKE|GXF_ARKIT_PLACE|GXF_ROKID_PLACE" "$LOG_PATH"; then
 	if command -v idevicesyslog >/dev/null 2>&1; then
 		echo "No GXF evidence from devicectl console. Trying idevicesyslog for ${DURATION}s..."
